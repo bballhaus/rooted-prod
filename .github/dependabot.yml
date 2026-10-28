@@ -1,0 +1,8 @@
+# Keeps the pinned GitHub Actions current. Add the app's package ecosystem
+# here when the stack lands.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

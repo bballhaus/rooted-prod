@@ -1,0 +1,23 @@
+# Lints Markdown and checks links between repo files on every PR and push to
+# main. Same checks as `npx markdownlint-cli2` and `lychee --offline` locally.
+name: Docs
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: DavidAnson/markdownlint-cli2-action@v25
+      - name: Check links between repo files
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --offline --include-fragments --no-progress .
+          fail: true

@@ -1,0 +1,14 @@
+{
+  // Run locally with `npx markdownlint-cli2`. CI runs the same config.
+  "config": {
+    "default": true,
+    "MD013": false, // prose is one line per paragraph
+    "MD024": { "siblings_only": true },
+    "MD029": false, // design-language.md numbers its checklist across headings
+    "MD033": false, // the PR and issue templates use HTML comments
+    "MD060": false // compact |---| table separators are fine
+  },
+  "globs": ["**/*.md"],
+  // Agent prompts and GitHub templates don't start with an H1 by design.
+  "ignores": ["node_modules/**", ".claude/**", ".github/**"]
+}
