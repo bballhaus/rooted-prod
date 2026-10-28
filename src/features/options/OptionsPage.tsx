@@ -202,7 +202,7 @@ export function OptionsPage() {
             </span>
           </div>
           <p className="muted options-note">
-            Talking an option through in chat (F-12, F-13) isn’t part of this prototype.
+            Talking an option through in chat isn’t part of this prototype yet.
           </p>
         </>
       )}

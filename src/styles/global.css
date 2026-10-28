@@ -256,6 +256,11 @@ h3 {
   color: var(--rec-fg);
 }
 
+/* A pill that is also a link (a reached step) still needs a 44px target. */
+a.pill {
+  min-height: 44px;
+}
+
 /* Where you are (a step, a filter). Neutral: wine is for the chosen option. */
 .pill-current {
   background: var(--chip-on-bg);
@@ -377,7 +382,7 @@ h3 {
 .checkbox input {
   width: 18px;
   height: 18px;
-  accent-color: var(--wine);
+  accent-color: var(--ink);
 }
 
 /* Banners */
