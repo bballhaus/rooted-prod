@@ -110,7 +110,7 @@ export function OptionsPage() {
     setBranching(parent.id);
     setAnnounce('');
     fetchSubOptions(decision, parent, options, state.contextItems).then((subs) => {
-      dispatch({ type: 'setOptions', decisionId: decision.id, options: [...options, ...subs] });
+      dispatch({ type: 'addOptions', options: subs });
       setBranching(null);
       setLevelParent(parent.id);
       setFocusId(undefined);
@@ -208,8 +208,8 @@ export function OptionsPage() {
               Decision tree
             </h2>
             <p className="muted options-legend">
-              Each branch shows rough ratings for impact, effort, risk and evidence (1–5) and its rough score. Pick a
-              node to compare it with its siblings below.
+              The four bars on each branch are its rough ratings, left to right: impact, effort, risk and evidence
+              (1–5), then its rough score. Pick a node to compare it with its siblings below.
             </p>
           </div>
           <DecisionTree
@@ -344,8 +344,8 @@ export function OptionsPage() {
 
       <Dialog open={confirmRegen} onClose={() => setConfirmRegen(false)} title="Regenerate options?">
         <p>
-          Rooted will map a fresh set of branches from your evidence brief. Your edits, pruned branches and any options
-          you added will be replaced.
+          Rooted will map a fresh set of branches from your evidence brief. Your edits, sub-options, pruned branches and
+          any options you added will be replaced.
         </p>
         <div className="row">
           <button

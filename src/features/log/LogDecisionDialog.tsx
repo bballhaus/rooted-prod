@@ -88,7 +88,10 @@ function LogDecisionForm({
   }
 
   const chosen = options.find((o) => o.id === choice);
-  const rejected = chosen ? splitForLog(options, chosen.id).alternatives : [];
+  const split = chosen ? splitForLog(options, chosen.id) : undefined;
+  const rejected = split?.alternatives ?? [];
+  // Options under an alternative are pruned with it; show them so nothing is pruned unseen.
+  const prunedWith = split ? split.notTaken.filter((o) => !rejected.includes(o)) : [];
 
   function pick(id: string) {
     setChoice(id);
@@ -266,6 +269,19 @@ function LogDecisionForm({
             </div>
           ))}
         </fieldset>
+      )}
+      {prunedWith.length > 0 && (
+        <div className="stack">
+          <p className="label log-legend">Also pruned with their branch</p>
+          <ul className="log-pruned-with">
+            {prunedWith.map((o) => (
+              <li key={o.id}>
+                <span className="pruned-label">{pathLabel(options, o.id)}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="muted log-draft-note">Each keeps the reason you give for the branch above it.</p>
+        </div>
       )}
       {logError && (
         <p className="error" role="alert">

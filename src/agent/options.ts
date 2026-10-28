@@ -381,7 +381,7 @@ const SPLITS: { name: string; subs: SubDraft[] }[] = [
         label: 'All new signups',
         summary: (p) => `${p} for every workspace created from launch day.`,
         pros: ['Clean before/after read on activation', 'Existing customers aren’t disrupted'],
-        cons: ['Takes a full cohort (about 4 weeks) to read'],
+        cons: ['Takes a full signup cohort to read'],
         impact: 0,
         effort: 0,
         risk: -1,
@@ -413,10 +413,10 @@ const SPLITS: { name: string; subs: SubDraft[] }[] = [
         score: 1,
       },
       {
-        label: 'After the dashboard redesign ships',
-        summary: (p) => `${p}, once the dashboard redesign is out in mid-November.`,
-        pros: ['Doesn’t compete with the redesign for eng time', 'Can reuse the new layout'],
-        cons: ['Six weeks later'],
+        label: 'After the next big release',
+        summary: (p) => `${p}, once the team’s next big release is out.`,
+        pros: ['Doesn’t compete with that release for eng time'],
+        cons: ['Impact lands later'],
         impact: 0,
         effort: -1,
         risk: -1,
@@ -454,7 +454,7 @@ const SPLITS: { name: string; subs: SubDraft[] }[] = [
     subs: [
       {
         label: 'Judge it on activation',
-        summary: (p) => `${p}, judged on the share of new workspaces that invite a second teammate in 7 days.`,
+        summary: (p) => `${p}, judged on the activation metric your team already tracks.`,
         pros: ['Reads within a week of launch'],
         cons: ['Says little about revenue'],
         impact: 0,
@@ -489,7 +489,7 @@ const EVIDENCE_STEPS: SubDraft[] = [
   },
   {
     label: 'Pull the numbers first',
-    summary: () => 'Ask #growth for the activation and trial-to-paid numbers behind the open questions.',
+    summary: () => 'Pull the numbers behind the open questions in your brief before choosing.',
     pros: ['Cheap and fast'],
     cons: ['Numbers alone won’t explain the cause'],
     impact: 0,
@@ -526,8 +526,11 @@ export function generateSubOptions(
 
   return subs.map((sub, i) => {
     let n = start + i + 1;
-    while (taken.has(`${parent.id}-${n}`)) n++;
-    const id = `${parent.id}-${n}`;
+    // Own namespace: a sub-option under the PM's option is still agent output,
+    // so it must not inherit the `o-user-` prefix.
+    const stem = `o-sub-${parent.id.replace(/^o-/, '')}`;
+    while (taken.has(`${stem}-${n}`)) n++;
+    const id = `${stem}-${n}`;
     taken.add(id);
     const contextIds = evidence.filter((_, j) => j % subs.length === i || evidence.length <= 1);
     const score = clamp((parent.score || 55) + sub.score, 5, 95);

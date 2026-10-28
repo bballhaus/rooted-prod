@@ -98,6 +98,25 @@ describe('generateSubOptions', () => {
 });
 
 describe('Decision tree graph', () => {
+  it('F-28: sub-options the agent drafts under the PM’s own option are still agent output with a report action', () => {
+    const mine: OptionNode = { ...top[0], id: 'o-user-abc', label: 'Annual-only trial', score: 0 };
+    const subs = generateSubOptions(trial, mine, [...top, mine], items);
+    expect(subs.every((s) => !s.id.startsWith('o-user-'))).toBe(true);
+  });
+
+  it('F-10: an edit made while the agent is branching out is kept', async () => {
+    const { user } = renderApp('/decisions/d-trial/options', state());
+    const [first, second] = top;
+    await user.click(screen.getByRole('button', { name: `Branch out ${first.label}` }));
+    // Prune another branch before the sub-options arrive.
+    await user.click(screen.getByRole('button', { name: `Prune ${second.label}` }));
+    await user.type(screen.getByLabelText('Why are you pruning this branch?'), 'Legal sign-off takes longer');
+    await user.click(screen.getByRole('button', { name: 'Prune branch' }));
+    await screen.findByRole('heading', { level: 2, name: `Sub-options of “${first.label}”` }, { timeout: 3000 });
+    await user.click(screen.getByRole('button', { name: 'Top-level options' }));
+    expect(screen.getByText('Legal sign-off takes longer')).toBeInTheDocument();
+  });
+
   it('F-11: shows the decision, every branch, and the past decisions it builds on', () => {
     renderApp('/decisions/d-trial/options', state());
     expect(node(/^Decision/)).toBeInTheDocument();

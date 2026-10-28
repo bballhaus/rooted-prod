@@ -168,7 +168,7 @@ Activities → Steps, left to right:
 - **Source**: type (Slack…), connected, scopes/channels allowed
 - **Decision**: question, status (open / decided / outcome logged), created date, review date, summary, rationale, chosen option
 - **ContextItem**: source, snippet, link, group/tag, flagged-inaccurate, user-edited
-- **OptionNode** (tree): label, parent, pros/cons, chosen / rejected, rejection reason
+- **OptionNode** (tree): label, parent, pros/cons, rough 1–5 ratings (impact, effort, risk, evidence), chosen / rejected, rejection reason
 - **ChatMessage**: decision, optional option node, role, text
 - **Outcome**: decision, result, metrics, logged date
 

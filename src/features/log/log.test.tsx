@@ -165,6 +165,52 @@ describe('LogDecisionDialog reasons', () => {
   });
 });
 
+describe('LogDecisionDialog with sub-options', () => {
+  const sub = (id: string, parentId: string, label: string) => ({
+    ...trialOptions[1],
+    id,
+    parentId,
+    label,
+    summary: `${label}.`,
+    pros: [],
+    cons: [],
+    state: 'open' as const,
+    pruneReason: undefined,
+  });
+
+  it('F-14: choosing a sub-option asks reasons only for the alternatives and logs the full path', async () => {
+    const s = trialState();
+    s.options.push(
+      sub('o-t-30-team', 'o-t-30', 'Team plan only'),
+      sub('o-t-30-all', 'o-t-30', 'All plans'),
+      sub('o-t-14-emails', 'o-t-14', 'With onboarding emails'),
+    );
+    const { user } = renderDialog('o-t-30-team', s);
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getAllByText('Under 30-day trial')).toHaveLength(2);
+    await user.click(within(dialog).getByRole('button', { name: 'Draft the rest' }));
+    await within(dialog).findByLabelText('Rationale', {}, WAIT);
+
+    expect(within(dialog).getByLabelText(/Why not 14-day trial/)).toBeInTheDocument();
+    expect(within(dialog).getByLabelText(/Why not All plans/)).toBeInTheDocument();
+    expect(within(dialog).queryByLabelText(/Why not 30-day trial/)).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText(/Why not With onboarding emails/)).not.toBeInTheDocument();
+    expect(within(dialog).getByText('14-day trial › With onboarding emails')).toBeInTheDocument();
+
+    await user.clear(within(dialog).getByLabelText(/Why not All plans/));
+    await user.click(within(dialog).getByRole('button', { name: 'Log decision' }));
+    expect(within(dialog).getByText('Give a reason for every option not taken.')).toBeInTheDocument();
+
+    await user.type(within(dialog).getByLabelText(/Why not All plans/), 'Starter teams add support load.');
+    await user.click(within(dialog).getByRole('button', { name: 'Log decision' }));
+    await screen.findByRole('heading', { level: 1, name: trialDecision.question });
+    expect(screen.getAllByText('30-day trial › Team plan only').length).toBeGreaterThan(0);
+    const logged = latest!.options;
+    expect(logged.find((o) => o.id === 'o-t-30')!.state).toBe('open');
+    expect(logged.find((o) => o.id === 'o-t-30-all')!.pruneReason).toBe('Starter teams add support load.');
+  });
+});
+
 describe('DecisionRecordPage', () => {
   it('F-18: shows the options not taken with their prune reasons', () => {
     renderApp('/decisions/d-onboarding-checklist');

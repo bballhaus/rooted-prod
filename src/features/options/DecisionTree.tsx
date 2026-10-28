@@ -232,7 +232,6 @@ function CriteriaBars({ criteria, score }: { criteria?: Criteria; score: number 
     <span className="options-node-bars" aria-hidden="true">
       {CRITERIA.map((k) => (
         <span key={k.key} className="options-node-bar" title={`${k.label}: ${criteria[k.key] ?? '–'} of 5`}>
-          <span className="options-node-bar-name">{k.short.slice(0, 3)}</span>
           <span className="options-node-bar-track">
             <span className="options-node-bar-fill" style={{ width: `${((criteria[k.key] ?? 0) / 5) * 100}%` }} />
           </span>

@@ -33,6 +33,7 @@ export type Action =
   | { type: 'updateContextItem'; itemId: string; patch: Partial<ContextItem> }
   | { type: 'updateGap'; gapId: string; patch: Partial<Gap> }
   | { type: 'setOptions'; decisionId: string; options: OptionNode[] }
+  | { type: 'addOptions'; options: OptionNode[] }
   | { type: 'updateOption'; optionId: string; patch: Partial<OptionNode> }
   | {
       type: 'logDecision';
@@ -133,6 +134,9 @@ export function reducer(state: AppState, action: Action): AppState {
         ...state,
         options: [...state.options.filter((o) => o.decisionId !== action.decisionId), ...action.options],
       };
+    case 'addOptions':
+      // Append-only, so edits made while the agent was drafting survive.
+      return { ...state, options: [...state.options, ...action.options] };
     case 'updateOption':
       return {
         ...state,

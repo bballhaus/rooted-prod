@@ -317,7 +317,7 @@
   gap: 4px;
   padding: 10px 12px;
   border: 1px solid var(--card-border);
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--ground);
   color: var(--ink);
   font: inherit;
@@ -360,23 +360,26 @@
 }
 
 .options-node-faded {
-  opacity: 0.55;
+  /* No opacity: text stays full contrast; the dashed border and the label carry the state. */
+  border-style: dashed;
+  box-shadow: none;
+  background: transparent;
 }
 
 .options-node-focus {
-  outline: 2px solid var(--ink);
-  outline-offset: 3px;
+  /* The picked node: a heavier border, so it never looks like the focus ring. */
+  border: 2px solid var(--ink);
+  padding: 9px 11px;
 }
 
 .options-node-kicker {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  opacity: 0.8;
 }
 
 .options-node-label {
@@ -391,7 +394,6 @@
 
 .options-node-meta {
   font-size: 12px;
-  opacity: 0.8;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -407,9 +409,6 @@
   flex: 1;
   display: grid;
   gap: 2px;
-  font-size: 10px;
-  line-height: 1;
-  opacity: 0.85;
 }
 
 .options-node-bar-track {
@@ -462,8 +461,9 @@
 }
 
 .options-card-focus {
-  outline: 2px solid var(--ink);
-  outline-offset: 3px;
+  box-shadow:
+    inset 0 0 0 2px var(--ink),
+    var(--card-shadow);
 }
 
 .options-criteria {
