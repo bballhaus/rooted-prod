@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
 
 // A modal built on the native <dialog>, so focus trapping and Escape come free.
 export function Dialog({
@@ -13,6 +13,7 @@ export function Dialog({
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -30,7 +31,7 @@ export function Dialog({
     <dialog
       ref={ref}
       className="dialog"
-      aria-labelledby="dialog-title"
+      aria-labelledby={titleId}
       onClose={onClose}
       onCancel={(e) => {
         e.preventDefault();
@@ -39,7 +40,7 @@ export function Dialog({
     >
       {open && (
         <div className="dialog-body">
-          <h2 id="dialog-title" className="section-title">
+          <h2 id={titleId} className="section-title">
             {title}
           </h2>
           {children}
