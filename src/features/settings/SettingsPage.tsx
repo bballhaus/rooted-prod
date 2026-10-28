@@ -250,7 +250,7 @@ function SourcesSection({ sources }: { sources: Source[] }) {
   function disconnect() {
     if (!confirming) return;
     dispatch({ type: 'updateSource', sourceId: confirming.id, patch: { connected: false, connectedAt: undefined } });
-    setStatus(`${confirming.name} is disconnected. Rooted won’t read it again unless you reconnect.`);
+    setStatus(`${confirming.name} is disconnected. Context Rooted gathered from it was removed, and it won’t be read again unless you reconnect.`);
     setConfirming(null);
   }
 
@@ -274,7 +274,7 @@ function SourcesSection({ sources }: { sources: Source[] }) {
               <div className="stack settings-source-info">
                 <h3 className="settings-source-name">{s.name}</h3>
                 <p className="row settings-source-meta">
-                  <span className={s.connected ? 'dot dot-alive' : 'dot dot-pruned'} aria-hidden="true" />
+                  <span className={s.connected ? 'dot dot-alive' : 'dot settings-dot-off'} aria-hidden="true" />
                   <span>
                     {s.connected
                       ? `Connected${s.connectedAt ? ` ${formatDate(s.connectedAt)}` : ''}`

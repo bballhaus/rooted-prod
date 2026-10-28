@@ -15,6 +15,7 @@ import type {
   WrongAnswerReport,
 } from '../types';
 import { demoUser } from '../data/fixtures';
+import { driveCorpus, slackCorpus } from '../data/slackCorpus';
 
 export const STORAGE_KEY = 'rooted-demo-v1';
 
@@ -45,6 +46,25 @@ export type Action =
   | { type: 'deleteAllData' }
   | { type: 'resetDemo' };
 
+const ORIGIN_OF: Record<Source['type'], ContextItem['origin']> = { slack: 'slack', 'google-drive': 'drive' };
+
+// F-02, F-23: when access is revoked, context already gathered from that
+// source (or from one channel or folder) is dropped, not just hidden.
+function dropContext(items: ContextItem[], source: Source, channelId?: string): ContextItem[] {
+  const origin = ORIGIN_OF[source.type];
+  if (!channelId) return items.filter((c) => c.origin !== origin);
+  const name = source.channels.find((c) => c.id === channelId)?.name;
+  const corpusIds =
+    source.type === 'slack'
+      ? slackCorpus.filter((m) => m.channelId === channelId).map((m) => m.id)
+      : driveCorpus.filter((d) => d.folderId === channelId).map((d) => d.id);
+  // Gathered items are keyed `${decisionId}-${corpusId}` (src/agent/brief.ts);
+  // Slack items also carry the channel name as their label.
+  const fromChannel = (c: ContextItem) =>
+    c.sourceLabel === name || corpusIds.some((id) => c.id.endsWith(`-${id}`));
+  return items.filter((c) => c.origin !== origin || !fromChannel(c));
+}
+
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'signIn':
@@ -53,14 +73,23 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, user: null };
     case 'updateUser':
       return state.user ? { ...state, user: { ...state.user, ...action.patch } } : state;
-    case 'updateSource':
+    case 'updateSource': {
+      const source = state.sources.find((s) => s.id === action.sourceId);
+      const disconnecting = source?.connected && action.patch.connected === false;
       return {
         ...state,
         sources: state.sources.map((s) => (s.id === action.sourceId ? { ...s, ...action.patch } : s)),
+        contextItems: disconnecting ? dropContext(state.contextItems, source) : state.contextItems,
       };
-    case 'setChannelAllowed':
+    }
+    case 'setChannelAllowed': {
+      const source = state.sources.find((s) => s.id === action.sourceId);
       return {
         ...state,
+        contextItems:
+          source && !action.allowed
+            ? dropContext(state.contextItems, source, action.channelId)
+            : state.contextItems,
         sources: state.sources.map((s) =>
           s.id !== action.sourceId
             ? s
@@ -72,6 +101,7 @@ export function reducer(state: AppState, action: Action): AppState {
               },
         ),
       };
+    }
     case 'createDecision':
       return { ...state, decisions: [action.decision, ...state.decisions] };
     case 'updateDecision':

@@ -124,3 +124,7 @@
   }
 }
 
+
+.settings-dot-off {
+  border: 1.5px solid var(--line);
+}

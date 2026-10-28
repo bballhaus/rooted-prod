@@ -1,4 +1,5 @@
-import { seedState } from '../data/fixtures';
+import { buildBrief } from '../agent/brief';
+import { demoUser, seedState } from '../data/fixtures';
 import { reducer } from './store';
 
 describe('store', () => {
@@ -27,5 +28,42 @@ describe('store', () => {
     const s1 = reducer(seedState(), { type: 'deleteAllData' });
     expect(s1.decisions).toHaveLength(0);
     expect(s1.sources.every((s) => !s.connected)).toBe(true);
+  });
+
+  function withBrief() {
+    const s0 = { ...seedState(), user: structuredClone(demoUser) };
+    s0.sources = s0.sources.map((s) => (s.type === 'google-drive' ? { ...s, connected: true } : s));
+    const decision = {
+      id: 'd-trial',
+      question: 'Extend the free trial from 14 to 21 days?',
+      notes: 'Trial-to-paid conversion and activation for new admins.',
+      links: [],
+      constraints: [],
+      status: 'brief' as const,
+      createdAt: '2026-10-28T00:00:00.000Z',
+    };
+    s0.decisions.push(decision);
+    const { items, gaps } = buildBrief(decision, s0);
+    return reducer(s0, { type: 'setBrief', decisionId: decision.id, items, gaps });
+  }
+
+  it('F-02: un-allowing a channel drops context already gathered from it', () => {
+    const s1 = withBrief();
+    const label = s1.contextItems.find((c) => c.origin === 'slack')?.sourceLabel;
+    expect(label).toBeDefined();
+    const channel = s1.sources.find((s) => s.type === 'slack')!.channels.find((c) => c.name === label)!;
+    const s2 = reducer(s1, { type: 'setChannelAllowed', sourceId: 'src-slack', channelId: channel.id, allowed: false });
+    expect(s2.contextItems.some((c) => c.origin === 'slack' && c.sourceLabel === label)).toBe(false);
+    expect(s2.contextItems.some((c) => c.origin === 'past-decision' || c.origin === 'user-note')).toBe(true);
+  });
+
+  it('F-23: disconnecting a source drops everything gathered from it', () => {
+    const s1 = withBrief();
+    expect(s1.contextItems.some((c) => c.origin === 'slack')).toBe(true);
+    const s2 = reducer(s1, { type: 'updateSource', sourceId: 'src-slack', patch: { connected: false } });
+    expect(s2.contextItems.some((c) => c.origin === 'slack')).toBe(false);
+    const s3 = reducer(s1, { type: 'updateSource', sourceId: 'src-drive', patch: { connected: false } });
+    expect(s3.contextItems.some((c) => c.origin === 'drive')).toBe(false);
+    expect(s3.contextItems.some((c) => c.origin === 'slack')).toBe(true);
   });
 });
