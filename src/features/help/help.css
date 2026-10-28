@@ -1,0 +1,86 @@
+/* Help page. Semantic tokens only; one 880px breakpoint. */
+
+.help-search {
+  max-width: 560px;
+}
+
+.help-topics {
+  display: grid;
+  gap: 24px;
+  max-width: 880px;
+}
+
+.help-topic h3 {
+  margin: 0;
+}
+
+.help-faq summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style-position: inside;
+}
+
+.help-faq summary::-webkit-details-marker {
+  margin-right: 8px;
+}
+
+.help-faq p {
+  margin: 8px 0 0;
+  color: var(--ink2);
+  max-width: 44em;
+}
+
+.help-empty p {
+  margin: 0;
+}
+
+.help-forms {
+  align-items: start;
+}
+
+.help-status {
+  margin: 0;
+  min-height: 1.5em;
+  font-weight: 600;
+}
+
+.help-reports {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-width: 880px;
+}
+
+.help-report {
+  gap: 8px;
+}
+
+.help-report p {
+  margin: 0;
+}
+
+.help-report-meta {
+  gap: 8px;
+  font-size: 14px;
+  color: var(--ink2);
+}
+
+.help-report-decision {
+  font-weight: 600;
+}
+
+.help-report-decision a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.help-report-excerpt {
+  margin: 0;
+  padding: 8px 16px;
+  border-left: 2px solid var(--card-border);
+  color: var(--ink2);
+}
