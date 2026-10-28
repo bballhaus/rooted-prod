@@ -1,6 +1,7 @@
 #!/bin/sh
 # PreToolUse hook (see .claude/settings.json). Blocks the git and file actions
-# AGENTS.md forbids, so the rule holds even when the agent forgets it.
+# AGENTS.md forbids, so the rule holds even when the agent forgets it:
+# pushes to main, force-pushes, --no-verify, hosted Supabase changes, .env edits.
 # Exit 2 blocks the tool call and shows the message to the agent.
 
 command -v jq >/dev/null 2>&1 || exit 0
@@ -23,6 +24,8 @@ case "$tool" in
           block "don't push to main. Push your branch and open a PR."
         ;;
     esac
+    printf '%s' "$cmd" | grep -Eq -- 'supabase[[:space:]]+(db[[:space:]]+push|migration[[:space:]]+repair)|supabase[[:space:]]+db[[:space:]]+reset[^;&|]*--linked' &&
+      block "don't change the hosted Supabase project. A person applies migrations after merge."
     printf '%s' "$cmd" | grep -Eq -- '--no-verify' &&
       block "don't skip git hooks with --no-verify. Fix what the hook reports."
     ;;

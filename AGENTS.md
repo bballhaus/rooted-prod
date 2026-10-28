@@ -5,7 +5,7 @@ Rooted is an AI decision partner and decision history for startup PMs. It gather
 ## Status: docs only, no stack yet
 
 - There is no application code, package manifest or test suite yet, so there is nothing to build, test or run. Don't invent commands (`npm test`, `pnpm dev`) or report them as passing.
-- The stack is an open decision (`docs/decisions/README.md`). Don't scaffold a framework, add a `package.json`, or pick a database or LLM provider unless the task says to. If a task needs code, stop and ask which stack. The PR that picks it fills the command table in `docs/engineering/testing.md`, copies the commands here, and adds the test run to CI.
+- Database and auth are Supabase, project `hxqyudcrlzkiqiwithke` (`docs/decisions/0002-supabase.md`). The framework, LLM provider and hosting are still open. Don't scaffold a framework, add a `package.json`, or pick a provider unless the task says to. If a task needs code, stop and ask which stack. The PR that picks it fills the command table in `docs/engineering/testing.md`, copies the commands here, and adds the test run to CI.
 - The public landing page (rooted-stanford.vercel.app) is a separate repo, `rrsudev/CS177-geckos` (Vite + React 18, Supabase signups, PostHog). Its interactive tree is a marketing demo: no ingestion, scoring or integrations stand behind it, and none of its code is in this repo.
 
 ## Commands and checks (docs only, for now)
@@ -43,4 +43,5 @@ CI (`.github/workflows/`) runs both, plus a gitleaks secret scan and the agent r
 - Don't describe planned features as working. The landing page's pricing (Starter / Team $22 or $18 annual / Enterprise) and integrations (Linear, Jira, Notion) are marketing copy, not requirements.
 - In the prototype, Slack OAuth, Google sign-in and nudges are mocked with sample data unless an issue asks for the real integration. Real Slack messages never go into commits, fixtures, screenshots or prompts.
 - This repo is public. Never commit secrets, API keys, `.env` files, a Supabase service-role key, interview transcripts or interviewee names, beta-signup emails, or links to the team's Drive and Miro. Aggregate research numbers are fine (as in `overview.md`); raw research stays in the team Drive.
+- Supabase: schema changes are migrations in `supabase/migrations/` (`supabase migration new <name>`), never dashboard edits. Every table gets row-level security limiting rows to their owner, with a test that user A can't read user B's rows. Test against local Supabase (`supabase start`), never the hosted project. Don't run `supabase db push`, `supabase db reset --linked` or SQL against the hosted project; a person applies migrations after merge. Don't touch tables the product didn't create, such as the landing page's `beta_signups`.
 - Don't push to `main` or force-push. Every change goes through a PR that a teammate reviews (`CONTRIBUTING.md`).

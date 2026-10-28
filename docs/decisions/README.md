@@ -7,6 +7,7 @@ Rooted is a decision record, so the team keeps its own here. One file per decisi
 | # | Decision | Status |
 |---|---|---|
 | [0001](0001-docs-first-repo.md) | Set up the repo docs-first, before choosing a stack | Decided 2026-10-28 |
+| [0002](0002-supabase.md) | Use Supabase for the database and auth | Decided 2026-10-28 |
 
 ## Open decisions
 
@@ -14,7 +15,7 @@ Raise these with the team. Agents don't settle them.
 
 | Decision | Where it stands |
 |---|---|
-| App stack (framework, database, auth, LLM provider, hosting) | Not chosen. The landing repo uses Vite + React 18, Supabase, PostHog and Vercel, which is a starting point, not a commitment. |
+| App stack (framework, LLM provider, hosting) | Not chosen. Database and auth are Supabase (0002). The landing repo uses Vite + React 18, PostHog and Vercel, which is a starting point, not a commitment. |
 | MVP context source: Slack or meeting transcripts | Story map picks Slack; the parking lot still asks. |
 | What counts as a decision, and the minimum decision record | Parking lot: "answer first." Needed before the `Decision` model is built. |
 | Lead story: context gathering or option mapping and scoring | Value proposition and landing page disagree. |

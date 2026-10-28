@@ -8,6 +8,8 @@ There is no app code yet, so there are no test commands. This file sets the rule
 |---|---|
 | Docs lint | `npx markdownlint-cli2` |
 | Docs internal links | `lychee --offline --include-fragments .` (`brew install lychee`) |
+| Local database for tests (Docker) | `supabase start`, then `supabase db reset` to reapply `supabase/migrations/` and seed |
+| Row-level security tests | `supabase test db` (pgTAP files in `supabase/tests/`) |
 | Unit and integration tests | TBD with the stack |
 | One test file | TBD |
 | End-to-end (browser) | TBD |
@@ -28,7 +30,8 @@ Each MVP feature in `docs/product/features.md` has acceptance notes. They are th
 | Layer | What it covers | Examples |
 |---|---|---|
 | Unit | Pure logic, no network | Review date from the default offset (F-26). Data-scope filtering, so excluded channels never reach the agent (F-02). Building a decision record from the chosen option, rationale and context snapshot (F-14). |
-| Integration | API and database, external services mocked | Logging a decision then finding it in history (F-14 → F-17). Rejected options keep their reasons (F-18). Disconnecting Slack and deleting data actually removes rows (F-23). |
+| Database | Row-level security on every table, against local Supabase | User A can't select, update or delete user B's decisions, context items or outcomes. The anon role can't read any product table. |
+| Integration | API and local Supabase, external services mocked | Logging a decision then finding it in history (F-14 → F-17). Rejected options keep their reasons (F-18). Disconnecting Slack and deleting data actually removes rows (F-23). |
 | End-to-end | The MVP learning loop in a real browser | Sign in → enter a decision → review and correct context → see options → log it → find it again → the review-date nudge opens the outcome form. One happy path, plus correcting wrong context. |
 | LLM evals | What the agent says, scored against a fixed set | See below. Run when a prompt, model or retrieval change lands, not on every commit. |
 | Accessibility | UI changes | Automated axe check on each MVP screen; keyboard-only run through the core loop; 44px targets; reduced motion. |

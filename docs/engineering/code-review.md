@@ -6,12 +6,14 @@ Agents write most of the code, so review is where it can go wrong. Every PR gets
 
 `/review-pr` (`.claude/skills/review-pr/SKILL.md`) is a coordinator. It sizes up the diff, sends it to the specialist reviewers that apply, checks each finding against the code, removes duplicates, and returns one review with a verdict.
 
-| Reviewer | Looks for | Agent file |
-|---|---|---|
-| Scope | Change matches its feature IDs and stays in the MVP; doesn't settle an open question; doesn't claim planned features work | `.claude/agents/scope-reviewer.md` |
-| Correctness | Logic bugs, missing or weak tests for the feature's acceptance notes, unhandled failures (LLM, Slack, network) | `.claude/agents/correctness-reviewer.md` |
-| Security and privacy | Secrets, real user data in the repo, data-scope leaks across users or excluded channels, prompt injection from Slack content, OAuth scopes | `.claude/agents/security-reviewer.md` |
-| Design | Tokens instead of raw hex, accessibility, Rooted's vocabulary and voice. Only for UI changes. | `.claude/agents/design-reviewer.md` |
+| Reviewer | Looks for | Model | Agent file |
+|---|---|---|---|
+| Scope | Change matches its feature IDs and stays in the MVP; doesn't settle an open question; doesn't claim planned features work | Sonnet | `.claude/agents/scope-reviewer.md` |
+| Correctness | Logic bugs, missing or weak tests for the feature's acceptance notes, unhandled failures (LLM, Slack, network) | Opus | `.claude/agents/correctness-reviewer.md` |
+| Security and privacy | Secrets, real user data in the repo, data-scope leaks across users or excluded channels, Supabase tables without row-level security, prompt injection from Slack content, OAuth scopes | Opus | `.claude/agents/security-reviewer.md` |
+| Design | Tokens instead of raw hex, accessibility, Rooted's vocabulary and voice. Only for UI changes. | Sonnet | `.claude/agents/design-reviewer.md` |
+
+Each reviewer runs as its own subagent on the model in its file's `model:` field, so the cheaper model handles the pattern checks and the stronger one handles bugs and security. The coordinator runs on the session's default model. All of them are Claude models; see "Use a different model to review than to write" below.
 
 ### Risk tiers
 
@@ -32,6 +34,17 @@ Each finding has a severity, a file and line, and a concrete failure: what input
 - **Suggestion:** optional.
 
 The verdict leans toward approval. Style nits that a linter could catch, speculative "might be a problem" items, and requests for unrelated refactors get dropped.
+
+## When each check runs
+
+| Check | Local commit | Push to a PR branch | Push to `main` |
+|---|---|---|---|
+| Guard hook (`.claude/hooks/guard.sh`) | Before every command a Claude Code agent runs | n/a | n/a |
+| Docs lint and link check (`docs.yml`) | No | Yes | Yes |
+| Secret scan (`secrets.yml`) | No | Yes | Yes |
+| Agent review (`claude-review.yml`) | No | Yes, on open, each push, reopen and ready-for-review; drafts skip | No (merges already passed review) |
+
+Nothing runs on a local `git commit` yet. The repo has no git pre-commit hooks until the stack adds a linter.
 
 ## Running it
 

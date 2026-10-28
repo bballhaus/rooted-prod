@@ -15,7 +15,9 @@ Only what is exploitable or concretely dangerous:
 - Real data committed: Slack messages, email addresses, interview transcripts or names, beta signups.
 - Data scope broken: content from channels or sources the user excluded (F-02) reaching the agent, the database or logs; one user's decisions or context readable by another; deletion (F-23) that leaves data behind.
 - Slack or other user-supplied text placed into an LLM prompt in a way that lets it override instructions or trigger tools, with no clear boundary between instructions and data.
-- An endpoint or database query that doesn't check the user owns the record. Row-level security turned off or too broad.
+- An endpoint or database query that doesn't check the user owns the record. A Supabase table created without `enable row level security`, or a policy wider than "owner only" (for example `using (true)`), or no test showing another user can't read the rows.
+- The Supabase service-role key used in browser code, or used server-side where the user's own session would do.
+- A migration that drops or rewrites data without saying so in the PR, or that touches tables the product didn't create (such as `beta_signups`).
 - OAuth scopes wider than the feature needs, tokens stored unencrypted or logged, or a missing state check on the callback.
 - Logs or analytics events that include message text, decision text or email addresses.
 - CI or agent config (`.github/`, `.claude/`) that exposes secrets to PRs from forks, or grants a workflow write access it doesn't need.
