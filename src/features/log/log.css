@@ -1,0 +1,285 @@
+/* One-step decision log (F-14, F-15) and decision history (F-17, F-18).
+   Tokens only. Wine (--rec-*) marks the chosen option and nothing else. */
+
+.log-question {
+  margin: 0;
+}
+
+.log-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.log-legend {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0;
+  margin-bottom: 6px;
+}
+
+/* A selectable option row; the whole row is the label so the target is large. */
+.log-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 44px;
+  padding: 12px 16px;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.log-option:hover {
+  transform: translateY(-1px);
+}
+
+.log-option input {
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  accent-color: var(--ink);
+  flex: none;
+}
+
+/* Selected while choosing: ink outline, not wine (the record isn't logged yet). */
+.log-option-chosen {
+  border-color: var(--ink);
+}
+
+.log-option-text {
+  display: grid;
+  gap: 2px;
+}
+
+.log-option-label {
+  font-weight: 600;
+}
+
+.log-option-summary {
+  font-size: 14px;
+  color: var(--ink2);
+}
+
+.log-summary {
+  min-height: 72px;
+}
+
+.log-reason {
+  min-height: 64px;
+}
+
+.log-reason-label {
+  gap: 8px;
+}
+
+.log-draft-note {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* The chosen option: the one wine surface. */
+.log-chosen-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: inherit;
+  opacity: 0.85;
+}
+
+.log-chosen .card-section,
+.card-rec .card-section {
+  gap: 6px;
+}
+
+.log-chosen-label {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.log-chosen-summary {
+  margin: 0;
+}
+
+.log-prose {
+  margin: 0;
+  max-width: 44em;
+}
+
+/* Record page layout: main column plus a dates/constraints aside. */
+.log-record-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: clamp(24px, 3vw, 48px);
+  align-items: start;
+}
+
+.log-meta {
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.log-meta dt {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink2);
+}
+
+.log-meta dd {
+  margin: 2px 0 0;
+}
+
+.log-note {
+  margin: 0;
+  font-size: 14px;
+}
+
+.log-side-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.log-constraints {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+}
+
+.log-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.log-pruned {
+  gap: 6px;
+}
+
+.log-pruned-head {
+  margin: 0;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.log-details {
+  border-top: 1px solid var(--card-rule);
+  padding-top: 12px;
+}
+
+.log-details summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.log-details[open] summary {
+  margin-bottom: 12px;
+}
+
+.log-context {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--card-rule);
+}
+
+.log-context-meta {
+  margin: 0 0 4px;
+  font-size: 13px;
+}
+
+/* Decisions list */
+.log-page-head {
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+}
+
+.log-page-intro {
+  gap: 12px;
+}
+
+.log-page-intro .lead {
+  margin: 0;
+}
+
+.log-search {
+  max-width: 32em;
+}
+
+.log-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.log-item-text {
+  gap: 6px;
+}
+
+.log-item-title {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.log-item-meta {
+  margin: 0;
+  gap: 8px 16px;
+  font-size: 14px;
+}
+
+.log-item-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.15s ease;
+}
+
+.log-item-link:hover {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 880px) {
+  .log-record-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .log-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .log-page-head {
+    align-items: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .log-option,
+  .log-item-link {
+    transition: none;
+  }
+
+  .log-option:hover,
+  .log-item-link:hover {
+    transform: none;
+  }
+}
