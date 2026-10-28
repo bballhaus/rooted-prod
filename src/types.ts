@@ -77,15 +77,21 @@ export interface Gap {
 
 export type OptionState = 'open' | 'chosen' | 'pruned';
 
+// Rough 1–5 ratings the agent drafts and the PM can edit. Higher impact and
+// evidence are better; lower effort and risk are easier.
+export type CriterionKey = 'impact' | 'effort' | 'risk' | 'evidence';
+export type Criteria = Partial<Record<CriterionKey, number>>;
+
 export interface OptionNode {
   id: string;
   decisionId: string;
-  parentId: string | null;
+  parentId: string | null; // null for a top-level option; sub-options point at their branch
   label: string;
   summary: string;
   pros: string[];
   cons: string[];
   score: number; // rough 0–100
+  criteria?: Criteria;
   contextIds: string[]; // evidence behind the option
   state: OptionState;
   pruneReason?: string; // a rejected option is kept with its reason, never deleted

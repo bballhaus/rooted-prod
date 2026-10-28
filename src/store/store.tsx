@@ -16,6 +16,7 @@ import type {
 } from '../types';
 import { demoUser } from '../data/fixtures';
 import { driveCorpus, slackCorpus } from '../data/slackCorpus';
+import { descendantIds, splitForLog } from './tree';
 
 export const STORAGE_KEY = 'rooted-demo-v1';
 
@@ -139,6 +140,13 @@ export function reducer(state: AppState, action: Action): AppState {
       };
     case 'logDecision': {
       const reasons = new Map(action.pruned.map((p) => [p.optionId, p.reason]));
+      const own = state.options.filter((o) => o.decisionId === action.decisionId);
+      const { keep, alternatives } = splitForLog(own, action.chosenOptionId);
+      // An option under a branch not taken inherits that branch's reason.
+      const inherited = (id: string) => {
+        const alt = alternatives.find((a) => a.id === id || descendantIds(own, a.id).has(id));
+        return alt && alt.id !== id ? `Under a branch not taken: “${alt.label}”` : '';
+      };
       return {
         ...state,
         decisions: state.decisions.map((d) =>
@@ -156,7 +164,9 @@ export function reducer(state: AppState, action: Action): AppState {
         options: state.options.map((o) => {
           if (o.decisionId !== action.decisionId) return o;
           if (o.id === action.chosenOptionId) return { ...o, state: 'chosen', pruneReason: undefined };
-          return { ...o, state: 'pruned', pruneReason: reasons.get(o.id) ?? o.pruneReason ?? '' };
+          // Branches above the choice and sub-options below it stay as they are.
+          if (keep.has(o.id)) return o.state === 'chosen' ? { ...o, state: 'open' } : o;
+          return { ...o, state: 'pruned', pruneReason: reasons.get(o.id) || o.pruneReason || inherited(o.id) };
         }),
       };
     }

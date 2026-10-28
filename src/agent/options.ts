@@ -2,7 +2,8 @@
 // template from the decision question, fills it with the decision's notes,
 // constraints and gaps, and cites only evidence the PM hasn't removed or
 // flagged. Pure and deterministic, so the same inputs give the same branches.
-import type { ContextItem, Decision, Gap, OptionNode } from '../types';
+import { childrenOf, depthOf } from '../store/tree';
+import type { ContextItem, Criteria, Decision, Gap, OptionNode } from '../types';
 import { think } from './mockAgent';
 
 interface Draft {
@@ -14,6 +15,8 @@ interface Draft {
   score: number;
   keywords: string[];
   defer?: boolean;
+  effort?: number; // 1–5, lower is easier
+  risk?: number; // 1–5, lower is safer
 }
 
 export type OptionTemplate = 'build-vs-buy' | 'x-or-y' | 'pricing' | 'now-vs-later' | 'generic';
@@ -127,6 +130,8 @@ function deferDraft(decision: Decision, gaps: Gap[]): Draft {
     score: open.length ? 52 : 40,
     keywords: ['unclear', 'not sure', 'data', 'research', 'interview', 'ask', 'test'],
     defer: true,
+    effort: 1,
+    risk: 1,
   };
 }
 
@@ -137,6 +142,8 @@ function drafts(decision: Decision, gaps: Gap[]): Draft[] {
       return [
         {
           key: 'build',
+          effort: 4,
+          risk: 3,
           label: 'Build it in-house',
           summary: 'The platform team builds a version shaped to Fernwave’s workflow.',
           pros: ['Full control over the experience', 'No per-seat vendor cost as accounts grow'],
@@ -146,6 +153,8 @@ function drafts(decision: Decision, gaps: Gap[]): Draft[] {
         },
         {
           key: 'buy',
+          effort: 2,
+          risk: 3,
           label: 'Buy a vendor tool',
           summary: 'License an off-the-shelf tool and integrate it this sprint.',
           pros: ['Live in days, not sprints', 'Vendor carries maintenance'],
@@ -187,6 +196,8 @@ function drafts(decision: Decision, gaps: Gap[]): Draft[] {
       return [
         {
           key: 'keep',
+          effort: 1,
+          risk: 1,
           label: 'Keep current pricing',
           summary: 'Leave the price as is and fix packaging copy on the pricing page.',
           pros: ['No risk to existing revenue', 'No migration for current customers'],
@@ -196,6 +207,8 @@ function drafts(decision: Decision, gaps: Gap[]): Draft[] {
         },
         {
           key: 'change',
+          effort: 3,
+          risk: 3,
           label: 'Change the price for new customers',
           summary: 'Ship the new price to new signups only; grandfather existing accounts for 12 months.',
           pros: ['Tests the new price without upsetting current accounts', 'Easy to roll back'],
@@ -205,6 +218,8 @@ function drafts(decision: Decision, gaps: Gap[]): Draft[] {
         },
         {
           key: 'test',
+          effort: 3,
+          risk: 2,
           label: 'Run a 4-week pricing test',
           summary: 'Split new trials 50/50 between the current and new price and compare paid conversion.',
           pros: ['Real conversion data before committing'],
@@ -217,6 +232,8 @@ function drafts(decision: Decision, gaps: Gap[]): Draft[] {
       return [
         {
           key: 'now',
+          effort: 4,
+          risk: 3,
           label: 'Do it now',
           summary: 'Pull it into the current cycle and cut scope elsewhere to fit.',
           pros: ['Gets the impact this quarter', 'Answers the customers who asked'],
@@ -226,6 +243,8 @@ function drafts(decision: Decision, gaps: Gap[]): Draft[] {
         },
         {
           key: 'later',
+          effort: 2,
+          risk: 2,
           label: 'Plan it for next quarter',
           summary: 'Add it to next quarter’s roadmap and tell the requesters the date.',
           pros: ['Keeps this quarter’s plan intact', 'Time to scope it properly'],
@@ -239,6 +258,8 @@ function drafts(decision: Decision, gaps: Gap[]): Draft[] {
       return [
         {
           key: 'go',
+          effort: 3,
+          risk: 3,
           label: 'Go ahead as proposed',
           summary: 'Commit to the change in your question and set a review date to check the metric.',
           pros: ['Moves fastest', 'Builds on what the team already discussed'],
@@ -248,6 +269,8 @@ function drafts(decision: Decision, gaps: Gap[]): Draft[] {
         },
         {
           key: 'small',
+          effort: 2,
+          risk: 2,
           label: 'Ship a smaller version first',
           summary: 'Cut it to the one piece customers mention most and ship that behind a flag.',
           pros: ['Learn in two weeks instead of a quarter', 'Easy to roll back'],
@@ -258,6 +281,20 @@ function drafts(decision: Decision, gaps: Gap[]): Draft[] {
         deferDraft(decision, gaps),
       ];
   }
+}
+
+function clamp(n: number, lo: number, hi: number): number {
+  return Math.max(lo, Math.min(hi, Math.round(n)));
+}
+
+/** Rough 1–5 ratings: impact follows the score, evidence follows what's cited. */
+function rate(score: number, cited: number, effort: number, risk: number): Criteria {
+  return {
+    impact: clamp(score / 20, 1, 5),
+    effort: clamp(effort, 1, 5),
+    risk: clamp(risk, 1, 5),
+    evidence: clamp(1 + cited, 1, 5),
+  };
 }
 
 /** Evidence the agent may cite: this decision's items the PM hasn't removed or flagged. */
@@ -294,6 +331,8 @@ export function generateOptions(decision: Decision, contextItems: ContextItem[],
     const contextIds = cites.get(d.key)!;
     const base = d.score || 55 + ((h >> (i * 3)) % 9) - i * 2;
     const score = Math.max(5, Math.min(95, base + Math.min(contextIds.length, 3) * 4));
+    const effort = d.effort ?? 2 + ((h >> (i + 5)) % 3);
+    const risk = d.risk ?? 2 + ((h >> (i + 9)) % 3);
     return {
       id: `o-${decision.id}-${i + 1}`,
       decisionId: decision.id,
@@ -303,10 +342,225 @@ export function generateOptions(decision: Decision, contextItems: ContextItem[],
       pros: d.pros,
       cons: d.cons,
       score,
+      criteria: rate(d.defer ? Math.min(score, 30) : score, contextIds.length, effort, risk),
       contextIds,
       state: 'open',
     };
   });
+}
+
+interface SubDraft {
+  label: string;
+  summary: (parent: string) => string;
+  pros: string[];
+  cons: string[];
+  // Nudges against the parent branch's ratings and score.
+  impact: number;
+  effort: number;
+  risk: number;
+  score: number;
+}
+
+// Each level of the tree splits a branch along a different dimension:
+// how widely to roll it out, then when, then for whom, then how to measure it.
+const SPLITS: { name: string; subs: SubDraft[] }[] = [
+  {
+    name: 'rollout',
+    subs: [
+      {
+        label: 'Pilot with 5 design partners',
+        summary: (p) => `${p}, tried first with 5 design-partner accounts for two weeks.`,
+        pros: ['Real feedback before a wide launch', 'Easy to roll back'],
+        cons: ['Small sample; results may not hold for self-serve teams'],
+        impact: -1,
+        effort: -1,
+        risk: -2,
+        score: -4,
+      },
+      {
+        label: 'All new signups',
+        summary: (p) => `${p} for every workspace created from launch day.`,
+        pros: ['Clean before/after read on activation', 'Existing customers aren’t disrupted'],
+        cons: ['Takes a full cohort (about 4 weeks) to read'],
+        impact: 0,
+        effort: 0,
+        risk: -1,
+        score: 2,
+      },
+      {
+        label: 'Everyone, behind a flag',
+        summary: (p) => `${p} for all workspaces, behind a feature flag the team can turn off.`,
+        pros: ['Fastest path to full impact'],
+        cons: ['Support load lands all at once', 'Harder to tell what caused a change'],
+        impact: 1,
+        effort: 1,
+        risk: 1,
+        score: 0,
+      },
+    ],
+  },
+  {
+    name: 'timing',
+    subs: [
+      {
+        label: 'Start this sprint',
+        summary: (p) => `${p}, starting in the current sprint.`,
+        pros: ['Impact lands this quarter'],
+        cons: ['Bumps something already planned'],
+        impact: 1,
+        effort: 1,
+        risk: 1,
+        score: 1,
+      },
+      {
+        label: 'After the dashboard redesign ships',
+        summary: (p) => `${p}, once the dashboard redesign is out in mid-November.`,
+        pros: ['Doesn’t compete with the redesign for eng time', 'Can reuse the new layout'],
+        cons: ['Six weeks later'],
+        impact: 0,
+        effort: -1,
+        risk: -1,
+        score: -1,
+      },
+    ],
+  },
+  {
+    name: 'audience',
+    subs: [
+      {
+        label: 'Team plan only',
+        summary: (p) => `${p}, for Team plan workspaces only.`,
+        pros: ['Targets the accounts with the most seats to grow'],
+        cons: ['Starter teams don’t see it'],
+        impact: 0,
+        effort: 0,
+        risk: -1,
+        score: 1,
+      },
+      {
+        label: 'All plans',
+        summary: (p) => `${p}, for Starter and Team plans alike.`,
+        pros: ['One experience to support'],
+        cons: ['Free workspaces add support load'],
+        impact: 1,
+        effort: 0,
+        risk: 1,
+        score: -1,
+      },
+    ],
+  },
+  {
+    name: 'measure',
+    subs: [
+      {
+        label: 'Judge it on activation',
+        summary: (p) => `${p}, judged on the share of new workspaces that invite a second teammate in 7 days.`,
+        pros: ['Reads within a week of launch'],
+        cons: ['Says little about revenue'],
+        impact: 0,
+        effort: 0,
+        risk: 0,
+        score: 0,
+      },
+      {
+        label: 'Judge it on trial-to-paid',
+        summary: (p) => `${p}, judged on trial-to-paid conversion for the next cohort.`,
+        pros: ['Tied to revenue'],
+        cons: ['Takes a full trial cycle to read'],
+        impact: 0,
+        effort: 0,
+        risk: 0,
+        score: 0,
+      },
+    ],
+  },
+];
+
+const EVIDENCE_STEPS: SubDraft[] = [
+  {
+    label: 'Run 5 customer calls',
+    summary: () => 'Book five calls with admins from recent trials and ask about this decision directly.',
+    pros: ['Answers “why”, not just “what”'],
+    cons: ['A week of calendar time'],
+    impact: 0,
+    effort: 1,
+    risk: 0,
+    score: 2,
+  },
+  {
+    label: 'Pull the numbers first',
+    summary: () => 'Ask #growth for the activation and trial-to-paid numbers behind the open questions.',
+    pros: ['Cheap and fast'],
+    cons: ['Numbers alone won’t explain the cause'],
+    impact: 0,
+    effort: -1,
+    risk: 0,
+    score: 0,
+  },
+];
+
+/** Which dimension a branch at this depth splits along. */
+export function splitFor(depth: number): string {
+  return SPLITS[depth % SPLITS.length].name;
+}
+
+/**
+ * F-10: sub-options for one branch. Deterministic: the split depends on how deep
+ * the branch sits, and the sub-options inherit (and nudge) its ratings and evidence.
+ */
+export function generateSubOptions(
+  decision: Decision,
+  parent: OptionNode,
+  all: OptionNode[],
+  contextItems: ContextItem[],
+): OptionNode[] {
+  const own = all.filter((o) => o.decisionId === decision.id);
+  const depth = depthOf(own, parent.id);
+  const isDefer = parent.parentId === null && /gather more evidence/i.test(parent.label);
+  const subs = isDefer ? EVIDENCE_STEPS : SPLITS[depth % SPLITS.length].subs;
+  const valid = new Set(citableContext(decision.id, contextItems).map((c) => c.id));
+  const evidence = parent.contextIds.filter((id) => valid.has(id));
+  const base = parent.criteria ?? {};
+  const taken = new Set(own.map((o) => o.id));
+  const start = childrenOf(own, parent.id).length;
+
+  return subs.map((sub, i) => {
+    let n = start + i + 1;
+    while (taken.has(`${parent.id}-${n}`)) n++;
+    const id = `${parent.id}-${n}`;
+    taken.add(id);
+    const contextIds = evidence.filter((_, j) => j % subs.length === i || evidence.length <= 1);
+    const score = clamp((parent.score || 55) + sub.score, 5, 95);
+    return {
+      id,
+      decisionId: decision.id,
+      parentId: parent.id,
+      label: sub.label,
+      summary: sub.summary(parent.label),
+      pros: sub.pros,
+      cons: sub.cons,
+      score,
+      criteria: {
+        impact: clamp((base.impact ?? 3) + sub.impact, 1, 5),
+        effort: clamp((base.effort ?? 3) + sub.effort, 1, 5),
+        risk: clamp((base.risk ?? 3) + sub.risk, 1, 5),
+        evidence: clamp(1 + contextIds.length, 1, 5),
+      },
+      contextIds,
+      state: 'open',
+    };
+  });
+}
+
+/** The same, behind the fake agent's thinking delay. */
+export function fetchSubOptions(
+  decision: Decision,
+  parent: OptionNode,
+  all: OptionNode[],
+  contextItems: ContextItem[],
+  ms?: number,
+): Promise<OptionNode[]> {
+  return think(generateSubOptions(decision, parent, all, contextItems), ms);
 }
 
 /** The same, behind the fake agent's thinking delay. */

@@ -1,6 +1,7 @@
 // F-15: the PM writes a 1–2 line summary and the fake agent drafts the rest of
 // the record. No LLM: the draft is stitched together from the options' pros and
 // cons and the decision's context. The PM edits every word before logging.
+import { splitForLog } from '../store/tree';
 import type { ContextItem, Decision, OptionNode } from '../types';
 import { think } from './mockAgent';
 
@@ -66,8 +67,9 @@ export function draftRecordNow(
     parts.push(`Context: ${cited.map(cite).join(' ')}`);
   }
 
-  const rejected = own
-    .filter((o) => o.id !== chosenOptionId)
+  // Only the alternatives that branch off the chosen path need a reason;
+  // options under an alternative are pruned with it (see splitForLog).
+  const rejected = (chosen ? splitForLog(own, chosen.id).alternatives : own)
     .map((o) => {
       if (o.pruneReason && o.pruneReason.trim()) return { optionId: o.id, reason: o.pruneReason };
       const reason = o.cons.length

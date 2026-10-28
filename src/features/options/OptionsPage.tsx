@@ -1,19 +1,29 @@
 // F-10, F-11: the options step. The agent maps 2–4 branches from the evidence
-// brief; the PM edits them, adds their own, prunes with a reason, and chooses
-// one. The agent never decides: scores are a rough guide and only the PM's
-// chosen branch gets the wine treatment.
+// brief and can branch any of them out into sub-options; the tree graph shows
+// the whole thing, the cards below compare one level at a time. The PM edits,
+// adds their own, prunes with a reason, and chooses one. The agent never
+// decides: scores and ratings are a rough guide and only the PM's chosen
+// branch gets the wine treatment.
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { fetchOptions } from '../../agent/options';
+import { fetchOptions, fetchSubOptions, splitFor } from '../../agent/options';
 import { Dialog } from '../../components/Dialog';
 import { ReportWrongAnswer } from '../../components/ReportWrongAnswer';
 import { Stepper } from '../../components/Stepper';
 import { newId, useDecision, useStore } from '../../store/store';
-import type { ContextItem, OptionNode } from '../../types';
+import { ancestorIds, childrenOf, depthOf, pathLabel, underPruned } from '../../store/tree';
+import type { ContextItem, Criteria, CriterionKey, OptionNode } from '../../types';
 import { LogDecisionDialog } from '../log/LogDecisionDialog';
+import { CRITERIA, DecisionTree, type LinkedDecision } from './DecisionTree';
 import './options.css';
 
 const NARRATION = ['Reading your evidence brief', 'Mapping options', 'Weighing pros and cons'];
+const SPLIT_LABEL: Record<string, string> = {
+  rollout: 'how widely to roll it out',
+  timing: 'when to start',
+  audience: 'which plans get it',
+  measure: 'how to judge it',
+};
 
 function isUserOption(o: OptionNode): boolean {
   return o.id.startsWith('o-user-');
@@ -37,6 +47,11 @@ export function OptionsPage() {
   const [confirmRegen, setConfirmRegen] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
   const [announce, setAnnounce] = useState('');
+  // Which level the cards compare (null = top-level options) and which node
+  // the PM last picked in the graph.
+  const [levelParent, setLevelParent] = useState<string | null>(null);
+  const [focusId, setFocusId] = useState<string | undefined>(undefined);
+  const [branching, setBranching] = useState<string | null>(null);
   const run = useRef(0);
 
   const options = state.options.filter((o) => o.decisionId === id);
@@ -58,6 +73,8 @@ export function OptionsPage() {
         });
       }
       setSelectedId(undefined);
+      setLevelParent(null);
+      setFocusId(undefined);
       setGenerating(false);
       setAnnounce(`${next.length} options ready. Scores are a rough guide; you make the call.`);
     });
@@ -80,10 +97,35 @@ export function OptionsPage() {
     return () => clearInterval(t);
   }, [generating]);
 
-  // A pruned branch can't stay chosen.
+  // A pruned branch, or anything under one, can't stay chosen.
   useEffect(() => {
-    if (selectedId && options.find((o) => o.id === selectedId)?.state === 'pruned') setSelectedId(undefined);
+    if (!selectedId) return;
+    if (options.find((o) => o.id === selectedId)?.state === 'pruned' || underPruned(options, selectedId))
+      setSelectedId(undefined);
   }, [options, selectedId]);
+
+  // F-10: the agent splits one branch into sub-options.
+  function branchOut(parent: OptionNode) {
+    if (!decision) return;
+    setBranching(parent.id);
+    setAnnounce('');
+    fetchSubOptions(decision, parent, options, state.contextItems).then((subs) => {
+      dispatch({ type: 'setOptions', decisionId: decision.id, options: [...options, ...subs] });
+      setBranching(null);
+      setLevelParent(parent.id);
+      setFocusId(undefined);
+      setAnnounce(`${subs.length} sub-options added under ${parent.label}.`);
+    });
+  }
+
+  function showInCards(o: OptionNode | null) {
+    setLevelParent(o ? o.parentId : null);
+    setFocusId(o?.id);
+    if (o) {
+      // Let the level render, then bring the card into view.
+      setTimeout(() => document.getElementById(`options-card-${o.id}`)?.scrollIntoView?.({ block: 'nearest' }), 0);
+    }
+  }
 
   if (!decision) {
     return (
@@ -98,10 +140,26 @@ export function OptionsPage() {
   }
 
   const chosenId = decided ? (decision.chosenOptionId ?? options.find((o) => o.state === 'chosen')?.id) : selectedId;
-  const open = options.filter((o) => o.state === 'open' && !isUserOption(o));
+  const level = childrenOf(options, levelParent);
+  const levelNode = options.find((o) => o.id === levelParent);
+  const crumbs = levelParent
+    ? [...ancestorIds(options, levelParent), levelParent].map((x) => options.find((o) => o.id === x)!)
+    : [];
+  const open = level.filter((o) => o.state === 'open' && !isUserOption(o));
   const topScore = open.length ? Math.max(...open.map((o) => o.score)) : undefined;
   const topId = topScore === undefined ? undefined : open.find((o) => o.score === topScore)?.id;
-  const cols = options.length === 4 ? 2 : Math.max(1, Math.min(options.length, 3));
+  const cols = level.length === 4 ? 2 : Math.max(1, Math.min(level.length, 3));
+
+  // Past decisions the brief cited, so the graph shows what this one builds on.
+  const linked: LinkedDecision[] = state.contextItems
+    .filter((c) => c.decisionId === decision.id && c.origin === 'past-decision' && !c.removed && c.link)
+    .map((c) => state.decisions.find((d) => `/decisions/${d.id}` === c.link))
+    .filter((d): d is NonNullable<typeof d> => !!d && d.id !== decision.id)
+    .map((d) => ({
+      id: d.id,
+      question: d.question,
+      outcome: state.options.find((o) => o.id === d.chosenOptionId)?.label,
+    }));
 
   return (
     <div className="page">
@@ -144,12 +202,64 @@ export function OptionsPage() {
       )}
 
       {!generating && options.length > 0 && (
+        <section aria-labelledby="options-tree-title" className="stack options-tree-section">
+          <div className="row options-tree-head">
+            <h2 id="options-tree-title" className="section-title">
+              Decision tree
+            </h2>
+            <p className="muted options-legend">
+              Each branch shows rough ratings for impact, effort, risk and evidence (1–5) and its rough score. Pick a
+              node to compare it with its siblings below.
+            </p>
+          </div>
+          <DecisionTree
+            question={decision.question}
+            options={options}
+            linked={linked}
+            chosenId={chosenId}
+            focusId={focusId}
+            onFocus={showInCards}
+          />
+        </section>
+      )}
+
+      {!generating && options.length > 0 && (
         <section aria-labelledby="options-branches" className="stack">
-          <h2 id="options-branches" className="visually-hidden">
-            Branches
+          <nav aria-label="Tree level" className="row options-crumbs">
+            <button
+              type="button"
+              className="btn btn-ghost"
+              aria-current={levelParent === null ? 'location' : undefined}
+              onClick={() => showInCards(null)}
+            >
+              Top-level options
+            </button>
+            {crumbs.map((o, i) => (
+              <span key={o.id} className="row options-crumb">
+                <span aria-hidden="true">›</span>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  aria-current={i === crumbs.length - 1 ? 'location' : undefined}
+                  onClick={() => {
+                    setLevelParent(o.id);
+                    setFocusId(undefined);
+                  }}
+                >
+                  {o.label}
+                </button>
+              </span>
+            ))}
+          </nav>
+          <h2 id="options-branches" className="section-title">
+            {levelNode ? `Sub-options of “${levelNode.label}”` : 'Top-level options'}
           </h2>
+          {levelNode && levelNode.state === 'pruned' && (
+            <p className="muted">This branch is pruned, so its sub-options can’t be chosen unless you restore it.</p>
+          )}
+          {level.length === 0 && <p className="muted">No sub-options here yet.</p>}
           <ul className="options-grid" style={{ ['--options-cols' as string]: cols }}>
-            {options.map((o) => (
+            {level.map((o) => (
               <OptionCard
                 key={o.id}
                 option={o}
@@ -157,6 +267,17 @@ export function OptionsPage() {
                 readOnly={decided}
                 chosen={chosenId === o.id}
                 highest={topId === o.id}
+                focused={focusId === o.id}
+                blocked={underPruned(options, o.id)}
+                subCount={childrenOf(options, o.id).length}
+                splitHint={SPLIT_LABEL[splitFor(depthOf(options, o.id))]}
+                branching={branching === o.id}
+                branchBusy={branching !== null}
+                onBranchOut={() => branchOut(o)}
+                onOpenSubs={() => {
+                  setLevelParent(o.id);
+                  setFocusId(undefined);
+                }}
                 onChoose={() => {
                   const next = selectedId === o.id ? undefined : o.id;
                   setSelectedId(next);
@@ -181,11 +302,12 @@ export function OptionsPage() {
       {!decided && !generating && options.length > 0 && (
         <>
           <AddOptionForm
+            parent={levelNode}
             onAdd={(o) => {
               dispatch({
                 type: 'setOptions',
                 decisionId: decision.id,
-                options: [...options, { ...o, decisionId: decision.id }],
+                options: [...options, { ...o, decisionId: decision.id, parentId: levelParent }],
               });
               setAnnounce(`${o.label} added.`);
             }}
@@ -198,12 +320,10 @@ export function OptionsPage() {
               Regenerate options
             </button>
             <span className="muted">
-              {chosenId ? `Chosen: ${options.find((o) => o.id === chosenId)?.label}` : 'No branch chosen yet.'}
+              {chosenId ? `Chosen: ${pathLabel(options, chosenId)}` : 'No branch chosen yet.'}
             </span>
           </div>
-          <p className="muted options-note">
-            Talking an option through in chat isn’t part of this prototype yet.
-          </p>
+          <p className="muted options-note">Talking an option through in chat isn’t part of this prototype yet.</p>
         </>
       )}
 
@@ -262,6 +382,14 @@ function OptionCard({
   readOnly,
   chosen,
   highest,
+  focused,
+  blocked,
+  subCount,
+  splitHint,
+  branching,
+  branchBusy,
+  onBranchOut,
+  onOpenSubs,
   onChoose,
   onPrune,
   onRestore,
@@ -272,6 +400,14 @@ function OptionCard({
   readOnly: boolean;
   chosen: boolean;
   highest: boolean;
+  focused: boolean;
+  blocked: boolean; // under a pruned branch
+  subCount: number;
+  splitHint?: string;
+  branching: boolean;
+  branchBusy: boolean;
+  onBranchOut: () => void;
+  onOpenSubs: () => void;
   onChoose: () => void;
   onPrune: () => void;
   onRestore: () => void;
@@ -287,16 +423,18 @@ function OptionCard({
 
   const classes = ['card', 'options-card'];
   if (chosen) classes.push('card-rec');
-  if (pruned) classes.push('options-card-pruned');
+  if (pruned || blocked) classes.push('options-card-pruned');
+  if (focused) classes.push('options-card-focus');
 
   return (
-    <li className={classes.join(' ')} aria-labelledby={headingId}>
+    <li id={`options-card-${option.id}`} className={classes.join(' ')} aria-labelledby={headingId}>
       <div className="card-section stack options-card-head">
         <div className="row options-tags">
           <span className={`dot ${chosen ? 'dot-chosen' : pruned ? 'dot-pruned' : 'dot-alive'}`} aria-hidden="true" />
           {chosen && <span className="pill pill-rec">{readOnly ? 'Chosen' : 'Your choice'}</span>}
           {pruned && <span className="pill">Pruned</span>}
           {highest && !pruned && <span className="pill options-pill-top">Highest rough score</span>}
+          {blocked && !pruned && <span className="pill">Under a pruned branch</span>}
           {mine && <span className="pill">Your option</span>}
         </div>
         {editing ? (
@@ -355,6 +493,8 @@ function OptionCard({
         </div>
       )}
 
+      {!editing && <CriteriaList criteria={option.criteria} />}
+
       <div className="card-section stack options-score-section">
         {mine ? (
           <p className="muted">Not scored. You added this option.</p>
@@ -389,7 +529,7 @@ function OptionCard({
       </div>
 
       <div className="card-section row options-card-actions">
-        {!readOnly && !editing && !pruned && (
+        {!readOnly && !editing && !pruned && !blocked && (
           <button type="button" className="toggle" aria-pressed={chosen} onClick={onChoose}>
             {chosen ? 'Chosen branch' : 'Choose this branch'}
             <span className="visually-hidden">: {option.label}</span>
@@ -405,6 +545,23 @@ function OptionCard({
             Prune<span className="visually-hidden"> {option.label}</span>
           </button>
         )}
+        {subCount > 0 && (
+          <button type="button" className="btn btn-ghost" onClick={onOpenSubs}>
+            Sub-options ({subCount})<span className="visually-hidden"> of {option.label}</span>
+          </button>
+        )}
+        {!readOnly && !editing && !pruned && !blocked && subCount === 0 && (
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={onBranchOut}
+            disabled={branchBusy}
+            aria-describedby={`${headingId}-split`}
+          >
+            {branching ? 'Branching out…' : 'Branch out'}
+            <span className="visually-hidden"> {option.label}</span>
+          </button>
+        )}
         {!readOnly && pruned && (
           <button type="button" className="btn btn-secondary" onClick={onRestore}>
             Restore<span className="visually-hidden"> {option.label}</span>
@@ -418,8 +575,47 @@ function OptionCard({
             excerpt={`${option.label}: ${option.summary}`}
           />
         )}
+        {splitHint && !readOnly && subCount === 0 && !pruned && !blocked && (
+          <p id={`${headingId}-split`} className="muted options-split-hint">
+            Branch out splits this by {splitHint}.
+          </p>
+        )}
       </div>
     </li>
+  );
+}
+
+const LEVEL_WORDS = ['', 'Very low', 'Low', 'Medium', 'High', 'Very high'];
+
+function CriteriaList({ criteria }: { criteria?: Criteria }) {
+  return (
+    <div className="card-section stack">
+      <h4 className="options-subhead">Rough ratings</h4>
+      {criteria ? (
+        <dl className="options-criteria">
+          {CRITERIA.map((k) => {
+            const v = criteria[k.key];
+            return (
+              <div key={k.key} className="options-criterion">
+                <dt>
+                  {k.label} <span className="muted options-criterion-hint">({k.hint.toLowerCase()})</span>
+                </dt>
+                <dd className="row">
+                  <span className="options-pips" aria-hidden="true">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <span key={n} className={`options-pip${v && n <= v ? ' options-pip-on' : ''}`} />
+                    ))}
+                  </span>
+                  <span className="tabular">{v ? `${LEVEL_WORDS[v]}, ${v} of 5` : 'Not rated'}</span>
+                </dd>
+              </div>
+            );
+          })}
+        </dl>
+      ) : (
+        <p className="muted">Not rated yet. Edit the option to add ratings.</p>
+      )}
+    </div>
   );
 }
 
@@ -462,6 +658,8 @@ function OptionFields({
   setPros,
   cons,
   setCons,
+  criteria,
+  setCriteria,
   error,
 }: {
   prefix: string;
@@ -473,6 +671,8 @@ function OptionFields({
   setPros: (v: string) => void;
   cons: string;
   setCons: (v: string) => void;
+  criteria: Criteria;
+  setCriteria: (v: Criteria) => void;
   error: string;
 }) {
   return (
@@ -530,8 +730,42 @@ function OptionFields({
           />
         </div>
       </div>
+      <fieldset className="options-criteria-edit">
+        <legend className="label">Rough ratings</legend>
+        <div className="grid-2">
+          {CRITERIA.map((k) => (
+            <div key={k.key} className="field">
+              <label htmlFor={`${prefix}-${k.key}`}>{k.label}</label>
+              <select
+                id={`${prefix}-${k.key}`}
+                className="select"
+                value={criteria[k.key] ?? ''}
+                aria-describedby={`${prefix}-${k.key}-hint`}
+                onChange={(e) => setCriteria(withRating(criteria, k.key, e.target.value))}
+              >
+                <option value="">Not rated</option>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <option key={n} value={n}>
+                    {n} of 5
+                  </option>
+                ))}
+              </select>
+              <span className="hint" id={`${prefix}-${k.key}-hint`}>
+                {k.hint}
+              </span>
+            </div>
+          ))}
+        </div>
+      </fieldset>
     </>
   );
+}
+
+function withRating(criteria: Criteria, key: CriterionKey, value: string): Criteria {
+  const next = { ...criteria };
+  if (value) next[key] = Number(value);
+  else delete next[key];
+  return next;
 }
 
 function OptionEditForm({
@@ -548,6 +782,7 @@ function OptionEditForm({
   const [summary, setSummary] = useState(option.summary);
   const [pros, setPros] = useState(option.pros.join('\n'));
   const [cons, setCons] = useState(option.cons.join('\n'));
+  const [criteria, setCriteria] = useState<Criteria>(option.criteria ?? {});
   const [error, setError] = useState('');
 
   function submit(e: FormEvent) {
@@ -561,6 +796,7 @@ function OptionEditForm({
       summary: summary.trim(),
       pros: lines(pros),
       cons: lines(cons),
+      criteria: Object.keys(criteria).length ? criteria : undefined,
     });
   }
 
@@ -577,6 +813,8 @@ function OptionEditForm({
           setPros,
           cons,
           setCons,
+          criteria,
+          setCriteria,
           error,
         }}
       />
@@ -592,19 +830,22 @@ function OptionEditForm({
   );
 }
 
-function AddOptionForm({ onAdd }: { onAdd: (o: OptionNode) => void }) {
+function AddOptionForm({ parent, onAdd }: { parent?: OptionNode; onAdd: (o: OptionNode) => void }) {
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState('');
   const [summary, setSummary] = useState('');
   const [pros, setPros] = useState('');
   const [cons, setCons] = useState('');
+  const [criteria, setCriteria] = useState<Criteria>({});
   const [error, setError] = useState('');
+  const title = parent ? `Add your own sub-option to “${parent.label}”` : 'Add your own option';
 
   function reset() {
     setLabel('');
     setSummary('');
     setPros('');
     setCons('');
+    setCriteria({});
     setError('');
   }
 
@@ -623,6 +864,7 @@ function AddOptionForm({ onAdd }: { onAdd: (o: OptionNode) => void }) {
       pros: lines(pros),
       cons: lines(cons),
       score: 0,
+      criteria: Object.keys(criteria).length ? criteria : undefined,
       contextIds: [],
       state: 'open',
     });
@@ -634,7 +876,7 @@ function AddOptionForm({ onAdd }: { onAdd: (o: OptionNode) => void }) {
     return (
       <div>
         <button type="button" className="btn btn-secondary" onClick={() => setOpen(true)}>
-          Add your own option
+          {parent ? 'Add your own sub-option' : 'Add your own option'}
         </button>
       </div>
     );
@@ -644,7 +886,7 @@ function AddOptionForm({ onAdd }: { onAdd: (o: OptionNode) => void }) {
     <section className="card" aria-labelledby="options-add-title">
       <form className="card-section stack" onSubmit={submit}>
         <h2 id="options-add-title" className="section-title">
-          Add your own option
+          {title}
         </h2>
         <OptionFields
           {...{
@@ -657,6 +899,8 @@ function AddOptionForm({ onAdd }: { onAdd: (o: OptionNode) => void }) {
             setPros,
             cons,
             setCons,
+            criteria,
+            setCriteria,
             error,
           }}
         />

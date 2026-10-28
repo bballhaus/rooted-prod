@@ -7,6 +7,7 @@ import { draftRecord, type RecordDraft } from '../../agent/record';
 import { Dialog } from '../../components/Dialog';
 import { ReportWrongAnswer } from '../../components/ReportWrongAnswer';
 import { useDecision, useStore } from '../../store/store';
+import { depthOf, pathLabel, splitForLog, underPruned } from '../../store/tree';
 import { addDays } from './format';
 import './log.css';
 
@@ -41,7 +42,7 @@ function LogDecisionForm({
   const navigate = useNavigate();
   const decision = useDecision(decisionId);
   const options = useMemo(() => state.options.filter((o) => o.decisionId === decisionId), [state.options, decisionId]);
-  const choosable = options.filter((o) => o.state !== 'pruned');
+  const choosable = options.filter((o) => o.state !== 'pruned' && !underPruned(options, o.id));
 
   const startChoice = choosable.some((o) => o.id === initialChoice) ? initialChoice! : '';
   const [choice, setChoice] = useState(startChoice);
@@ -87,7 +88,7 @@ function LogDecisionForm({
   }
 
   const chosen = options.find((o) => o.id === choice);
-  const rejected = options.filter((o) => o.id !== choice);
+  const rejected = chosen ? splitForLog(options, chosen.id).alternatives : [];
 
   function pick(id: string) {
     setChoice(id);
@@ -154,6 +155,9 @@ function LogDecisionForm({
               />
               <span className="log-option-text">
                 <span className="log-option-label">{o.label}</span>
+                {depthOf(options, o.id) > 0 && (
+                  <span className="log-option-path">Under {pathLabel(options, o.parentId!)}</span>
+                )}
                 <span className="log-option-summary">{o.summary}</span>
               </span>
             </label>
@@ -215,7 +219,7 @@ function LogDecisionForm({
         <div className="card card-rec log-chosen">
           <div className="card-section">
             <span className="log-chosen-kicker">Your choice</span>
-            <p className="log-chosen-label">{chosen.label}</p>
+            <p className="log-chosen-label">{pathLabel(options, chosen.id)}</p>
             <p className="log-chosen-summary">{summary.trim()}</p>
           </div>
         </div>

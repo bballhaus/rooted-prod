@@ -5,6 +5,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ReportWrongAnswer } from '../../components/ReportWrongAnswer';
 import { Stepper } from '../../components/Stepper';
 import { useDecision, useStore } from '../../store/store';
+import { pathLabel } from '../../store/tree';
 import { continuePath, formatDate, STATUS_LABEL } from './format';
 import './log.css';
 
@@ -46,7 +47,8 @@ export function DecisionRecordPage() {
 
   const options = state.options.filter((o) => o.decisionId === decision.id);
   const chosen = options.find((o) => o.id === decision.chosenOptionId);
-  const notTaken = options.filter((o) => o.id !== decision.chosenOptionId);
+  // Pruned options, top-level alternatives first; branches above the choice aren't "not taken".
+  const notTaken = options.filter((o) => o.state === 'pruned');
   const context = state.contextItems.filter((c) => c.decisionId === decision.id && !c.removed && !c.flaggedInaccurate);
 
   function saveRationale(e: React.FormEvent) {
@@ -71,7 +73,7 @@ export function DecisionRecordPage() {
               <h2 id="record-choice" className="log-chosen-kicker">
                 <span className="dot dot-chosen" aria-hidden="true" /> Your choice
               </h2>
-              <p className="log-chosen-label">{chosen?.label ?? 'Option not found'}</p>
+              <p className="log-chosen-label">{chosen ? pathLabel(options, chosen.id) : 'Option not found'}</p>
               {chosen?.summary && <p className="log-chosen-summary">{chosen.summary}</p>}
             </div>
           </section>
@@ -147,7 +149,7 @@ export function DecisionRecordPage() {
                     <div className="card-section stack log-pruned">
                       <p className="row log-pruned-head">
                         <span className="dot dot-pruned" aria-hidden="true" />
-                        <span className="pruned-label">{o.label}</span>
+                        <span className="pruned-label">{pathLabel(options, o.id)}</span>
                         <span className="visually-hidden">(pruned)</span>
                       </p>
                       <p className="log-prose">
