@@ -1,6 +1,6 @@
 # Testing
 
-There is no app code yet, so there are no test commands. This file sets the rules the first code PR has to meet, so a coding agent can check its own work instead of asking a teammate to click around. The PR that picks the stack fills in the command table and adds the test runner to CI.
+The prototype is Vite + React + TypeScript with Vitest and Testing Library (decision 0003). This file sets the rules every code PR has to meet, so a coding agent can check its own work instead of asking a teammate to click around.
 
 ## Commands
 
@@ -10,11 +10,13 @@ There is no app code yet, so there are no test commands. This file sets the rule
 | Docs internal links | `lychee --offline --include-fragments .` (`brew install lychee`) |
 | Local database for tests (Docker) | `supabase start`, then `supabase db reset` to reapply `supabase/migrations/` and seed |
 | Row-level security tests | `supabase test db` (pgTAP files in `supabase/tests/`) |
-| Unit and integration tests | TBD with the stack |
-| One test file | TBD |
+| Install | `npm ci` |
+| Type check | `npm run typecheck` |
+| Unit and integration tests | `npm test` (Vitest, jsdom) |
+| One test file | `npx vitest run src/features/brief` |
 | End-to-end (browser) | TBD |
 | LLM evals | TBD |
-| Full gate (what CI runs) | TBD |
+| Full gate (what CI runs) | `npm run typecheck && npm test && npm run build` |
 
 ## Every feature starts from its acceptance notes
 

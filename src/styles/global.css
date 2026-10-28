@@ -1,0 +1,444 @@
+/* Tokens and base components from docs/design/design-language.md.
+   Components use the semantic tokens (--ground, --ink, ...), never raw hex. */
+
+:root {
+  --wine: #581c32;
+  --berry: #8e4056;
+  --cream: #f7f4ef;
+  --charcoal: #25272b;
+  --sage: #a4ad96;
+
+  --ground: #f7f4ef;
+  --ink: #25272b;
+  --ink2: #5b5d61;
+  --line: rgba(37, 39, 43, 0.4);
+  --btn-bg: #581c32;
+  --btn-fg: #f7f4ef;
+  --btn2-border: rgba(37, 39, 43, 0.4);
+  --rec-bg: #581c32;
+  --rec-fg: #f7f4ef;
+  --alive-dot: #a4ad96;
+  --pruned-fg: #8e4056;
+  --card-bg: #fcfbf8;
+  --card-border: rgba(37, 39, 43, 0.12);
+  --card-rule: rgba(37, 39, 43, 0.08);
+  --card-shadow: 0 1px 2px rgba(37, 39, 43, 0.05), 0 30px 60px -30px rgba(88, 28, 50, 0.28);
+  --chip-bg: rgba(37, 39, 43, 0.06);
+  --chip-on-bg: #25272b;
+  --chip-on-fg: #f7f4ef;
+  --input-bg: rgba(255, 255, 255, 0.6);
+  --input-border: rgba(37, 39, 43, 0.25);
+  --soil: #581c32;
+
+  --gutter: clamp(20px, 4vw, 56px);
+  --max: 1240px;
+  --font: 'Bricolage Grotesque', 'Avenir Next', 'Segoe UI', Helvetica, Arial, sans-serif;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #25272b;
+    --ink: #f7f4ef;
+    --ink2: #c5c8bc;
+    --line: rgba(247, 244, 239, 0.42);
+    --btn-bg: #f7f4ef;
+    --btn-fg: #25272b;
+    --btn2-border: rgba(247, 244, 239, 0.45);
+    --rec-bg: #8e4056;
+    --rec-fg: #f7f4ef;
+    --pruned-fg: #c39aa3;
+    --card-bg: #2e3034;
+    --card-border: rgba(247, 244, 239, 0.12);
+    --card-rule: rgba(247, 244, 239, 0.08);
+    --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 30px 60px -30px rgba(0, 0, 0, 0.5);
+    --chip-bg: rgba(247, 244, 239, 0.1);
+    --chip-on-bg: #f7f4ef;
+    --chip-on-fg: #25272b;
+    --input-bg: rgba(247, 244, 239, 0.06);
+    --input-border: rgba(247, 244, 239, 0.3);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 500;
+}
+
+.page-title {
+  font-size: clamp(32px, 3.6vw, 52px);
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+  max-width: 14em;
+}
+
+.section-title {
+  font-size: clamp(20px, 1.8vw, 26px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.kicker {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink2);
+}
+
+.lead {
+  font-size: clamp(16px, 1.25vw, 18px);
+  color: var(--ink2);
+  max-width: 40em;
+  line-height: 1.45;
+}
+
+.muted {
+  color: var(--ink2);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Layout */
+.container {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+.page {
+  padding-top: clamp(32px, 4vw, 64px);
+  padding-bottom: clamp(64px, 7vw, 120px);
+  display: grid;
+  gap: clamp(24px, 2.5vw, 40px);
+}
+
+.stack {
+  display: grid;
+  gap: 16px;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+@media (max-width: 880px) {
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--btn2-border);
+  font-weight: 500;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink2);
+  font-weight: 500;
+  padding: 0 12px;
+}
+
+.btn-lg {
+  min-height: 48px;
+  padding: 0 24px;
+}
+
+/* Cards */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+}
+
+.card-section {
+  padding: 20px 24px;
+}
+
+.card-section + .card-section {
+  border-top: 1px solid var(--card-rule);
+}
+
+.card-rec {
+  background: var(--rec-bg);
+  color: var(--rec-fg);
+}
+
+/* Pills, chips */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--chip-bg);
+  color: var(--ink);
+}
+
+.pill-rec {
+  background: var(--rec-bg);
+  color: var(--rec-fg);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  font-size: 13px;
+}
+
+.toggle {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.toggle[aria-pressed='true'] {
+  background: var(--chip-on-bg);
+  color: var(--chip-on-fg);
+  border-color: var(--chip-on-bg);
+}
+
+/* Status dots: color plus shape for every state */
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.dot-alive {
+  background: var(--alive-dot);
+}
+
+.dot-pruned {
+  border: 1.5px solid var(--pruned-fg);
+}
+
+.dot-chosen {
+  background: var(--rec-bg);
+  box-shadow: 0 0 0 2px var(--card-bg), 0 0 0 3px var(--rec-bg);
+}
+
+.pruned-label {
+  color: var(--pruned-fg);
+  text-decoration: line-through;
+}
+
+/* Inputs */
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field label,
+.field .label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.field .hint {
+  font-size: 13px;
+  color: var(--ink2);
+}
+
+.input,
+.textarea,
+.select {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--ink);
+  font: inherit;
+}
+
+.textarea {
+  min-height: 120px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: inherit;
+  opacity: 0.55;
+}
+
+.error {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.checkbox input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--wine);
+}
+
+/* Banners */
+.banner {
+  border-radius: 12px;
+  padding: 16px 20px;
+  background: var(--chip-bg);
+}
+
+/* Dialog */
+.dialog {
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  background: var(--card-bg);
+  color: var(--ink);
+  padding: 0;
+  width: min(640px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  box-shadow: var(--card-shadow);
+}
+
+.dialog::backdrop {
+  background: rgba(37, 39, 43, 0.45);
+}
+
+.dialog-body {
+  padding: 24px;
+  display: grid;
+  gap: 16px;
+}
+
+/* Spinner, with a reduced-motion fallback */
+.spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  border-top-color: var(--ink);
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  .spinner {
+    border-top-color: var(--line);
+    border-style: dotted;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
