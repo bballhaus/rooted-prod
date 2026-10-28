@@ -47,7 +47,7 @@ export function DecisionRecordPage() {
   const options = state.options.filter((o) => o.decisionId === decision.id);
   const chosen = options.find((o) => o.id === decision.chosenOptionId);
   const notTaken = options.filter((o) => o.id !== decision.chosenOptionId);
-  const context = state.contextItems.filter((c) => c.decisionId === decision.id && !c.removed);
+  const context = state.contextItems.filter((c) => c.decisionId === decision.id && !c.removed && !c.flaggedInaccurate);
 
   function saveRationale(e: React.FormEvent) {
     e.preventDefault();

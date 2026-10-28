@@ -111,6 +111,11 @@ function LogDecisionForm({
       setLogError('Add a rationale before logging.');
       return;
     }
+    // A rejected option is always kept with its reason (F-18).
+    if (rejected.some((o) => !(reasons[o.id] ?? '').trim())) {
+      setLogError('Give a reason for every option not taken.');
+      return;
+    }
     const loggedAt = new Date().toISOString();
     dispatch({
       type: 'logDecision',

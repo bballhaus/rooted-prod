@@ -51,6 +51,12 @@ describe('draftRecord', () => {
     expect(draft.rationale).not.toContain('Removed note');
   });
 
+  it('F-08: never cites context the PM marked wrong', () => {
+    const flagged = trialContext.map((c) => (c.id === 'c-t-1' ? { ...c, flaggedInaccurate: true } : c));
+    const draft = draftRecordNow(trialDecision, trialOptions, 'o-t-30', 'Go to 30 days', flagged);
+    expect(draft.rationale).not.toContain('62% of converting workspaces');
+  });
+
   it('F-15: drafts one reason per option not taken, reusing an existing prune reason', () => {
     const draft = draftRecordNow(trialDecision, trialOptions, 'o-t-30', 'Go to 30 days', trialContext);
     expect(draft.rejected.map((r) => r.optionId).sort()).toEqual(['o-t-14', 'o-t-usage']);
@@ -143,6 +149,19 @@ describe('LogDecisionDialog', () => {
     expect(latest!.decisions.find((x) => x.id === 'd-trial')!.summary).toBe(
       'Thirty days, so teams get past the day-10 invite.',
     );
+  });
+});
+
+describe('LogDecisionDialog reasons', () => {
+  it('F-18: every option not taken needs a reason before the decision is logged', async () => {
+    const { user } = renderDialog('o-t-30');
+    const dialog = screen.getByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Draft the rest' }));
+    const reason = await within(dialog).findByLabelText(/Why not 14-day trial/, {}, WAIT);
+    await user.clear(reason);
+    await user.click(within(dialog).getByRole('button', { name: 'Log decision' }));
+    expect(within(dialog).getByText('Give a reason for every option not taken.')).toBeInTheDocument();
+    expect(latest!.decisions.find((x) => x.id === 'd-trial')!.status).not.toBe('decided');
   });
 });
 

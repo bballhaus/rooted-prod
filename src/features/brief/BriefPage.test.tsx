@@ -191,6 +191,13 @@ describe('BriefPage', () => {
     expect(screen.getByText('options page, status decided')).toBeInTheDocument();
   });
 
+  it('F-14: a logged decision is never gathered again, so its record keeps the context it was logged with', async () => {
+    renderApp('/decisions/d-pricing-seats/brief');
+    await screen.findByRole('heading', { name: /^Context/, level: 2 }, WAIT);
+    expect(screen.queryByRole('button', { name: 'Gather again' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View the record' })).toHaveAttribute('href', '/decisions/d-pricing-seats');
+  });
+
   it('shows a helpful message for an unknown decision', () => {
     renderApp('/decisions/nope/brief');
     expect(screen.getByRole('heading', { name: 'Decision not found' })).toBeInTheDocument();

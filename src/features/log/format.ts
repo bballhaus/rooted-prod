@@ -36,8 +36,9 @@ export const STATUS_LABEL: Record<Decision['status'], string> = {
   decided: 'Logged',
 };
 
+// Local calendar date, matching the frame step's default review date.
 export function addDays(iso: string, days: number): string {
   const d = new Date(iso);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
+  d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }

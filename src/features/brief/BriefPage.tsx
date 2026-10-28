@@ -12,6 +12,12 @@ import { newId, useDecision, useStore } from '../../store/store';
 import type { ContextItem, ContextOrigin, Decision, Gap } from '../../types';
 import './brief.css';
 
+// Today's local calendar date, so a note added in the evening isn't dated tomorrow.
+function localToday(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 const ORIGIN_LABELS: Record<ContextOrigin, string> = {
   slack: 'Slack',
   drive: 'Google Drive',
@@ -31,10 +37,13 @@ function useGather(decision: Decision | undefined) {
     setGathering(true);
     setStep(steps[0]);
     let i = 0;
-    const timer = setInterval(() => {
-      i = Math.min(i + 1, steps.length - 1);
-      setStep(steps[i]);
-    }, Math.max(80, Math.floor(AGENT_DELAY_MS / steps.length)));
+    const timer = setInterval(
+      () => {
+        i = Math.min(i + 1, steps.length - 1);
+        setStep(steps[i]);
+      },
+      Math.max(80, Math.floor(AGENT_DELAY_MS / steps.length)),
+    );
     void gatherBrief(decision, state).then(({ items, gaps }) => {
       clearInterval(timer);
       dispatch({ type: 'setBrief', decisionId: decision.id, items, gaps });
@@ -128,8 +137,8 @@ function Brief({
         <p className="kicker">Evidence brief</p>
         <h1 className="page-title">{decision.question}</h1>
         <p className="lead">
-          Here's what Rooted found. Fix anything that's wrong, remove what doesn't matter, and fill the gaps before
-          you weigh options.
+          Here's what Rooted found. Fix anything that's wrong, remove what doesn't matter, and fill the gaps before you
+          weigh options.
         </p>
       </header>
 
@@ -142,8 +151,7 @@ function Brief({
         </p>
         {access.excluded.length > 0 && (
           <p>
-            <strong>Not read:</strong>{' '}
-            {access.excluded.map((e) => `${e.label} (${e.reason})`).join(', ')}.{' '}
+            <strong>Not read:</strong> {access.excluded.map((e) => `${e.label} (${e.reason})`).join(', ')}.{' '}
             <Link to="/settings">Change access in settings</Link>
           </p>
         )}
@@ -258,24 +266,27 @@ function Brief({
         </>
       )}
 
+      {decision.status === 'decided' && (
+        <p className="banner">
+          This decision is logged, so its brief can't be gathered again.{' '}
+          <Link to={`/decisions/${decision.id}`}>View the record</Link>
+        </p>
+      )}
       <div className="row brief-actions">
         <button type="button" className="btn btn-lg" onClick={continueToOptions} disabled={gathering}>
           Looks right, show options
         </button>
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={() => setConfirmOpen(true)}
-          disabled={gathering}
-        >
-          Gather again
-        </button>
+        {decision.status !== 'decided' && (
+          <button type="button" className="btn btn-secondary" onClick={() => setConfirmOpen(true)} disabled={gathering}>
+            Gather again
+          </button>
+        )}
       </div>
 
       <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} title="Gather context again?">
         <p>
-          Rooted will read your allowed sources again and replace this brief. Your edits, removed items, notes you
-          added and gap answers will be replaced.
+          Rooted will read your allowed sources again and replace this brief. Your edits, removed items, notes you added
+          and gap answers will be replaced.
         </p>
         <div className="row">
           <button
@@ -321,7 +332,11 @@ function ContextCard({ item }: { item: ContextItem }) {
     >
       <div className="brief-item-meta">
         <h4 id={titleId} className="brief-item-source">
-          {item.link && item.origin === 'past-decision' ? <Link to={item.link}>{item.sourceLabel}</Link> : item.sourceLabel}
+          {item.link && item.origin === 'past-decision' ? (
+            <Link to={item.link}>{item.sourceLabel}</Link>
+          ) : (
+            item.sourceLabel
+          )}
         </h4>
         <span className="muted">
           {item.author ? `${item.author} · ` : ''}
@@ -356,7 +371,7 @@ function ContextCard({ item }: { item: ContextItem }) {
         </form>
       ) : (
         <p className={`brief-snippet${item.flaggedInaccurate ? ' brief-snippet-flagged' : ''}`}>
-          {item.link && item.origin === 'user-note' ? (
+          {item.link && item.origin === 'user-note' && /^https?:\/\//i.test(item.link) ? (
             <a href={item.link} target="_blank" rel="noreferrer">
               {item.snippet}
             </a>
@@ -502,7 +517,7 @@ function AddContextForm({ decisionId }: { decisionId: string }) {
         origin: 'user-note',
         sourceLabel: label.trim() || 'Your note',
         author: state.user?.name,
-        date: new Date().toISOString().slice(0, 10),
+        date: localToday(),
         snippet: text.trim(),
         link: link.trim() || undefined,
         group: 'Your notes',

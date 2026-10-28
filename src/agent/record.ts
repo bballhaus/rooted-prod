@@ -42,7 +42,7 @@ export function draftRecordNow(
 ): RecordDraft {
   const own = options.filter((o) => o.decisionId === decision.id);
   const chosen = own.find((o) => o.id === chosenOptionId);
-  const live = contextItems.filter((c) => c.decisionId === decision.id && !c.removed);
+  const live = contextItems.filter((c) => c.decisionId === decision.id && !c.removed && !c.flaggedInaccurate);
 
   const parts: string[] = [];
   if (summary.trim()) parts.push(sentence(summary));
