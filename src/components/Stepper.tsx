@@ -25,7 +25,7 @@ export function Stepper({ decision, current }: { decision: Decision; current: (t
                 {label}
               </Link>
             ) : (
-              <span className={isCurrent ? 'pill pill-rec' : 'pill'} aria-current={isCurrent ? 'step' : undefined}>
+              <span className={isCurrent ? 'pill pill-current' : 'pill'} aria-current={isCurrent ? 'step' : undefined}>
                 {label}
               </span>
             )}

@@ -256,6 +256,12 @@ h3 {
   color: var(--rec-fg);
 }
 
+/* Where you are (a step, a filter). Neutral: wine is for the chosen option. */
+.pill-current {
+  background: var(--chip-on-bg);
+  color: var(--chip-on-fg);
+}
+
 .chip {
   display: inline-flex;
   align-items: center;
