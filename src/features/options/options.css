@@ -1,0 +1,530 @@
+/* F-10, F-11 option branches. Tokens only; wine is reserved for the chosen card. */
+
+.options-head {
+  gap: 12px;
+}
+
+.options-status {
+  min-height: 24px;
+  color: var(--ink2);
+}
+
+.options-banner {
+  justify-content: space-between;
+}
+
+.options-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--options-cols, 3), minmax(0, 1fr));
+  gap: 24px;
+  align-items: start;
+  /* Snapshot the page tokens so popovers and dialogs inside the wine card
+     can switch back to them. */
+  --options-ink: var(--ink);
+  --options-ink2: var(--ink2);
+  --options-line: var(--line);
+  --options-btn-bg: var(--btn-bg);
+  --options-btn-fg: var(--btn-fg);
+  --options-btn2-border: var(--btn2-border);
+  --options-chip-bg: var(--chip-bg);
+  --options-chip-on-bg: var(--chip-on-bg);
+  --options-chip-on-fg: var(--chip-on-fg);
+  --options-card-border: var(--card-border);
+  --options-pruned-fg: var(--pruned-fg);
+}
+
+@media (max-width: 880px) {
+  .options-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.options-card {
+  display: grid;
+}
+
+/* The chosen card is wine; re-point the tokens its contents use so buttons,
+   chips and bars stay legible on it. */
+.options-card.card-rec {
+  --ink: var(--rec-fg);
+  --ink2: var(--rec-fg);
+  --line: var(--rec-fg);
+  --btn-bg: var(--rec-fg);
+  --btn-fg: var(--rec-bg);
+  --btn2-border: var(--rec-fg);
+  --chip-bg: var(--card-rule);
+  --chip-on-bg: var(--rec-fg);
+  --chip-on-fg: var(--rec-bg);
+  --card-border: var(--rec-fg);
+  --pruned-fg: var(--rec-fg);
+}
+
+.options-card-pruned .options-summary,
+.options-card-pruned .options-procon {
+  color: var(--ink2);
+}
+
+.options-tags {
+  gap: 8px;
+  min-height: 28px;
+}
+
+.options-pill-top {
+  border: 1px solid var(--line);
+  background: transparent;
+}
+
+.options-summary {
+  margin: 0;
+}
+
+.options-reason {
+  margin: 0;
+  color: var(--pruned-fg);
+}
+
+.options-reason-label {
+  font-weight: 600;
+}
+
+.options-procon {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.options-subhead {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink2);
+}
+
+.options-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  font-size: 15px;
+}
+
+.options-score {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.options-score .options-subhead {
+  margin: 0;
+}
+
+.options-bar {
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--chip-bg);
+  overflow: hidden;
+}
+
+.options-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--ink2);
+  border-radius: inherit;
+}
+
+.options-score-num {
+  font-size: 20px;
+  font-weight: 600;
+  min-width: 2ch;
+  text-align: right;
+}
+
+.options-evidence {
+  gap: 8px;
+}
+
+.options-evidence .options-subhead {
+  margin: 0;
+}
+
+.options-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 8px;
+}
+
+.options-chip-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.options-chip {
+  min-height: 44px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: help;
+}
+
+.options-tip {
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  bottom: calc(100% + 8px);
+  width: min(320px, 70vw);
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  color: var(--ink);
+  box-shadow: var(--card-shadow);
+  font-size: 14px;
+  line-height: 1.45;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px);
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease,
+    visibility 0.15s;
+}
+
+/* Tooltips and dialogs opened from the chosen card use the page palette. */
+.options-card.card-rec .options-tip,
+.options-card.card-rec .dialog {
+  --ink: var(--options-ink);
+  --ink2: var(--options-ink2);
+  --line: var(--options-line);
+  --btn-bg: var(--options-btn-bg);
+  --btn-fg: var(--options-btn-fg);
+  --btn2-border: var(--options-btn2-border);
+  --chip-bg: var(--options-chip-bg);
+  --chip-on-bg: var(--options-chip-on-bg);
+  --chip-on-fg: var(--options-chip-on-fg);
+  --card-border: var(--options-card-border);
+  --pruned-fg: var(--options-pruned-fg);
+  color: var(--ink);
+}
+
+.options-tip-open {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+.options-tip-meta {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .options-tip {
+    transition: none;
+    transform: none;
+  }
+}
+
+.options-card-actions {
+  gap: 8px;
+}
+
+.options-actions {
+  gap: 16px;
+}
+
+.options-note {
+  margin: 0;
+  font-size: 14px;
+}
+
+@media (max-width: 880px) {
+  .options-procon {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* On the wine card the chosen dot inverts so it stays visible. */
+.options-card.card-rec .dot-chosen {
+  background: var(--rec-fg);
+  box-shadow:
+    0 0 0 2px var(--rec-bg),
+    0 0 0 3px var(--rec-fg);
+}
+
+/* Decision tree graph. Nodes are absolutely placed buttons over an SVG of
+   connectors; the frame scrolls sideways when the tree is wider than the page. */
+.options-tree-head {
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.options-legend {
+  margin: 0;
+  max-width: 60ch;
+  font-size: 14px;
+}
+
+.options-tree-scroll {
+  overflow-x: auto;
+  padding: 16px;
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  background: var(--card-bg);
+}
+
+.options-tree {
+  position: relative;
+}
+
+.options-tree-lines {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+.options-edge {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 1.5;
+}
+
+.options-edge-pruned {
+  stroke: var(--pruned-fg);
+  stroke-dasharray: 4 4;
+  opacity: 0.6;
+}
+
+.options-edge-link {
+  stroke-dasharray: 2 5;
+}
+
+.options-node {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  background: var(--ground);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: var(--card-shadow);
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.options-node:hover {
+  transform: translateY(-1px);
+  border-color: var(--ink2);
+}
+
+.options-node-root {
+  background: var(--chip-on-bg);
+  color: var(--chip-on-fg);
+  border-color: var(--chip-on-bg);
+}
+
+.options-node-past {
+  border-style: dashed;
+  box-shadow: none;
+  background: var(--chip-bg);
+}
+
+.options-node-chosen {
+  background: var(--rec-bg);
+  color: var(--rec-fg);
+  border-color: var(--rec-bg);
+}
+
+.options-node-pruned {
+  border-style: dashed;
+  box-shadow: none;
+  color: var(--ink2);
+}
+
+.options-node-faded {
+  /* No opacity: text stays full contrast; the dashed border and the label carry the state. */
+  border-style: dashed;
+  box-shadow: none;
+  background: transparent;
+}
+
+.options-node-focus {
+  /* The picked node: a heavier border, so it never looks like the focus ring. */
+  border: 2px solid var(--ink);
+  padding: 9px 11px;
+}
+
+.options-node-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.options-node-label {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.options-node-meta {
+  font-size: 12px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.options-node-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.options-node-bar {
+  flex: 1;
+  display: grid;
+  gap: 2px;
+}
+
+.options-node-bar-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--card-border);
+  overflow: hidden;
+}
+
+.options-node-chosen .options-node-bar-track {
+  background: var(--card-rule);
+}
+
+.options-node-bar-fill {
+  display: block;
+  height: 100%;
+  background: currentColor;
+}
+
+.options-node-score {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.options-node-toggle {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  background: var(--ground);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Cards: the level being compared and the node picked in the graph. */
+.options-crumbs {
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.options-crumb {
+  gap: 4px;
+  color: var(--ink2);
+}
+
+.options-card-focus {
+  box-shadow:
+    inset 0 0 0 2px var(--ink),
+    var(--card-shadow);
+}
+
+.options-criteria {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.options-criterion {
+  display: grid;
+  gap: 2px;
+}
+
+.options-criterion dt {
+  font-size: 14px;
+}
+
+.options-criterion dd {
+  margin: 0;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.options-criterion-hint {
+  font-size: 12px;
+}
+
+.options-pips {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.options-pip {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+}
+
+.options-pip-on {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.options-criteria-edit {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.options-split-hint {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 13px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .options-node {
+    transition: none;
+  }
+  .options-node:hover {
+    transform: none;
+  }
+}

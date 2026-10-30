@@ -2,15 +2,19 @@
 
 Rooted is an AI decision partner and decision history for startup PMs. It gathers context from where the team already works (Slack first), helps the PM weigh options as a decision tree, logs the choice with its rationale and rejected options, and later asks what happened. The PM makes the call; the agent never decides. Built by Team 10 (Geckos) for Stanford CS 177, Fall 2026. Human-facing intro: `README.md`.
 
-## Status: docs only, no stack yet
+## Status: MVP prototype, Vite + React + TypeScript
 
-- There is no application code, package manifest or test suite yet, so there is nothing to build, test or run. Don't invent commands (`npm test`, `pnpm dev`) or report them as passing.
-- Database and auth are Supabase, project `hxqyudcrlzkiqiwithke` (`docs/decisions/0002-supabase.md`). The framework, LLM provider and hosting are still open. Don't scaffold a framework, add a `package.json`, or pick a provider unless the task says to. If a task needs code, stop and ask which stack. The PR that picks it fills the command table in `docs/engineering/testing.md`, copies the commands here, and adds the test run to CI.
+- Stack (decision 0003): Vite + React 18 + TypeScript (strict), react-router v6, Vitest + Testing Library (jsdom). Client-only: state lives in one reducer store (`src/store/store.tsx`) persisted to `localStorage`, seeded from synthetic fixtures (`src/data/fixtures.ts`). The "agent" is deterministic mock functions in `src/agent/`; no LLM, backend or real OAuth yet. Don't add dependencies (UI kits, CSS frameworks, state libraries) without a decision record.
+- Layout: `src/types.ts` (models from `features.md` §6), `src/components/` (Layout, Stepper, Dialog, ReportWrongAnswer), `src/styles/global.css` (design tokens and base classes), `src/features/<feature>/` (one folder per screen group, with its tests), `src/test/render.tsx` (`renderApp`, `renderWithStore`).
+- Database and auth are Supabase, project `hxqyudcrlzkiqiwithke` (`docs/decisions/0002-supabase.md`), not wired in yet. The LLM provider and hosting are still open.
 - The public landing page (rooted-stanford.vercel.app) is a separate repo, `rrsudev/CS177-geckos` (Vite + React 18, Supabase signups, PostHog). Its interactive tree is a marketing demo: no ingestion, scoring or integrations stand behind it, and none of its code is in this repo.
 
-## Commands and checks (docs only, for now)
+## Commands and checks
 
 ```bash
+npm ci                                             # install
+npm run dev                                        # local dev server
+npm run typecheck && npm test && npm run build     # full gate
 npx markdownlint-cli2                              # lint every Markdown file (.markdownlint-cli2.jsonc)
 lychee --offline --include-fragments .             # links between repo files resolve
 ```

@@ -1,0 +1,164 @@
+/* Sign in (F-01, F-21) and data access (F-02, F-03). Tokens only. */
+
+.auth-shell {
+  min-height: 100vh;
+  background: var(--ground);
+}
+
+.auth-header {
+  border-bottom: 1px solid var(--card-rule);
+}
+
+.auth-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 64px;
+}
+
+.auth-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 21px;
+  letter-spacing: -0.02em;
+}
+
+.auth-signin {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(32px, 5vw, 80px);
+}
+
+.auth-card {
+  max-width: 460px;
+  width: 100%;
+}
+
+.auth-providers {
+  display: grid;
+  gap: 12px;
+}
+
+.auth-providers .btn {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.auth-small {
+  font-size: 14px;
+  margin: 0;
+}
+
+.auth-mock-note {
+  margin: 0;
+}
+
+.auth-list {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+}
+
+.auth-whoami {
+  justify-self: start;
+  margin: 0;
+}
+
+.auth-sources {
+  align-items: start;
+}
+
+.auth-source-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.auth-source-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 50%;
+  border: 1px solid var(--card-border);
+}
+
+.auth-source-title {
+  flex: 1;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.auth-source-title .auth-small {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.auth-dot-off {
+  border: 1.5px solid var(--line);
+}
+
+.auth-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.auth-fieldset:disabled .auth-channels {
+  opacity: 0.55;
+}
+
+.auth-fieldset:disabled .checkbox {
+  cursor: not-allowed;
+}
+
+.auth-legend {
+  padding: 0;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.auth-channels {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+
+.auth-channels li + li {
+  border-top: 1px solid var(--card-rule);
+}
+
+.auth-channel-name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.auth-summary {
+  margin: 0;
+  font-weight: 600;
+}
+
+@media (max-width: 880px) {
+  .auth-signin {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-card {
+    max-width: none;
+  }
+
+  .auth-source-head {
+    flex-wrap: wrap;
+  }
+}

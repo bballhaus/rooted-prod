@@ -1,0 +1,141 @@
+/* Frame a decision (F-04, F-05). Tokens only, no raw colors. */
+
+.frame-form {
+  max-width: 880px;
+}
+
+.frame-tight {
+  gap: 4px;
+}
+
+.frame-sub {
+  margin: 0;
+  font-size: 14px;
+}
+
+.frame-question {
+  min-height: 88px;
+  font-size: 18px;
+}
+
+.frame-error {
+  margin: 0;
+  color: var(--ink);
+}
+
+.frame .input[aria-invalid='true'],
+.frame .textarea[aria-invalid='true'] {
+  border-color: var(--ink);
+}
+
+.frame-example-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.frame-example {
+  min-height: 44px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.frame-example:hover {
+  transform: translateY(-1px);
+  background: var(--chip-bg);
+}
+
+.frame-add {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.frame-add .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.frame-add .btn {
+  flex: none;
+}
+
+.frame-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.frame-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--card-rule);
+}
+
+.frame-link-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+
+.frame-chips {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  gap: 8px;
+}
+
+.frame-chip {
+  padding-right: 0;
+  background: var(--chip-bg);
+}
+
+.frame-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  margin: -7px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink2);
+  font: inherit;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.frame-chip-remove:hover {
+  color: var(--ink);
+}
+
+.frame-actions {
+  justify-content: flex-start;
+}
+
+@media (max-width: 880px) {
+  .frame-add {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .frame-example,
+  .frame-example:hover {
+    transition: none;
+    transform: none;
+  }
+}
