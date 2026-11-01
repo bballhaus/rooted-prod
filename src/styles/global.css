@@ -1,6 +1,12 @@
 /* Tokens and base components from docs/design/design-language.md.
    Components use the semantic tokens (--ground, --ink, ...), never raw hex. */
 
+/* Theme is driven by data-theme on <html> (set in main.tsx from a stored
+   preference or the system setting), so the in-app toggle works without
+   depending on the OS. Default (:root) is the crisp light theme; the map canvas
+   is a clean neutral, not the warm cream the brand uses on wine/charcoal
+   surfaces. Dark is an Obsidian-style canvas. Both keep the brand accents:
+   wine = chosen, sage = alive, berry = exploring. */
 :root {
   --wine: #581c32;
   --berry: #8e4056;
@@ -8,77 +14,86 @@
   --charcoal: #25272b;
   --sage: #a4ad96;
 
-  --ground: #f7f4ef;
-  --ink: #25272b;
-  --ink2: #5b5d61;
-  --line: rgba(37, 39, 43, 0.4);
+  --ground: #eef0f3;
+  --ink: #22242a;
+  --ink2: #5b616b;
+  --line: rgba(34, 36, 42, 0.34);
   --btn-bg: #581c32;
   --btn-fg: #f7f4ef;
-  --btn2-border: rgba(37, 39, 43, 0.4);
+  --btn2-border: rgba(34, 36, 42, 0.26);
   --rec-bg: #581c32;
   --rec-fg: #f7f4ef;
-  --alive-dot: #a4ad96;
+  --alive-dot: #869073;
   --pruned-fg: #8e4056;
-  --card-bg: #fcfbf8;
-  --card-border: rgba(37, 39, 43, 0.12);
-  --card-rule: rgba(37, 39, 43, 0.08);
-  --card-shadow: 0 1px 2px rgba(37, 39, 43, 0.05), 0 30px 60px -30px rgba(88, 28, 50, 0.28);
-  --chip-bg: rgba(37, 39, 43, 0.06);
+  --card-bg: #ffffff;
+  --card-border: rgba(34, 36, 42, 0.12);
+  --card-rule: rgba(34, 36, 42, 0.08);
+  --card-shadow: 0 1px 2px rgba(34, 36, 42, 0.06), 0 24px 48px -28px rgba(88, 28, 50, 0.2);
+  --chip-bg: rgba(34, 36, 42, 0.06);
   --chip-on-bg: #25272b;
   --chip-on-fg: #f7f4ef;
-  --input-bg: rgba(255, 255, 255, 0.6);
-  --input-border: rgba(37, 39, 43, 0.25);
+  --input-bg: #ffffff;
+  --input-border: rgba(34, 36, 42, 0.2);
   --soil: #581c32;
 
-  /* App chrome: a faintly elevated "paper" rail against the ground. */
-  --rail-bg: #fbf9f5;
-  --rail-border: rgba(37, 39, 43, 0.1);
-  --hair: rgba(37, 39, 43, 0.1);
-  --hover: rgba(37, 39, 43, 0.05);
-  --shadow-sm: 0 1px 2px rgba(37, 39, 43, 0.05), 0 12px 24px -18px rgba(88, 28, 50, 0.22);
-  --wine-tint: rgba(88, 28, 50, 0.08);
-  --wine-line: rgba(88, 28, 50, 0.28);
-  --sage-tint: rgba(164, 173, 150, 0.22);
-  --berry-tint: rgba(142, 64, 86, 0.14);
+  --rail-bg: #ffffff;
+  --rail-border: rgba(34, 36, 42, 0.1);
+  --hair: rgba(34, 36, 42, 0.1);
+  --hover: rgba(34, 36, 42, 0.05);
+  --shadow-sm: 0 1px 2px rgba(34, 36, 42, 0.06), 0 12px 24px -18px rgba(88, 28, 50, 0.18);
+  --wine-tint: rgba(88, 28, 50, 0.07);
+  --wine-line: rgba(88, 28, 50, 0.26);
+  --sage-tint: rgba(134, 144, 115, 0.2);
+  --berry-tint: rgba(142, 64, 86, 0.12);
+
+  /* The map canvas and its dot grid. */
+  --canvas-bg: #f5f6f8;
+  --grid-dot: rgba(34, 36, 42, 0.09);
+  --node-glow: rgba(88, 28, 50, 0.25);
 
   --gutter: clamp(20px, 4vw, 56px);
   --max: 1240px;
   --font: 'Bricolage Grotesque', 'Avenir Next', 'Segoe UI', Helvetica, Arial, sans-serif;
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ground: #25272b;
-    --ink: #f7f4ef;
-    --ink2: #c5c8bc;
-    --line: rgba(247, 244, 239, 0.42);
-    --btn-bg: #f7f4ef;
-    --btn-fg: #25272b;
-    --btn2-border: rgba(247, 244, 239, 0.45);
-    --rec-bg: #8e4056;
-    --rec-fg: #f7f4ef;
-    --pruned-fg: #c39aa3;
-    --card-bg: #2e3034;
-    --card-border: rgba(247, 244, 239, 0.12);
-    --card-rule: rgba(247, 244, 239, 0.08);
-    --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 30px 60px -30px rgba(0, 0, 0, 0.5);
-    --chip-bg: rgba(247, 244, 239, 0.1);
-    --chip-on-bg: #f7f4ef;
-    --chip-on-fg: #25272b;
-    --input-bg: rgba(247, 244, 239, 0.06);
-    --input-border: rgba(247, 244, 239, 0.3);
+:root[data-theme='dark'] {
+  --ground: #1b1d21;
+  --ink: #e9ebee;
+  --ink2: #a4a9b2;
+  --line: rgba(233, 235, 238, 0.3);
+  --btn-bg: #f7f4ef;
+  --btn-fg: #25272b;
+  --btn2-border: rgba(233, 235, 238, 0.32);
+  --rec-bg: #8e4056;
+  --rec-fg: #f7f4ef;
+  --alive-dot: #a4ad96;
+  --pruned-fg: #c39aa3;
+  --card-bg: #24272c;
+  --card-border: rgba(233, 235, 238, 0.13);
+  --card-rule: rgba(233, 235, 238, 0.08);
+  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 24px 48px -28px rgba(0, 0, 0, 0.6);
+  --chip-bg: rgba(233, 235, 238, 0.1);
+  --chip-on-bg: #e9ebee;
+  --chip-on-fg: #1b1d21;
+  --input-bg: rgba(233, 235, 238, 0.06);
+  --input-border: rgba(233, 235, 238, 0.26);
 
-    --rail-bg: #2a2c30;
-    --rail-border: rgba(247, 244, 239, 0.1);
-    --hair: rgba(247, 244, 239, 0.1);
-    --hover: rgba(247, 244, 239, 0.06);
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25), 0 12px 24px -18px rgba(0, 0, 0, 0.5);
-    --wine-tint: rgba(142, 64, 86, 0.18);
-    --wine-line: rgba(195, 154, 163, 0.4);
-    --sage-tint: rgba(164, 173, 150, 0.18);
-    --berry-tint: rgba(195, 154, 163, 0.16);
-  }
+  --rail-bg: #1a1c20;
+  --rail-border: rgba(233, 235, 238, 0.1);
+  --hair: rgba(233, 235, 238, 0.1);
+  --hover: rgba(233, 235, 238, 0.06);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 24px -18px rgba(0, 0, 0, 0.6);
+  --wine-tint: rgba(142, 64, 86, 0.2);
+  --wine-line: rgba(195, 154, 163, 0.4);
+  --sage-tint: rgba(164, 173, 150, 0.16);
+  --berry-tint: rgba(195, 154, 163, 0.14);
+
+  --canvas-bg: #141619;
+  --grid-dot: rgba(233, 235, 238, 0.06);
+  --node-glow: rgba(195, 154, 163, 0.5);
+
+  color-scheme: dark;
 }
 
 *,

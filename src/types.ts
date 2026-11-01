@@ -71,6 +71,9 @@ export interface Decision {
   // Rendered as a dashed, speculative node the user can step into.
   speculative?: boolean;
   horizon?: Horizon;
+  // Who owns the decision. Unset means the current user; the org view's mock
+  // decisions set it to a teammate so the map can colour-code by owner.
+  owner?: string;
 }
 
 export type ContextOrigin = 'slack' | 'drive' | 'past-decision' | 'user-note';

@@ -1,227 +1,315 @@
-// The one main page. It shows the whole decision map — every logged call, the
-// ones in flight, and the directions still open — and lets the PM step into any
-// of them. Selecting a node opens an inspector with the reasoning behind it, what
-// it built on, and what it led to. This is where "trace a decision to its root"
-// becomes something you can see.
+// The one main page: a full-bleed decision canvas. The map is the product — pan,
+// zoom, drag and arrange decisions; switch between a free graph and a timeline;
+// scope to yourself or the org; colour-code; trace a decision's lineage; rename.
+// Text is kept to labels and the selected node's detail — the canvas does the talking.
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
+import { orgDecisions } from '../../data/orgFixtures';
 import { continuePath } from '../log/format';
-import { formatDate } from '../log/format';
-import { IconArrowRight, IconPlay, IconPlus } from '../../components/icons';
+import { IconArrowRight, IconGraph, IconPlus, IconSidebar, IconTimeline, IconTrace } from '../../components/icons';
 import type { Decision } from '../../types';
-import { ForestCanvas } from './ForestCanvas';
+import { MapCanvas } from './MapCanvas';
+import { categoryColor, lineage, type MapNode } from './map';
 import './workspace.css';
+
+type View = 'graph' | 'timeline';
+type Scope = 'me' | 'org';
+type ColorBy = 'status' | 'metric' | 'owner';
+
+const STATUS_COLOR: Record<MapNode['kind'], string> = {
+  decided: 'var(--rec-bg)',
+  open: 'var(--sage)',
+  future: 'var(--berry)',
+};
 
 export function WorkspaceHome() {
   const { state, dispatch } = useStore();
-  const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
-  const decisions = state.decisions;
+  const navigate = useNavigate();
+  const me = state.user?.name ?? 'You';
 
-  const counts = useMemo(() => {
-    let decided = 0;
-    let progress = 0;
-    let directions = 0;
-    for (const d of decisions) {
-      if (d.speculative || d.horizon === 'future') directions++;
-      else if (d.status === 'decided') decided++;
-      else progress++;
-    }
-    return { decided, progress, directions };
-  }, [decisions]);
+  const [view, setView] = useState<View>('graph');
+  const [scope, setScope] = useState<Scope>('me');
+  const [colorBy, setColorBy] = useState<ColorBy>('status');
+  const [selectedId, setSelectedId] = useState<string | undefined>();
+  const [traceOn, setTraceOn] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(true);
 
-  const selected = decisions.find((d) => d.id === selectedId);
+  const toNode = (d: Decision): MapNode => ({
+    id: d.id,
+    question: d.question,
+    kind: d.speculative || d.horizon === 'future' ? 'future' : d.status === 'decided' ? 'decided' : 'open',
+    status: d.status,
+    metric: d.metric,
+    owner: d.owner ?? me,
+    chosen: state.options.find((o) => o.id === d.chosenOptionId)?.label,
+    builtOn: d.builtOn ?? [],
+    external: !!d.owner,
+  });
 
-  if (decisions.length === 0) {
+  const nodes = useMemo(() => {
+    const own = state.decisions.map(toNode);
+    if (scope === 'me') return own;
+    return [...own, ...orgDecisions.map(toNode)];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.decisions, state.options, scope, me]);
+
+  const metrics = useMemo(() => [...new Set(nodes.map((n) => n.metric).filter(Boolean) as string[])].sort(), [nodes]);
+  const owners = useMemo(() => [...new Set(nodes.map((n) => n.owner))].sort(), [nodes]);
+
+  const colorOf = (n: MapNode): string => {
+    if (colorBy === 'metric') return n.metric ? categoryColor(n.metric, metrics) : 'var(--ink2)';
+    if (colorBy === 'owner') return categoryColor(n.owner, owners);
+    return STATUS_COLOR[n.kind];
+  };
+
+  const traceSet = traceOn && selectedId ? lineage(nodes, selectedId) : null;
+  const selected = nodes.find((n) => n.id === selectedId);
+  const legend = colorBy === 'metric' ? metrics : colorBy === 'owner' ? owners : [];
+
+  function select(id: string | null) {
+    setSelectedId(id ?? undefined);
+    if (id) setPanelOpen(true);
+    else setTraceOn(false);
+  }
+
+  if (nodes.length === 0) {
     return (
-      <div className="page wk-empty">
-        <p className="kicker">Workspace</p>
-        <h1 className="page-title">Start with one decision.</h1>
-        <p className="lead">
-          Rooted maps your options, keeps the ones you pruned with their reasons, and traces every call back to the
-          evidence behind it. Frame your first decision, or load a worked example to see where it goes.
-        </p>
-        <div className="row">
-          <Link to="/decisions/new" className="btn btn-lg">
-            <IconPlus /> Frame your first decision
-          </Link>
-          <button
-            type="button"
-            className="btn btn-secondary btn-lg"
-            onClick={() => dispatch({ type: 'loadDemo' })}
-          >
-            <IconPlay /> Explore the demo
-          </button>
+      <div className="map-empty">
+        <div className="map-empty-inner">
+          <h1 className="page-title">Start with one decision.</h1>
+          <div className="row">
+            <Link to="/decisions/new" className="btn btn-lg">
+              <IconPlus /> Frame your first decision
+            </Link>
+            <button type="button" className="btn btn-secondary btn-lg" onClick={() => dispatch({ type: 'loadDemo' })}>
+              Explore the demo
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="page wk-home">
-      <header className="wk-head">
-        <div className="wk-head-text">
-          <p className="kicker">{state.demo ? 'Demo workspace' : 'Workspace'}</p>
-          <h1 className="page-title">
-            {state.demo ? 'Fernwave’s decision map' : 'Your decision map'}
-          </h1>
-          <p className="lead">
-            Every decision, traced to its root. Read it left to right: the calls you’ve made, what they led to, and the
-            directions still open. Select any node to see the reasoning behind it.
-          </p>
+    <div className="map-page">
+      <h1 className="visually-hidden">Decision map</h1>
+
+      <MapCanvas
+        nodes={nodes}
+        view={view}
+        scope={scope}
+        colorOf={colorOf}
+        selectedId={selectedId}
+        traceSet={traceSet}
+        onSelect={select}
+        onOpen={(id) => {
+          const d = state.decisions.find((x) => x.id === id);
+          if (d) navigate(d.speculative ? `/decisions/${id}/options` : continuePath(d));
+        }}
+      />
+
+      <div className="map-toolbar" role="toolbar" aria-label="Map controls">
+        <Segmented
+          label="View"
+          value={view}
+          onChange={(v) => setView(v as View)}
+          options={[
+            { value: 'graph', label: 'Graph', icon: <IconGraph size={15} /> },
+            { value: 'timeline', label: 'Timeline', icon: <IconTimeline size={15} /> },
+          ]}
+        />
+        <Segmented
+          label="Scope"
+          value={scope}
+          onChange={(v) => setScope(v as Scope)}
+          options={[
+            { value: 'me', label: 'Me' },
+            { value: 'org', label: 'Org' },
+          ]}
+        />
+        <label className="map-colorby">
+          <span className="visually-hidden">Colour by</span>
+          <select className="map-select" value={colorBy} onChange={(e) => setColorBy(e.target.value as ColorBy)}>
+            <option value="status">Colour: status</option>
+            <option value="metric">Colour: goal</option>
+            <option value="owner">Colour: owner</option>
+          </select>
+        </label>
+        <button
+          type="button"
+          className={`map-tool-btn${traceOn ? ' map-tool-btn-on' : ''}`}
+          aria-pressed={traceOn}
+          disabled={!selectedId}
+          onClick={() => setTraceOn((v) => !v)}
+          title={selectedId ? 'Trace this decision’s lineage' : 'Select a node first'}
+        >
+          <IconTrace size={15} /> Trace
+        </button>
+        <button
+          type="button"
+          className={`map-tool-btn${panelOpen ? ' map-tool-btn-on' : ''}`}
+          aria-pressed={panelOpen}
+          onClick={() => setPanelOpen((v) => !v)}
+          title="Toggle the detail panel"
+        >
+          <IconSidebar size={15} /> Details
+        </button>
+      </div>
+
+      {legend.length > 0 && (
+        <div className="map-legend" aria-hidden="true">
+          {legend.map((v) => (
+            <span key={v} className="map-legend-item">
+              <span className="map-legend-dot" style={{ background: categoryColor(v, legend) }} />
+              {v}
+            </span>
+          ))}
         </div>
-        <dl className="wk-stats" aria-label="Decision counts">
-          <div className="wk-stat">
-            <dt>Decided</dt>
-            <dd className="tabular">{counts.decided}</dd>
-          </div>
-          <div className="wk-stat">
-            <dt>In progress</dt>
-            <dd className="tabular">{counts.progress}</dd>
-          </div>
-          <div className="wk-stat">
-            <dt>Directions</dt>
-            <dd className="tabular">{counts.directions}</dd>
-          </div>
-        </dl>
-      </header>
+      )}
 
-      <div className="wk-canvas-wrap">
-        <section className="card wk-forest" aria-label="Decision map">
-          <ForestCanvas
-            decisions={decisions}
-            options={state.options}
-            selectedId={selectedId}
-            onSelect={(id) => setSelectedId((cur) => (cur === id ? undefined : id))}
-          />
-        </section>
+      {scope === 'org' && <span className="map-scope-note">Org view · sample data</span>}
 
-        <aside className="wk-inspector" aria-label="Decision detail">
-          {selected ? (
-            <DecisionDetail decision={selected} onSelect={setSelectedId} />
-          ) : (
-            <MapLegend demo={state.demo} />
-          )}
-        </aside>
-      </div>
+      {panelOpen && selected && (
+        <DetailPanel node={selected} nodes={nodes} onSelect={select} onClose={() => setPanelOpen(false)} />
+      )}
     </div>
   );
 }
 
-function MapLegend({ demo }: { demo: boolean }) {
-  return (
-    <div className="card wk-legend">
-      <div className="card-section stack">
-        <h2 className="section-title">How to read the map</h2>
-        <ul className="wk-legend-list">
-          <li>
-            <span className="dot dot-chosen" aria-hidden="true" /> A decision you made, with the branch you chose.
-          </li>
-          <li>
-            <span className="dot dot-alive" aria-hidden="true" /> A decision in progress.
-          </li>
-          <li>
-            <span className="dot dot-pruned" aria-hidden="true" /> A direction to explore — not committed to.
-          </li>
-        </ul>
-        <p className="muted">
-          Lines run from a decision to the ones it built on. {demo
-            ? 'This is planted sample data so you can see a full history at a glance.'
-            : 'Select a node to open it and see the evidence, options and reasoning.'}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function DecisionDetail({
-  decision,
-  onSelect,
+function Segmented({
+  label,
+  value,
+  onChange,
+  options,
 }: {
-  decision: Decision;
-  onSelect: (id: string) => void;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string; icon?: React.ReactNode }[];
 }) {
-  const { state } = useStore();
-  const kind = decision.speculative || decision.horizon === 'future' ? 'future' : decision.status === 'decided' ? 'decided' : 'open';
-  const chosen = state.options.find((o) => o.id === decision.chosenOptionId);
-  const builtOn = (decision.builtOn ?? [])
-    .map((id) => state.decisions.find((d) => d.id === id))
-    .filter((d): d is Decision => !!d);
-  const leadsTo = state.decisions.filter((d) => (d.builtOn ?? []).includes(decision.id));
-  const paths = state.options.filter((o) => o.decisionId === decision.id && o.parentId === null);
+  return (
+    <div className="map-seg" role="group" aria-label={label}>
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          className={`map-seg-btn${value === o.value ? ' map-seg-btn-on' : ''}`}
+          aria-pressed={value === o.value}
+          onClick={() => onChange(o.value)}
+        >
+          {o.icon}
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function DetailPanel({
+  node,
+  nodes,
+  onSelect,
+  onClose,
+}: {
+  node: MapNode;
+  nodes: MapNode[];
+  onSelect: (id: string) => void;
+  onClose: () => void;
+}) {
+  const { state, dispatch } = useStore();
+  const decision = state.decisions.find((d) => d.id === node.id);
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(node.question);
+
+  const builtOn = node.builtOn.map((id) => nodes.find((n) => n.id === id)).filter((n): n is MapNode => !!n);
+  const leadsTo = nodes.filter((n) => n.builtOn.includes(node.id));
+  const kindLabel = node.kind === 'decided' ? 'Decided' : node.kind === 'future' ? 'Direction' : 'In progress';
+
+  function saveTitle() {
+    if (decision && title.trim() && title.trim() !== node.question) {
+      dispatch({ type: 'updateDecision', decisionId: node.id, patch: { question: title.trim() } });
+    }
+    setEditing(false);
+  }
 
   return (
-    <div className="card wk-detail">
-      <div className="card-section stack">
-        <div className="row wk-detail-tags">
-          <span className={`pill ${kind === 'decided' ? 'pill-rec' : ''}`}>
-            <span
-              className={`dot ${kind === 'decided' ? 'dot-chosen' : kind === 'future' ? 'dot-pruned' : 'dot-alive'}`}
-              aria-hidden="true"
-            />
-            {kind === 'decided' ? 'Decided' : kind === 'future' ? 'Direction' : 'In progress'}
+    <aside className="map-inspector" aria-label="Decision detail">
+      <div className="map-inspector-head">
+        <div className="row map-inspector-tags">
+          <span className={`pill ${node.kind === 'decided' ? 'pill-rec' : ''}`}>
+            <span className="map-dot" style={{ background: STATUS_COLOR[node.kind] }} aria-hidden="true" />
+            {kindLabel}
           </span>
-          {decision.metric && <span className="pill">{decision.metric}</span>}
+          {node.metric && <span className="pill">{node.metric}</span>}
+          {node.external && <span className="pill">{node.owner}</span>}
         </div>
-        <h2 className="section-title">{decision.question}</h2>
-        {decision.notes && <p className="wk-detail-notes">{decision.notes}</p>}
+        <button type="button" className="shell-icon-btn" aria-label="Close details" onClick={onClose}>
+          <span aria-hidden="true">×</span>
+        </button>
       </div>
 
-      {kind === 'decided' && (
-        <div className="card-section stack">
-          {chosen && (
-            <p className="wk-detail-chose">
-              <span className="wk-detail-label">Chose</span> {chosen.label}
-            </p>
+      {editing ? (
+        <form
+          className="map-rename"
+          onSubmit={(e) => {
+            e.preventDefault();
+            saveTitle();
+          }}
+        >
+          <label htmlFor="map-rename-input" className="visually-hidden">
+            Rename decision
+          </label>
+          <input
+            id="map-rename-input"
+            className="input"
+            value={title}
+            autoFocus
+            onChange={(e) => setTitle(e.target.value)}
+            onBlur={saveTitle}
+          />
+          <button type="submit" className="btn">
+            Save
+          </button>
+        </form>
+      ) : (
+        <h2 className="map-inspector-title">
+          {node.question}
+          {!node.external && (
+            <button type="button" className="map-rename-btn" aria-label="Rename decision" onClick={() => { setTitle(node.question); setEditing(true); }}>
+              Rename
+            </button>
           )}
-          {decision.rationale && <p className="wk-detail-why">{decision.rationale}</p>}
-          {decision.outcome && (
-            <div className="wk-outcome">
-              <span className="wk-detail-label">What happened</span>
-              <p>{decision.outcome.result}</p>
-              {decision.outcome.metrics && <p className="wk-outcome-metric tabular">{decision.outcome.metrics}</p>}
-            </div>
-          )}
-        </div>
+        </h2>
       )}
 
-      {kind === 'future' && paths.length > 0 && (
-        <div className="card-section stack">
-          <span className="wk-detail-label">Possible paths</span>
-          <ul className="wk-paths">
-            {paths.map((p) => (
-              <li key={p.id}>
-                <span className="dot dot-alive" aria-hidden="true" /> {p.label}
-              </li>
-            ))}
-          </ul>
-          <p className="muted">A planted direction. Step in to weigh these paths without committing.</p>
-        </div>
+      {node.kind === 'decided' && node.chosen && (
+        <p className="map-inspector-chose">
+          <span className="map-inspector-label">Chose</span> {node.chosen}
+        </p>
       )}
+      {decision?.rationale && node.kind === 'decided' && <p className="map-inspector-why">{decision.rationale}</p>}
+      {decision?.outcome?.metrics && <p className="map-inspector-metric tabular">{decision.outcome.metrics}</p>}
+      {node.kind !== 'decided' && decision?.notes && <p className="map-inspector-why">{decision.notes}</p>}
 
       {(builtOn.length > 0 || leadsTo.length > 0) && (
-        <div className="card-section stack wk-links">
+        <div className="map-links">
           {builtOn.length > 0 && (
-            <div className="stack wk-links-group">
-              <span className="wk-detail-label">Builds on</span>
-              {builtOn.map((d) => (
-                <button key={d.id} type="button" className="wk-link-btn" onClick={() => onSelect(d.id)}>
-                  <span className="dot dot-chosen" aria-hidden="true" />
-                  {d.question}
+            <div className="map-links-group">
+              <span className="map-inspector-label">Builds on</span>
+              {builtOn.map((n) => (
+                <button key={n.id} type="button" className="map-link-chip" onClick={() => onSelect(n.id)}>
+                  {n.question}
                 </button>
               ))}
             </div>
           )}
           {leadsTo.length > 0 && (
-            <div className="stack wk-links-group">
-              <span className="wk-detail-label">Leads to</span>
-              {leadsTo.map((d) => (
-                <button key={d.id} type="button" className="wk-link-btn" onClick={() => onSelect(d.id)}>
-                  <span
-                    className={`dot ${d.speculative ? 'dot-pruned' : d.status === 'decided' ? 'dot-chosen' : 'dot-alive'}`}
-                    aria-hidden="true"
-                  />
-                  {d.question}
+            <div className="map-links-group">
+              <span className="map-inspector-label">Leads to</span>
+              {leadsTo.map((n) => (
+                <button key={n.id} type="button" className="map-link-chip" onClick={() => onSelect(n.id)}>
+                  {n.question}
                 </button>
               ))}
             </div>
@@ -229,24 +317,25 @@ function DecisionDetail({
         </div>
       )}
 
-      <div className="card-section row wk-detail-actions">
-        {kind === 'future' ? (
-          <Link to={`/decisions/${decision.id}/options`} className="btn">
-            Explore this direction <IconArrowRight />
-          </Link>
-        ) : kind === 'decided' ? (
-          <Link to={`/decisions/${decision.id}`} className="btn">
-            Open the record <IconArrowRight />
-          </Link>
-        ) : (
-          <Link to={continuePath(decision)} className="btn">
-            Continue <IconArrowRight />
-          </Link>
-        )}
-        {decision.reviewDate && kind !== 'future' && (
-          <span className="muted">Review {formatDate(decision.reviewDate)}</span>
-        )}
-      </div>
-    </div>
+      {!node.external && (
+        <div className="map-inspector-actions">
+          {node.kind === 'future' ? (
+            <Link to={`/decisions/${node.id}/options`} className="btn">
+              Explore <IconArrowRight size={16} />
+            </Link>
+          ) : node.kind === 'decided' ? (
+            <Link to={`/decisions/${node.id}`} className="btn">
+              Open record <IconArrowRight size={16} />
+            </Link>
+          ) : (
+            decision && (
+              <Link to={continuePath(decision)} className="btn">
+                Continue <IconArrowRight size={16} />
+              </Link>
+            )
+          )}
+        </div>
+      )}
+    </aside>
   );
 }

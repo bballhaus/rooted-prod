@@ -3,7 +3,11 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { App } from './App';
 import { StoreProvider } from './store/store';
+import { applyStoredTheme } from './theme';
 import './styles/global.css';
+
+// Set the theme before first paint so there's no flash.
+applyStoredTheme();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
