@@ -139,3 +139,22 @@
     transform: none;
   }
 }
+
+.tag-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 6px;
+}
+
+.frame-people {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.frame-people-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 16px;
+}

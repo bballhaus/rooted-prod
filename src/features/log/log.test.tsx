@@ -4,7 +4,7 @@ import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { draftRecordNow } from '../../agent/record';
 import { useStore } from '../../store/store';
-import { renderApp, renderWithStore, signedInState } from '../../test/render';
+import { renderApp, renderWithStore } from '../../test/render';
 import type { AppState } from '../../types';
 import { DecisionRecordPage } from './DecisionRecordPage';
 import { LogDecisionDialog } from './LogDecisionDialog';
@@ -252,61 +252,6 @@ describe('DecisionRecordPage', () => {
   it('F-17: a decision not logged yet links back to its current step', () => {
     renderApp('/decisions/d-trial', trialState());
     expect(screen.getByText(/Not logged yet/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Continue' })).toHaveAttribute('href', '/decisions/d-trial/options');
-  });
-});
-
-describe('DecisionsPage', () => {
-  it('F-17: lists in-progress decisions first, then logged ones newest first', () => {
-    renderApp('/', trialState());
-    const inProgress = screen.getByRole('list', { name: 'In progress' });
-    expect(within(inProgress).getByText(trialDecision.question)).toBeInTheDocument();
-    expect(within(inProgress).getByRole('link', { name: /Continue/ })).toHaveAttribute(
-      'href',
-      '/decisions/d-trial/options',
-    );
-    const logged = within(screen.getByRole('list', { name: 'Logged' })).getAllByRole('link');
-    expect(logged.map((l) => l.getAttribute('href'))).toEqual([
-      '/decisions/d-mobile-push',
-      '/decisions/d-pricing-seats',
-      '/decisions/d-onboarding-checklist',
-    ]);
-    expect(logged[0]).toHaveTextContent('Email digests first');
-    expect(logged[0]).toHaveTextContent('Review Dec 1, 2026');
-    // In progress comes before logged in the page.
-    const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent);
-    expect(headings.indexOf('In progress')).toBeLessThan(headings.indexOf('Logged'));
-    const cta = screen.getAllByRole('link', { name: 'New decision' }).find((l) => l.classList.contains('btn'));
-    expect(cta).toHaveAttribute('href', '/decisions/new');
-  });
-
-  it('F-17: search filters both in-progress and logged decisions', async () => {
-    const { user } = renderApp('/', trialState());
-    const search = screen.getByLabelText('Search decisions');
-    await user.type(search, 'seat');
-    expect(screen.queryByRole('list', { name: 'In progress' })).not.toBeInTheDocument();
-    const logged = within(screen.getByRole('list', { name: 'Logged' })).getAllByRole('link');
-    expect(logged).toHaveLength(1);
-    expect(logged[0]).toHaveTextContent('Charge per seat or per workspace');
-
-    await user.clear(search);
-    await user.type(search, 'trial');
-    expect(within(screen.getByRole('list', { name: 'In progress' })).getByText(trialDecision.question)).toBeInTheDocument();
-
-    await user.clear(search);
-    await user.type(search, 'zebra');
-    expect(screen.getByText(/No decisions match/)).toBeInTheDocument();
-  });
-
-  it('F-17: with no decisions, prompts the PM to frame the first one', () => {
-    renderApp('/', signedInState({ decisions: [], options: [], contextItems: [] }));
-    expect(screen.getByRole('heading', { name: 'Start with one decision.' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Frame your first decision' })).toHaveAttribute('href', '/decisions/new');
-  });
-
-  it('F-17: a logged decision opens its record', async () => {
-    const { user } = renderApp('/');
-    await user.click(screen.getByRole('link', { name: /Build mobile push notifications/ }));
-    expect(screen.getByRole('heading', { level: 1, name: /Build mobile push notifications/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Continue' })).toHaveAttribute('href', '/decisions/d-trial/work');
   });
 });

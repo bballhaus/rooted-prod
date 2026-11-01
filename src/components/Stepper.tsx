@@ -1,12 +1,13 @@
 import { Link } from 'react-router-dom';
 import type { Decision } from '../types';
 
-// The four MVP steps for one decision. Steps after the decision's current
-// status aren't links yet.
+// The four MVP steps for one decision. The first three are sections of the
+// workspace; Log is the record. Steps after the decision's current status
+// aren't links yet.
 const STEPS = [
-  { key: 'framing', label: 'Frame', path: 'frame' },
-  { key: 'brief', label: 'Evidence brief', path: 'brief' },
-  { key: 'options', label: 'Options', path: 'options' },
+  { key: 'framing', label: 'Frame', path: 'work#frame' },
+  { key: 'brief', label: 'Evidence brief', path: 'work#evidence' },
+  { key: 'options', label: 'Options', path: 'work#options' },
   { key: 'decided', label: 'Log', path: '' },
 ] as const;
 

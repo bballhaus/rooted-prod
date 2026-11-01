@@ -1,17 +1,29 @@
 // F-14 / F-18: the logged record of one decision: the choice, the rationale,
-// the options not taken and why, and the context behind it.
+// the options not taken and why, and the context behind it. Plus who decided,
+// tags, how it connects to other decisions, and its outcome (F-16).
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ReportWrongAnswer } from '../../components/ReportWrongAnswer';
 import { Stepper } from '../../components/Stepper';
+import { linksOf, ownerOf } from '../../store/dashboard';
 import { useDecision, useStore } from '../../store/store';
+import { useAgent } from '../agent/AgentContext';
 import { pathLabel } from '../../store/tree';
 import { continuePath, formatDate, STATUS_LABEL } from './format';
+import { OutcomeSection } from './OutcomeSection';
 import './log.css';
 
+// Keyed by id, so drafts (rationale, outcome) never carry over to another record.
 export function DecisionRecordPage() {
   const { id } = useParams();
+  return <DecisionRecord key={id} />;
+}
+
+function DecisionRecord() {
+  const { id } = useParams();
   const { state, dispatch } = useStore();
+  const { openAgent } = useAgent();
+  const navigate = useNavigate();
   const decision = useDecision(id);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
@@ -50,6 +62,17 @@ export function DecisionRecordPage() {
   // Pruned options, top-level alternatives first; branches above the choice aren't "not taken".
   const notTaken = options.filter((o) => o.state === 'pruned');
   const context = state.contextItems.filter((c) => c.decisionId === decision.id && !c.removed && !c.flaggedInaccurate);
+  const owner = ownerOf(decision, state);
+  const consulted = (decision.stakeholderIds ?? [])
+    .map((sid) => state.teammates.find((t) => t.id === sid)?.name)
+    .filter(Boolean);
+  const { buildsOn, ledTo } = linksOf(decision.id, state);
+  const connections = [
+    ...buildsOn.map((l) => ({ link: l, other: l.fromId, verb: 'Builds on' })),
+    ...ledTo.map((l) => ({ link: l, other: l.toId, verb: 'Led to' })),
+  ]
+    .map((c) => ({ ...c, decision: state.decisions.find((d) => d.id === c.other) }))
+    .filter((c) => !!c.decision);
 
   function saveRationale(e: React.FormEvent) {
     e.preventDefault();
@@ -64,6 +87,20 @@ export function DecisionRecordPage() {
       <header className="stack">
         <span className="kicker">Decision record</span>
         <h1 className="page-title">{decision.question}</h1>
+        <div className="row">
+          <button type="button" className="btn btn-secondary" onClick={() => navigate(`/decisions/new?from=${decision.id}`)}>
+            Add a follow-up decision
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={() => openAgent({ decisionId: decision.id })}>
+            <span className="ai-mark" aria-hidden="true">
+              ✦
+            </span>{' '}
+            Ask Rooted about this
+          </button>
+          <Link to={`/?focus=${decision.id}`} className="btn btn-ghost">
+            See it on the map
+          </Link>
+        </div>
       </header>
 
       <div className="log-record-grid">
@@ -163,6 +200,8 @@ export function DecisionRecordPage() {
             )}
           </section>
 
+          <OutcomeSection decision={decision} />
+
           <details className="log-details">
             <summary>Context snapshot ({context.length})</summary>
             {context.length === 0 ? (
@@ -186,6 +225,13 @@ export function DecisionRecordPage() {
         <aside className="stack log-record-side" aria-label="Dates and constraints">
           <dl className="log-meta">
             <div>
+              <dt>Decided by</dt>
+              <dd>
+                {owner ? `${owner.name}, ${owner.role}` : 'Unknown'}
+                {consulted.length > 0 && <span className="muted"> · consulted {consulted.join(', ')}</span>}
+              </dd>
+            </div>
+            <div>
               <dt>Logged</dt>
               <dd className="tabular">{formatDate(decision.loggedAt) || 'Not recorded'}</dd>
             </div>
@@ -203,6 +249,36 @@ export function DecisionRecordPage() {
             </div>
           </dl>
           {decision.reviewDate && <p className="muted log-note">We'll ask what happened on the review date.</p>}
+          {(decision.tags ?? []).length > 0 && (
+            <ul className="row log-tags" aria-label="Tags">
+              {(decision.tags ?? []).map((t) => (
+                <li key={t.label} className={t.origin === 'ai' ? 'tag tag-ai' : 'tag'}>
+                  {t.origin === 'ai' && <span aria-hidden="true">✦ </span>}#{t.label}
+                </li>
+              ))}
+            </ul>
+          )}
+          {(buildsOn.length > 0 || ledTo.length > 0) && (
+            <section aria-labelledby="record-connections" className="stack">
+              <h2 id="record-connections" className="log-side-title">
+                Connected decisions
+              </h2>
+              <ul className="log-connections">
+                {connections.map(({ link, verb, decision: other }) => (
+                  <li key={link.id}>
+                    <span className="muted">{verb} </span>
+                    <Link to={continuePath(other!)}>{other!.question}</Link>
+                    {link.origin === 'ai' && (
+                      <span className="ai-mark">
+                        {' '}
+                        ✦ {link.status === 'suggested' ? 'suggested by Rooted' : 'found by Rooted'}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           {decision.constraints.length > 0 && (
             <section aria-labelledby="record-constraints" className="stack">
               <h2 id="record-constraints" className="log-side-title">

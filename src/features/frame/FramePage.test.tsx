@@ -2,14 +2,14 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
-import { StoreProvider, useStore } from '../../store/store';
+import { STORAGE_KEY, StoreProvider, useStore } from '../../store/store';
 import { renderApp, signedInState } from '../../test/render';
 import type { AppState, Decision } from '../../types';
 import { addDays, FramePage, toIsoDate } from './FramePage';
 
-// Stands in for the brief page so the tests can read where the form went and
-// what it saved, without depending on another feature's markup.
-function BriefProbe() {
+// Stands in for the decision workspace so the tests can read where the form
+// went and what it saved, without depending on another feature's markup.
+function WorkspaceProbe() {
   const { id } = useParams();
   const location = useLocation();
   const { state } = useStore();
@@ -29,13 +29,16 @@ function renderFrame(path: string, state: AppState = signedInState()) {
       <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path="/decisions/new" element={<FramePage />} />
-          <Route path="/decisions/:id/frame" element={<FramePage />} />
-          <Route path="/decisions/:id/brief" element={<BriefProbe />} />
+          <Route path="/decisions/:id/work" element={<WorkspaceProbe />} />
         </Routes>
       </MemoryRouter>
     </StoreProvider>,
   );
   return { user };
+}
+
+function stored(id: string): Decision | undefined {
+  return (JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as AppState).decisions?.find((d) => d.id === id);
 }
 
 async function savedDecision(): Promise<Decision> {
@@ -81,7 +84,7 @@ describe('FramePage', () => {
     await user.click(screen.getByRole('button', { name: 'Gather evidence' }));
 
     const saved = await savedDecision();
-    expect(screen.getByTestId('probe-path')).toHaveTextContent(`/decisions/${saved.id}/brief`);
+    expect(screen.getByTestId('probe-path')).toHaveTextContent(`/decisions/${saved.id}/work`);
     expect(saved.id).toMatch(/^d-/);
     expect(saved.question).toBe('Should we gate SSO behind the Team plan?');
     expect(saved.status).toBe('brief');
@@ -136,11 +139,9 @@ describe('FramePage', () => {
     expect(saved.constraints).toEqual(['No new eng headcount', 'Ship before Q1 pricing review']);
   });
 
+  // Editing happens in the decision workspace; the old /frame URL opens the form there.
   it('F-04: editing prefills the form and a framing decision advances to brief', async () => {
-    const { user } = renderFrame(
-      '/decisions/d-trial-length/frame',
-      signedInState({ decisions: [framingDecision] }),
-    );
+    const { user } = renderApp('/decisions/d-trial-length/frame', signedInState({ decisions: [framingDecision] }));
     expect(screen.getByRole('list', { name: 'Decision steps' })).toBeInTheDocument();
     expect(screen.getByLabelText('Decision question')).toHaveValue(framingDecision.question);
     expect(screen.getByLabelText('Notes')).toHaveValue(framingDecision.notes);
@@ -155,26 +156,36 @@ describe('FramePage', () => {
     await user.type(question, 'Extend the free trial to 21 days for self-serve only?');
     await user.click(screen.getByRole('button', { name: 'Save and view the brief' }));
 
-    const saved = await savedDecision();
-    expect(screen.getByTestId('probe-path')).toHaveTextContent('/decisions/d-trial-length/brief');
+    const saved = stored('d-trial-length')!;
+    expect(screen.getByRole('region', { name: 'Evidence' })).toBeInTheDocument();
     expect(saved.question).toBe('Extend the free trial to 21 days for self-serve only?');
     expect(saved.status).toBe('brief');
     expect(saved.createdAt).toBe(framingDecision.createdAt);
   });
 
   it('F-04: editing never moves a decision backward', async () => {
-    const { user } = renderFrame(
+    const { user } = renderApp(
       '/decisions/d-trial-length/frame',
       signedInState({ decisions: [{ ...framingDecision, status: 'options' }] }),
     );
     await user.click(screen.getByRole('button', { name: 'Save and view the brief' }));
-    expect((await savedDecision()).status).toBe('options');
+    expect(stored('d-trial-length')?.status).toBe('options');
   });
 
   it('F-04: an unknown decision id shows a helpful message and a link home', () => {
     renderApp('/decisions/d-nope/frame');
     expect(screen.getByRole('heading', { name: 'Decision not found' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back to your decisions' })).toHaveAttribute('href', '/');
+  });
+
+  it('F-04: ?from= only preselects a past decision the form can show', async () => {
+    const { user } = renderFrame('/decisions/new?from=d-trial-card', signedInState());
+    expect(screen.getByLabelText('Builds on a past decision (optional)')).toHaveValue('');
+    await user.type(screen.getByLabelText('Decision question'), 'Follow-up on the card question?');
+    await user.click(screen.getByRole('button', { name: 'Gather evidence' }));
+    await savedDecision();
+    const links = (JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as AppState).links;
+    expect(links.some((l) => l.fromId === 'd-trial-card')).toBe(false);
   });
 
   it('F-04: the new decision route renders inside the app', () => {

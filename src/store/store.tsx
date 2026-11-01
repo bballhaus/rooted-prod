@@ -6,11 +6,15 @@ import { seedState } from '../data/fixtures';
 import type {
   AppState,
   ContextItem,
+  ChatMessage,
   Decision,
+  DecisionLink,
   Gap,
   OptionNode,
+  Outcome,
   Provider,
   Source,
+  SuggestedDecision,
   User,
   WrongAnswerReport,
 } from '../types';
@@ -18,7 +22,8 @@ import { demoUser } from '../data/fixtures';
 import { driveCorpus, slackCorpus } from '../data/slackCorpus';
 import { descendantIds, splitForLog } from './tree';
 
-export const STORAGE_KEY = 'rooted-demo-v1';
+// v2 added teammates, links, outcomes, suggestions and chat.
+export const STORAGE_KEY = 'rooted-demo-v2';
 
 export type Action =
   | { type: 'signIn'; provider: Provider }
@@ -45,6 +50,12 @@ export type Action =
       loggedAt: string;
     }
   | { type: 'addReport'; report: WrongAnswerReport }
+  | { type: 'addLink'; link: DecisionLink }
+  | { type: 'updateLink'; linkId: string; patch: Partial<DecisionLink> }
+  | { type: 'logOutcome'; outcome: Outcome }
+  | { type: 'updateSuggestion'; suggestionId: string; patch: Partial<SuggestedDecision> }
+  | { type: 'addMessage'; message: ChatMessage }
+  | { type: 'updateMessage'; messageId: string; patch: Partial<ChatMessage> }
   | { type: 'deleteAllData' }
   | { type: 'resetDemo' };
 
@@ -67,6 +78,14 @@ function dropContext(items: ContextItem[], source: Source, channelId?: string): 
   return items.filter((c) => c.origin !== origin || !fromChannel(c));
 }
 
+// F-02, F-23: suggestions quote Slack, so they go with the access to what they quote.
+function dropSuggestions(state: AppState, source: Source, channelId?: string): AppState['suggestions'] {
+  const labels = source.channels
+    .filter((c) => !channelId || c.id === channelId)
+    .map((c) => (source.type === 'google-drive' ? `Drive: ${c.name}` : c.name));
+  return state.suggestions.filter((s) => !s.evidence.some((e) => labels.includes(e.sourceLabel)));
+}
+
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'signIn':
@@ -82,6 +101,7 @@ export function reducer(state: AppState, action: Action): AppState {
         ...state,
         sources: state.sources.map((s) => (s.id === action.sourceId ? { ...s, ...action.patch } : s)),
         contextItems: disconnecting ? dropContext(state.contextItems, source) : state.contextItems,
+        suggestions: disconnecting ? dropSuggestions(state, source) : state.suggestions,
       };
     }
     case 'setChannelAllowed': {
@@ -92,6 +112,7 @@ export function reducer(state: AppState, action: Action): AppState {
           source && !action.allowed
             ? dropContext(state.contextItems, source, action.channelId)
             : state.contextItems,
+        suggestions: source && !action.allowed ? dropSuggestions(state, source, action.channelId) : state.suggestions,
         sources: state.sources.map((s) =>
           s.id !== action.sourceId
             ? s
@@ -176,8 +197,34 @@ export function reducer(state: AppState, action: Action): AppState {
     }
     case 'addReport':
       return { ...state, reports: [action.report, ...state.reports] };
+    case 'addLink': {
+      // One link per pair: linking two decisions again replaces the old link.
+      const same = (l: DecisionLink) => l.fromId === action.link.fromId && l.toId === action.link.toId;
+      return { ...state, links: [...state.links.filter((l) => !same(l)), action.link] };
+    }
+    case 'updateLink':
+      return { ...state, links: state.links.map((l) => (l.id === action.linkId ? { ...l, ...action.patch } : l)) };
+    case 'logOutcome':
+      // F-16: one outcome per decision; logging again replaces it.
+      return {
+        ...state,
+        outcomes: [...state.outcomes.filter((o) => o.decisionId !== action.outcome.decisionId), action.outcome],
+      };
+    case 'updateSuggestion':
+      return {
+        ...state,
+        suggestions: state.suggestions.map((s) => (s.id === action.suggestionId ? { ...s, ...action.patch } : s)),
+      };
+    case 'addMessage':
+      return { ...state, messages: [...state.messages, action.message] };
+    case 'updateMessage':
+      return {
+        ...state,
+        messages: state.messages.map((m) => (m.id === action.messageId ? { ...m, ...action.patch } : m)),
+      };
     case 'deleteAllData':
-      // F-23: wipes decisions, context and reports and disconnects every source.
+      // F-23: wipes decisions, context, links, outcomes, chat and reports and
+      // disconnects every source. Teammates belong to the workspace and stay.
       return {
         ...state,
         decisions: [],
@@ -185,6 +232,10 @@ export function reducer(state: AppState, action: Action): AppState {
         gaps: [],
         options: [],
         reports: [],
+        links: [],
+        outcomes: [],
+        suggestions: [],
+        messages: [],
         sources: state.sources.map((s) => ({ ...s, connected: false, connectedAt: undefined })),
       };
     case 'resetDemo':
@@ -195,7 +246,8 @@ export function reducer(state: AppState, action: Action): AppState {
 function load(): AppState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as AppState;
+    // Fill in anything an older save is missing, so new fields never crash the demo.
+    if (raw) return { ...seedState(), ...(JSON.parse(raw) as Partial<AppState>) };
   } catch {
     // fall through to the seed
   }

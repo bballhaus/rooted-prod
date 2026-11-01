@@ -25,6 +25,7 @@ The secret scan (`.github/workflows/secrets.yml`) runs on every PR and push, but
 - The agent sees only the sources and channels the user allowed (F-02), and only that user's own data.
 - Disconnecting a source or deleting data removes it, including from caches and logs (F-23).
 - Slack content is untrusted input to the LLM: it's never allowed to act as instructions.
+- The LLM key lives only in Supabase Edge Function secrets (`LLM_API_KEY`), never in a `VITE_*` variable. When it's set, decision summaries, rationale and the gathered context for the decision in scope are sent to the provider (decision 0007).
 - Logs and analytics never contain message text, decision text or email addresses.
 
 ## Reporting a problem

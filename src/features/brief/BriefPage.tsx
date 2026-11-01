@@ -1,14 +1,14 @@
 // F-06 to F-09: the co-created evidence brief. The agent gathers context from
 // allowed sources; the PM searches it, marks items wrong, edits, removes and
 // restores them, answers the gaps the agent flagged, and adds their own context.
+// A section of the decision workspace.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { describeSourceAccess, gatherBrief, gatherSteps } from '../../agent/brief';
 import { AGENT_DELAY_MS } from '../../agent/mockAgent';
 import { Dialog } from '../../components/Dialog';
 import { ReportWrongAnswer } from '../../components/ReportWrongAnswer';
-import { Stepper } from '../../components/Stepper';
-import { newId, useDecision, useStore } from '../../store/store';
+import { newId, useStore } from '../../store/store';
 import type { ContextItem, ContextOrigin, Decision, Gap } from '../../types';
 import './brief.css';
 
@@ -66,25 +66,8 @@ function useGather(decision: Decision | undefined) {
   return { gathering, step, regather: run };
 }
 
-export function BriefPage() {
-  const { id } = useParams();
-  const decision = useDecision(id);
+export function BriefSection({ decision }: { decision: Decision }) {
   const { gathering, step, regather } = useGather(decision);
-
-  if (!decision) {
-    return (
-      <div className="page">
-        <h1 className="page-title">Decision not found</h1>
-        <p className="lead">There's no decision with that link. It may have been deleted with your data.</p>
-        <p>
-          <Link to="/" className="btn btn-secondary">
-            Back to decisions
-          </Link>
-        </p>
-      </div>
-    );
-  }
-
   return <Brief decision={decision} gathering={gathering} step={step} regather={regather} />;
 }
 
@@ -100,7 +83,6 @@ function Brief({
   regather: () => void;
 }) {
   const { state, dispatch } = useStore();
-  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [group, setGroup] = useState<string | null>(null);
   const [origin, setOrigin] = useState<ContextOrigin | null>(null);
@@ -127,15 +109,14 @@ function Brief({
     if (decision.status !== 'decided' && decision.status !== 'options') {
       dispatch({ type: 'updateDecision', decisionId: decision.id, patch: { status: 'options' } });
     }
-    navigate(`/decisions/${decision.id}/options`);
+    // The options section appears below once the status moves on; bring it into view.
+    setTimeout(() => document.getElementById('options')?.scrollIntoView?.({ block: 'start' }), 0);
   }
 
   return (
-    <div className="page brief">
-      <Stepper decision={decision} current="brief" />
+    <div className="stack brief">
       <header className="stack">
-        <p className="kicker">Evidence brief</p>
-        <h1 className="page-title">{decision.question}</h1>
+        <h2 className="section-title">Evidence brief</h2>
         <p className="lead">
           Here's what Rooted found. Fix anything that's wrong, remove what doesn't matter, and fill the gaps before you
           weigh options.

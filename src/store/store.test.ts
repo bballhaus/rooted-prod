@@ -67,3 +67,13 @@ describe('store', () => {
     expect(s3.contextItems.some((c) => c.origin === 'slack')).toBe(true);
   });
 });
+
+describe('privacy of suggestions', () => {
+  it('F-02, F-23: revoking a channel drops suggestions that quote it; disconnecting Slack drops all Slack ones', () => {
+    const base = { ...seedState() };
+    const noFeedback = reducer(base, { type: 'setChannelAllowed', sourceId: 'src-slack', channelId: 'ch-support', allowed: false });
+    expect(noFeedback.suggestions.map((s) => s.id)).toEqual(['sg-checklist-sync']);
+    const disconnected = reducer(base, { type: 'updateSource', sourceId: 'src-slack', patch: { connected: false } });
+    expect(disconnected.suggestions).toEqual([]);
+  });
+});

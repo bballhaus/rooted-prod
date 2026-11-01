@@ -528,3 +528,8 @@
     transform: none;
   }
 }
+
+.options-past {
+  margin: 0;
+  font-size: 14px;
+}

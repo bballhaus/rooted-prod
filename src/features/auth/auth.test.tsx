@@ -21,10 +21,25 @@ describe('Sign in', () => {
     expect(screen.getByRole('button', { name: 'Continue with Google' })).toBeInTheDocument();
   });
 
+  it('F-20: request beta access checks the work email and confirms without storing it', async () => {
+    const { user } = renderApp('/signin', { ...seedState(), user: null });
+    await user.click(screen.getByRole('tab', { name: 'Request access' }));
+    await user.type(screen.getByLabelText('Work email'), 'not-an-email');
+    await user.click(screen.getByRole('button', { name: 'Request access' }));
+    expect(screen.getByRole('alert')).toHaveTextContent(/work email/i);
+    await user.clear(screen.getByLabelText('Work email'));
+    await user.type(screen.getByLabelText('Work email'), 'sam@startup.example');
+    await user.click(screen.getByRole('button', { name: 'Request access' }));
+    expect(screen.getByRole('status')).toHaveTextContent(/on the list/);
+    expect(localStorage.getItem(STORAGE_KEY) ?? '').not.toContain('sam@startup.example');
+    await user.click(screen.getByRole('button', { name: 'Back to sign in' }));
+    expect(screen.getByRole('button', { name: 'Continue with Google' })).toBeInTheDocument();
+  });
+
   it('F-01: a signed-in user visiting /signin goes to /', () => {
     renderApp('/signin');
     expect(screen.queryByRole('button', { name: 'Continue with Google' })).not.toBeInTheDocument();
-    expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Decisions' })).toBeInTheDocument();
   });
 
   it('F-01: onboarding shows the signed-in role and team', () => {

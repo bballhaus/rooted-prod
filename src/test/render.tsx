@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { App } from '../App';
+import { AgentProvider } from '../features/agent/AgentContext';
 import { demoUser, seedState } from '../data/fixtures';
 import { StoreProvider } from '../store/store';
 import type { AppState } from '../types';
@@ -25,12 +26,14 @@ export function renderApp(path: string, state: AppState = signedInState()) {
   return { user, ...utils };
 }
 
-// Render one component with the store and a router around it.
+// Render one component with the store, a router and the agent dock around it.
 export function renderWithStore(ui: ReactElement, state: AppState = signedInState()) {
   const user = userEvent.setup();
   const utils = render(
     <StoreProvider initialState={state}>
-      <MemoryRouter>{ui}</MemoryRouter>
+      <MemoryRouter>
+        <AgentProvider>{ui}</AgentProvider>
+      </MemoryRouter>
     </StoreProvider>,
   );
   return { user, ...utils };

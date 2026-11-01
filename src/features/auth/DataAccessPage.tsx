@@ -165,6 +165,26 @@ export function DataAccessPage() {
 
   return (
     <div className="page">
+      <ol className="auth-steps" aria-label="Setup">
+        <li className="auth-step-done">
+          <span className="auth-step-n" aria-hidden="true">
+            ✓
+          </span>
+          Sign in
+        </li>
+        <li className="auth-step-now" aria-current="step">
+          <span className="auth-step-n" aria-hidden="true">
+            2
+          </span>
+          Choose sources
+        </li>
+        <li>
+          <span className="auth-step-n" aria-hidden="true">
+            3
+          </span>
+          Your decisions
+        </li>
+      </ol>
       <div className="stack">
         {user && (
           <p className="pill auth-whoami">

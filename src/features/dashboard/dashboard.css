@@ -1,0 +1,665 @@
+/* Home: the "Needs you" rail on the left, the map (or list) on the right, and
+   the decision details over the right edge of the map. Fills the viewport
+   under the sticky header so everything important sits above the fold. */
+
+.dash {
+  --rail-w: 320px;
+  --header-h: 69px;
+  display: grid;
+  grid-template-columns: var(--rail-w) minmax(0, 1fr);
+  height: calc(100vh - var(--header-h));
+  min-height: 560px;
+}
+
+.needs {
+  border-right: 1px solid var(--card-rule);
+  overflow-y: auto;
+  padding: 20px 20px 32px var(--gutter);
+  display: grid;
+  align-content: start;
+  gap: 20px;
+}
+
+.needs-title {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.needs-section {
+  display: grid;
+  gap: 6px;
+}
+
+.needs-section .kicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.needs-badge {
+  position: static;
+}
+
+.needs-empty {
+  margin: 0;
+  font-size: 14px;
+}
+
+.needs-suggestions,
+.needs-drafts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.needs-suggestion {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px dashed var(--ai-line);
+  background: var(--ai-bg);
+}
+
+.needs-suggestion p {
+  margin: 0;
+}
+
+.needs-suggestion-q {
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.needs-small {
+  font-size: 13px;
+}
+
+.needs-quote {
+  margin: 2px 0 0;
+  font-size: 13px;
+  padding-left: 10px;
+  border-left: 2px solid var(--ai-line);
+}
+
+.needs-actions {
+  gap: 2px;
+}
+
+.needs-draft {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 0;
+  text-decoration: none;
+  line-height: 1.3;
+}
+
+.needs-draft .dot {
+  transform: translateY(-1px);
+}
+
+.dash-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.dash-toolbar {
+  display: grid;
+  gap: 10px;
+  padding: 16px var(--gutter) 12px 24px;
+  border-bottom: 1px solid var(--card-rule);
+}
+
+.dash-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dash-title {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.dash-count {
+  margin: 0;
+  font-size: 14px;
+}
+
+.dash-controls {
+  gap: 8px 14px;
+}
+
+.dash-seg {
+  display: flex;
+  gap: 4px;
+}
+
+.dash-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dash-field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink2);
+}
+
+.dash-field .select {
+  min-height: 44px;
+  width: auto;
+  padding: 0 12px;
+}
+
+.dash-status {
+  gap: 6px;
+}
+
+.dash-status .toggle {
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+.dash-legend {
+  margin: 0 0 0 auto;
+  gap: 14px;
+  font-size: 13px;
+}
+
+.dash-legend-item {
+  gap: 6px;
+}
+
+.dash-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.dash-empty {
+  margin: 24px;
+}
+
+/* Map */
+.map-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.map-canvas .react-flow {
+  --xy-background-color: transparent;
+  --xy-controls-button-background-color: var(--card-bg);
+  --xy-controls-button-background-color-hover: var(--chip-bg);
+  --xy-controls-button-color: var(--ink);
+  --xy-controls-button-border-color: var(--card-border);
+  --xy-edge-label-background-color: var(--ground);
+  --xy-edge-label-color: var(--ai);
+  --xy-attribution-background-color: transparent;
+}
+
+.map-canvas .react-flow__controls-button {
+  width: 44px;
+  height: 44px;
+}
+
+.map-canvas .react-flow__node-decision {
+  cursor: pointer;
+}
+
+.map-canvas .react-flow__node-decision:focus-visible {
+  outline: none;
+}
+
+.map-canvas .react-flow__node-decision:focus-visible .map-node {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.map-edge-label {
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--ai);
+}
+
+.map-handle {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.map-canvas .map-handle-elbow {
+  left: 14px;
+}
+
+.map-lane {
+  border-top: 1px solid var(--card-rule);
+  pointer-events: none;
+}
+
+.map-lane-shaded {
+  background: var(--chip-bg);
+}
+
+.map-lane-labels {
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.map-lane-label {
+  position: absolute;
+  left: 12px;
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  background: var(--ground);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink2);
+  white-space: nowrap;
+}
+
+.map-lane-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.map-lane-count {
+  color: var(--ink2);
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.map-month {
+  font-size: 13px;
+  color: var(--ink2);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.map-node {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 4px;
+  padding: 10px 12px 10px 16px;
+  border-radius: 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  transition: opacity 0.15s ease, box-shadow 0.15s ease;
+}
+
+.map-node p {
+  margin: 0;
+}
+
+/* A status stripe down the left edge: ochre in progress, dusty red outcome due,
+   moss outcome logged, ink decided. Paired with the status text, never alone. */
+.map-node::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: var(--ink2);
+}
+
+.map-node-open {
+  border-style: dashed;
+}
+
+.map-node-open::before {
+  background: var(--ochre);
+}
+
+.map-node-outcome-due::before {
+  background: var(--alert);
+}
+
+.map-node-outcome-logged::before {
+  background: var(--moss);
+}
+
+.map-node-faded {
+  opacity: 0.4;
+}
+
+.map-node-selected {
+  border: 2px solid var(--ink);
+  padding: 9px 11px 9px 15px;
+}
+
+.map-node-highlighted {
+  box-shadow: 0 0 0 3px var(--ai-line), var(--card-shadow);
+}
+
+.map-node-dimmed {
+  opacity: 0.45;
+}
+
+/* Search matches get an outline too, so dimming isn't the only signal. */
+.map-node-match {
+  outline: 2px dashed var(--ink2);
+  outline-offset: 3px;
+}
+
+/* The whole card is a button, so a node opens from the keyboard as well. */
+.map-node-hit {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: transparent;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.map-node-hit:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.map-node-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.map-node-q {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.map-node-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.map-node-foot .avatar {
+  width: 22px;
+  height: 22px;
+  font-size: 10px;
+}
+
+.map-node-chosen {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Status dots on map nodes: shape and color together. */
+.map-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.map-dot-open {
+  background: var(--ochre);
+}
+
+.map-dot-decided {
+  background: var(--ink2);
+}
+
+.map-dot-outcome-due {
+  background: var(--alert);
+  border-radius: 2px;
+}
+
+.map-dot-outcome-logged {
+  background: var(--moss);
+}
+
+/* List view */
+.dash-list {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  padding: 16px var(--gutter) 32px 24px;
+  display: grid;
+  align-content: start;
+  gap: 20px;
+}
+
+.dash-stage-detail .dash-list {
+  padding-right: calc(var(--detail-w, 400px) + 24px);
+}
+
+.dash-list-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.dash-row {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dash-row-selected {
+  border: 2px solid var(--ink);
+  padding: 11px 13px;
+}
+
+.dash-row-text {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.dash-row-q {
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.dash-row-meta {
+  gap: 4px 12px;
+  font-size: 13px;
+}
+
+.dash-row-chosen {
+  gap: 6px;
+}
+
+/* Details panel, over the right edge of the stage */
+.detail {
+  --detail-w: 400px;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  bottom: 12px;
+  width: min(var(--detail-w), calc(100% - 24px));
+  overflow-y: auto;
+  padding: 16px 20px 20px;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  z-index: 5;
+}
+
+.detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.detail-title {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.detail-section {
+  display: grid;
+  gap: 6px;
+}
+
+.detail-section p {
+  margin: 0;
+}
+
+.detail-sub {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink2);
+  margin-top: 4px;
+}
+
+.detail-small {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.detail-people {
+  gap: 10px;
+  flex-wrap: nowrap;
+  font-size: 14px;
+}
+
+.detail-chosen {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.detail-tags {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 6px;
+}
+
+.detail-quote {
+  margin: 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--card-border);
+  font-size: 14px;
+}
+
+.detail-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.detail-link a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  line-height: 1.3;
+}
+
+.detail-link-ai {
+  padding-left: 10px;
+  border-left: 2px dashed var(--ai-line);
+}
+
+.detail-link-actions {
+  gap: 4px;
+}
+
+.detail-actions {
+  display: grid;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+@media (max-width: 880px) {
+  .dash {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .needs {
+    border-right: 0;
+    border-bottom: 1px solid var(--card-rule);
+    padding: 16px var(--gutter);
+    overflow: visible;
+  }
+
+  .dash-toolbar {
+    padding: 16px var(--gutter) 12px;
+  }
+
+  .dash-stage {
+    min-height: 70vh;
+  }
+
+  .dash-list {
+    position: static;
+    padding: 16px var(--gutter) 32px;
+  }
+
+  .dash-stage-detail .dash-list {
+    padding-right: var(--gutter);
+  }
+
+  .detail {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    border-radius: 0;
+    z-index: 35;
+  }
+
+  .dash-legend {
+    margin-left: 0;
+  }
+}

@@ -1,10 +1,14 @@
-// F-04 (enter the decision) and F-05 (add your own context).
-// /decisions/new creates a decision; /decisions/:id/frame edits one.
+// F-04 (enter the decision) and F-05 (add your own context), plus who makes
+// the call, who's consulted, tags, and the past decision this builds on.
+// /decisions/new creates a decision; the workspace embeds the same form to edit one.
 import { useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Stepper } from '../../components/Stepper';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { decisionDate } from '../../store/dashboard';
 import { newId, useDecision, useStore } from '../../store/store';
-import type { Decision } from '../../types';
+import type { Decision, Tag } from '../../types';
+import { formatDate } from '../log/format';
+import { PeopleFields } from './PeopleFields';
+import { TagEditor } from './TagEditor';
 import './frame.css';
 
 // Synthetic examples for a Growth PM at Fernwave.
@@ -63,11 +67,31 @@ export function FramePage() {
   return <FrameForm key={existing?.id ?? 'new'} existing={existing} />;
 }
 
-function FrameForm({ existing }: { existing?: Decision }) {
+export function FrameForm({
+  existing,
+  embedded = false,
+  onDone,
+}: {
+  existing?: Decision;
+  embedded?: boolean; // inside the decision workspace: no page title, no examples
+  onDone?: () => void; // called after saving or cancelling an edit
+}) {
   const { state, dispatch } = useStore();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const uid = useId();
   const defaultReviewDays = state.user?.defaultReviewDays ?? 30;
+  const me = state.user?.id ?? '';
+
+  const [ownerId, setOwnerId] = useState(existing?.ownerId ?? me);
+  const [stakeholderIds, setStakeholderIds] = useState<string[]>(existing?.stakeholderIds ?? []);
+  const [tags, setTags] = useState<Tag[]>(existing?.tags ?? []);
+  const past = state.decisions
+    .filter((d) => d.status === 'decided' && d.id !== existing?.id)
+    .sort((a, b) => decisionDate(b).localeCompare(decisionDate(a)));
+  // "Add a follow-up decision" opens /decisions/new?from=<id>; only a decision the select can show is preselected.
+  const fromId = params.get('from');
+  const [buildsOn, setBuildsOn] = useState(!existing && fromId && past.some((d) => d.id === fromId) ? fromId : '');
 
   const [question, setQuestion] = useState(existing?.question ?? '');
   const [notes, setNotes] = useState(existing?.notes ?? '');
@@ -100,6 +124,7 @@ function FrameForm({ existing }: { existing?: Decision }) {
     review: `${uid}-review`,
     reviewHint: `${uid}-review-hint`,
     dateError: `${uid}-date-error`,
+    buildsOn: `${uid}-builds-on`,
   };
 
   // Returns the link list with the draft added, or null if the draft is invalid.
@@ -172,6 +197,9 @@ function FrameForm({ existing }: { existing?: Decision }) {
       constraints,
       deadline: deadline || undefined,
       reviewDate: reviewDate || undefined,
+      ownerId: ownerId || undefined,
+      stakeholderIds: stakeholderIds.filter((x) => x !== ownerId),
+      tags,
     };
 
     let decisionId: string;
@@ -180,28 +208,48 @@ function FrameForm({ existing }: { existing?: Decision }) {
       // Never move a decision backward: only a decision still being framed advances.
       const status = existing.status === 'framing' ? 'brief' : existing.status;
       dispatch({ type: 'updateDecision', decisionId, patch: { ...fields, status } });
+      if (onDone) {
+        onDone();
+        return;
+      }
     } else {
       decisionId = newId('d');
       dispatch({
         type: 'createDecision',
         decision: { id: decisionId, ...fields, status: 'brief', createdAt: new Date().toISOString() },
       });
+      if (buildsOn) {
+        dispatch({
+          type: 'addLink',
+          link: {
+            id: newId('l'),
+            fromId: buildsOn,
+            toId: decisionId,
+            kind: 'builds-on',
+            origin: 'user',
+            status: 'accepted',
+          },
+        });
+      }
     }
-    navigate(`/decisions/${decisionId}/brief`);
+    navigate(`/decisions/${decisionId}/work`);
   }
 
   return (
-    <div className="page frame">
-      {existing && <Stepper decision={existing} current="framing" />}
-      <div className="stack">
-        <h1 className="page-title">{existing ? 'Edit the decision' : 'Frame a decision'}</h1>
-        <p className="lead">
-          Write the call you need to make. Add anything Rooted can&apos;t see in Slack: notes, links and constraints.
-          You make the decision; Rooted gathers the evidence.
-        </p>
-      </div>
+    <div className={embedded ? 'stack frame' : 'page frame'}>
+      {embedded ? (
+        <h2 className="section-title">Frame the decision</h2>
+      ) : (
+        <div className="stack">
+          <h1 className="page-title">{existing ? 'Edit the decision' : 'Frame a decision'}</h1>
+          <p className="lead">
+            Write the call you need to make. Add anything Rooted can&apos;t see in Slack: notes, links and constraints.
+            You make the decision; Rooted gathers the evidence.
+          </p>
+        </div>
+      )}
 
-      {!existing && (
+      {!existing && !embedded && (
         <section aria-labelledby={`${uid}-examples`} className="stack frame-examples">
           <h2 id={`${uid}-examples`} className="kicker">
             Start from an example
@@ -289,6 +337,38 @@ function FrameForm({ existing }: { existing?: Decision }) {
               )}
             </div>
           </div>
+        </section>
+
+        <section className="card-section stack" aria-labelledby={`${uid}-people`}>
+          <h2 id={`${uid}-people`} className="section-title">
+            People and tags
+          </h2>
+          <PeopleFields
+            ownerId={ownerId}
+            stakeholderIds={stakeholderIds}
+            onOwner={setOwnerId}
+            onStakeholders={setStakeholderIds}
+          />
+          <TagEditor tags={tags} onChange={setTags} question={question} notes={notes} />
+          {!existing && past.length > 0 && (
+            <div className="field">
+              <label htmlFor={ids.buildsOn}>Builds on a past decision (optional)</label>
+              <select
+                id={ids.buildsOn}
+                className="select"
+                value={buildsOn}
+                onChange={(e) => setBuildsOn(e.target.value)}
+              >
+                <option value="">None</option>
+                {past.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.question} ({formatDate(decisionDate(d))})
+                  </option>
+                ))}
+              </select>
+              <span className="hint">Links the two on your decision map.</span>
+            </div>
+          )}
         </section>
 
         <section className="card-section stack" aria-labelledby={`${uid}-context`}>
@@ -402,9 +482,15 @@ function FrameForm({ existing }: { existing?: Decision }) {
           <button type="submit" className="btn btn-lg">
             {existing ? 'Save and view the brief' : 'Gather evidence'}
           </button>
-          <Link to={existing ? `/decisions/${existing.id}/brief` : '/'} className="btn btn-ghost">
-            Cancel
-          </Link>
+          {existing && onDone ? (
+            <button type="button" className="btn btn-ghost" onClick={onDone}>
+              Cancel
+            </button>
+          ) : (
+            <Link to={existing ? `/decisions/${existing.id}/work` : '/'} className="btn btn-ghost">
+              Cancel
+            </Link>
+          )}
         </div>
       </form>
     </div>

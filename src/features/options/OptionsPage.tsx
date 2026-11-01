@@ -3,16 +3,19 @@
 // the whole thing, the cards below compare one level at a time. The PM edits,
 // adds their own, prunes with a reason, and chooses one. The agent never
 // decides: scores and ratings are a rough guide and only the PM's chosen
-// branch gets the wine treatment.
+// branch gets the wine treatment. F-13: "Talk it through" opens the agent
+// scoped to one option. A section of the decision workspace.
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { fetchOptions, fetchSubOptions, splitFor } from '../../agent/options';
 import { Dialog } from '../../components/Dialog';
 import { ReportWrongAnswer } from '../../components/ReportWrongAnswer';
-import { Stepper } from '../../components/Stepper';
-import { newId, useDecision, useStore } from '../../store/store';
+import { chosenLabel, decisionDate } from '../../store/dashboard';
+import { newId, useStore } from '../../store/store';
 import { ancestorIds, childrenOf, depthOf, pathLabel, underPruned } from '../../store/tree';
-import type { ContextItem, Criteria, CriterionKey, OptionNode } from '../../types';
+import type { ContextItem, Criteria, CriterionKey, Decision, OptionNode } from '../../types';
+import { useAgent } from '../agent/AgentContext';
+import { formatDate } from '../log/format';
 import { LogDecisionDialog } from '../log/LogDecisionDialog';
 import { CRITERIA, DecisionTree, type LinkedDecision } from './DecisionTree';
 import './options.css';
@@ -36,10 +39,10 @@ function lines(text: string): string[] {
     .filter(Boolean);
 }
 
-export function OptionsPage() {
-  const { id } = useParams();
-  const decision = useDecision(id);
+export function OptionsSection({ decision }: { decision: Decision }) {
+  const id = decision.id;
   const { state, dispatch } = useStore();
+  const { openAgent } = useAgent();
   const [generating, setGenerating] = useState(false);
   const [step, setStep] = useState(0);
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
@@ -127,18 +130,6 @@ export function OptionsPage() {
     }
   }
 
-  if (!decision) {
-    return (
-      <div className="page">
-        <h1 className="page-title">Decision not found</h1>
-        <p className="lead">There’s no decision with that link. It may have been deleted with your data.</p>
-        <p>
-          <Link to="/">Back to your decisions</Link>
-        </p>
-      </div>
-    );
-  }
-
   const chosenId = decided ? (decision.chosenOptionId ?? options.find((o) => o.state === 'chosen')?.id) : selectedId;
   const level = childrenOf(options, levelParent);
   const levelNode = options.find((o) => o.id === levelParent);
@@ -162,11 +153,9 @@ export function OptionsPage() {
     }));
 
   return (
-    <div className="page">
-      <Stepper decision={decision} current="options" />
+    <div className="stack options-section">
       <header className="stack options-head">
-        <p className="kicker">Options</p>
-        <h1 className="page-title">{decision.question}</h1>
+        <h2 className="section-title">Options</h2>
         <p className="lead">
           {decided
             ? 'This decision is logged. The branches below are read-only.'
@@ -293,6 +282,7 @@ export function OptionsPage() {
                   setAnnounce(`${o.label} restored.`);
                 }}
                 onSave={(patch) => dispatch({ type: 'updateOption', optionId: o.id, patch })}
+                onTalk={() => openAgent({ decisionId: decision.id, optionId: o.id })}
               />
             ))}
           </ul>
@@ -303,6 +293,7 @@ export function OptionsPage() {
         <>
           <AddOptionForm
             parent={levelNode}
+            decision={decision}
             onAdd={(o) => {
               dispatch({
                 type: 'setOptions',
@@ -323,7 +314,6 @@ export function OptionsPage() {
               {chosenId ? `Chosen: ${pathLabel(options, chosenId)}` : 'No branch chosen yet.'}
             </span>
           </div>
-          <p className="muted options-note">Talking an option through in chat isn’t part of this prototype yet.</p>
         </>
       )}
 
@@ -394,6 +384,7 @@ function OptionCard({
   onPrune,
   onRestore,
   onSave,
+  onTalk,
 }: {
   option: OptionNode;
   items: ContextItem[];
@@ -412,8 +403,11 @@ function OptionCard({
   onPrune: () => void;
   onRestore: () => void;
   onSave: (patch: Partial<OptionNode>) => void;
+  onTalk: () => void;
 }) {
+  const { state } = useStore();
   const [editing, setEditing] = useState(false);
+  const past = option.linkedDecisionId ? state.decisions.find((d) => d.id === option.linkedDecisionId) : undefined;
   const headingId = useId();
   const pruned = option.state === 'pruned';
   const mine = isUserOption(option);
@@ -452,6 +446,12 @@ function OptionCard({
               <span className={pruned ? 'pruned-label' : undefined}>{option.label}</span>
             </h3>
             <p className="options-summary">{option.summary}</p>
+            {past && (
+              <p className="muted options-past">
+                Reuses <Link to={`/?focus=${past.id}`}>{past.question}</Link>
+                {chosenLabel(past, state) ? `, where the team chose “${chosenLabel(past, state)}”` : ''}.
+              </p>
+            )}
           </>
         )}
       </div>
@@ -543,6 +543,14 @@ function OptionCard({
         {!readOnly && !editing && !pruned && (
           <button type="button" className="btn btn-ghost" onClick={onPrune}>
             Prune<span className="visually-hidden"> {option.label}</span>
+          </button>
+        )}
+        {!editing && (
+          <button type="button" className="btn btn-ghost" onClick={onTalk}>
+            <span className="ai-mark" aria-hidden="true">
+              ✦
+            </span>{' '}
+            Talk it through<span className="visually-hidden"> {option.label}</span>
           </button>
         )}
         {subCount > 0 && (
@@ -830,8 +838,50 @@ function OptionEditForm({
   );
 }
 
-function AddOptionForm({ parent, onAdd }: { parent?: OptionNode; onAdd: (o: OptionNode) => void }) {
+function AddOptionForm({
+  parent,
+  decision,
+  onAdd,
+}: {
+  parent?: OptionNode;
+  decision: Decision;
+  onAdd: (o: OptionNode) => void;
+}) {
+  const { state, dispatch } = useStore();
   const [open, setOpen] = useState(false);
+  const [reuseOpen, setReuseOpen] = useState(false);
+  const [pastId, setPastId] = useState('');
+  const pastField = useId();
+  const past = state.decisions
+    .filter((d) => d.status === 'decided' && d.id !== decision.id)
+    .sort((a, b) => decisionDate(b).localeCompare(decisionDate(a)));
+
+  // An option that reuses a past decision also links the two on the map.
+  function addFromPast(e: FormEvent) {
+    e.preventDefault();
+    const d = past.find((x) => x.id === pastId);
+    if (!d) return;
+    const chosen = chosenLabel(d, state);
+    onAdd({
+      id: newId('o-user'),
+      decisionId: '',
+      parentId: null,
+      label: chosen ? `Reuse: ${chosen}` : `Build on: ${d.question}`,
+      summary: `Apply what was decided in “${d.question}”${d.summary ? `: ${d.summary}` : '.'}`,
+      pros: [],
+      cons: [],
+      score: 0,
+      contextIds: [],
+      state: 'open',
+      linkedDecisionId: d.id,
+    });
+    dispatch({
+      type: 'addLink',
+      link: { id: newId('l'), fromId: d.id, toId: decision.id, kind: 'builds-on', origin: 'user', status: 'accepted' },
+    });
+    setPastId('');
+    setReuseOpen(false);
+  }
   const [label, setLabel] = useState('');
   const [summary, setSummary] = useState('');
   const [pros, setPros] = useState('');
@@ -872,12 +922,49 @@ function AddOptionForm({ parent, onAdd }: { parent?: OptionNode; onAdd: (o: Opti
     setOpen(false);
   }
 
+  if (reuseOpen) {
+    return (
+      <section className="card" aria-labelledby="options-reuse-title">
+        <form className="card-section stack" onSubmit={addFromPast}>
+          <h2 id="options-reuse-title" className="section-title">
+            Reuse a past decision as an option
+          </h2>
+          <div className="field">
+            <label htmlFor={pastField}>Past decision</label>
+            <select id={pastField} className="select" value={pastId} onChange={(e) => setPastId(e.target.value)}>
+              <option value="">Pick a decision</option>
+              {past.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.question} ({formatDate(decisionDate(d))})
+                </option>
+              ))}
+            </select>
+            <span className="hint">Adds it as an option here and links the two decisions on your map.</span>
+          </div>
+          <div className="row">
+            <button type="submit" className="btn" disabled={!pastId}>
+              Add as an option
+            </button>
+            <button type="button" className="btn btn-secondary" onClick={() => setReuseOpen(false)}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      </section>
+    );
+  }
+
   if (!open) {
     return (
-      <div>
+      <div className="row">
         <button type="button" className="btn btn-secondary" onClick={() => setOpen(true)}>
           {parent ? 'Add your own sub-option' : 'Add your own option'}
         </button>
+        {!parent && past.length > 0 && (
+          <button type="button" className="btn btn-secondary" onClick={() => setReuseOpen(true)}>
+            Reuse a past decision
+          </button>
+        )}
       </div>
     );
   }

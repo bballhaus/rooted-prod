@@ -32,6 +32,22 @@ export interface Source {
   channels: Channel[]; // for google-drive these are folders
 }
 
+// Fake teammates, so the map can show who made each call (decision record 0005).
+export interface Teammate {
+  id: string; // the signed-in PM is a teammate too, with the user's id
+  name: string;
+  role: string;
+  team: string;
+  initials: string;
+}
+
+// Tags the PM typed and tags the agent suggested look different on purpose.
+// An AI tag the PM accepts becomes theirs.
+export interface Tag {
+  label: string;
+  origin: 'user' | 'ai';
+}
+
 export type DecisionStatus = 'framing' | 'brief' | 'options' | 'decided';
 
 export interface Decision {
@@ -44,6 +60,9 @@ export interface Decision {
   reviewDate?: string; // ISO date, when to record the outcome
   status: DecisionStatus;
   createdAt: string;
+  ownerId?: string; // who made the call; defaults to the signed-in PM
+  stakeholderIds?: string[]; // who was consulted
+  tags?: Tag[];
   // Set when the decision is logged (F-14).
   chosenOptionId?: string;
   summary?: string;
@@ -95,11 +114,65 @@ export interface OptionNode {
   contextIds: string[]; // evidence behind the option
   state: OptionState;
   pruneReason?: string; // a rejected option is kept with its reason, never deleted
+  linkedDecisionId?: string; // an option that reuses or extends a past decision
+}
+
+// A connection between two decisions on the map. The PM's own links are solid;
+// links the agent found are dashed until the PM accepts or dismisses them.
+export type LinkKind = 'builds-on' | 'related';
+
+export interface DecisionLink {
+  id: string;
+  fromId: string; // the earlier decision
+  toId: string; // the decision that builds on it
+  kind: LinkKind;
+  origin: 'user' | 'ai';
+  status: 'suggested' | 'accepted' | 'dismissed';
+  reason?: string; // why the agent thinks they're connected
+}
+
+// F-16: what happened after the review date.
+export interface Outcome {
+  id: string;
+  decisionId: string;
+  result: 'worked' | 'mixed' | 'did-not-work' | 'too-early';
+  summary: string;
+  metrics: string;
+  loggedAt: string;
+}
+
+// A decision the agent thinks the PM will need to make, spotted in context.
+export interface SuggestedDecision {
+  id: string;
+  question: string;
+  why: string;
+  evidence: { sourceLabel: string; author?: string; snippet: string }[];
+  suggestedAt: string;
+  status: 'new' | 'started' | 'dismissed';
+  decisionId?: string; // set once the PM starts it
+}
+
+// F-12, F-13: the agent chat. One thread per scope: general, a decision, or
+// one option within a decision.
+export interface Citation {
+  decisionId: string;
+  label: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  threadId: string; // 'general', a decision id, or `${decisionId}:${optionId}`
+  role: 'user' | 'agent';
+  text: string;
+  citations?: Citation[];
+  sample?: boolean; // true when the scripted fallback answered, not the LLM
+  edited?: boolean;
+  createdAt: string;
 }
 
 export interface WrongAnswerReport {
   id: string;
-  surface: 'brief' | 'gap' | 'option' | 'record' | 'other';
+  surface: 'brief' | 'gap' | 'option' | 'record' | 'chat' | 'link' | 'suggestion' | 'tag' | 'other';
   targetId?: string;
   decisionId?: string;
   excerpt?: string; // what the agent said
@@ -115,4 +188,9 @@ export interface AppState {
   gaps: Gap[];
   options: OptionNode[];
   reports: WrongAnswerReport[];
+  teammates: Teammate[];
+  links: DecisionLink[];
+  outcomes: Outcome[];
+  suggestions: SuggestedDecision[];
+  messages: ChatMessage[];
 }

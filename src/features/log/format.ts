@@ -15,18 +15,9 @@ export function formatDate(iso: string | undefined): string {
   });
 }
 
-// The step an in-progress decision should pick up at.
+// Where a decision opens: the workspace while it's in progress, the record once logged.
 export function continuePath(decision: Decision): string {
-  switch (decision.status) {
-    case 'framing':
-      return `/decisions/${decision.id}/frame`;
-    case 'brief':
-      return `/decisions/${decision.id}/brief`;
-    case 'options':
-      return `/decisions/${decision.id}/options`;
-    case 'decided':
-      return `/decisions/${decision.id}`;
-  }
+  return decision.status === 'decided' ? `/decisions/${decision.id}` : `/decisions/${decision.id}/work`;
 }
 
 export const STATUS_LABEL: Record<Decision['status'], string> = {

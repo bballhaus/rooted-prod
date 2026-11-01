@@ -1,11 +1,13 @@
-import { render, screen, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useParams } from 'react-router-dom';
+import { screen, within } from '@testing-library/react';
 import { slackCorpus } from '../../data/slackCorpus';
-import { StoreProvider, useDecision } from '../../store/store';
+import { STORAGE_KEY } from '../../store/store';
 import { renderApp, signedInState } from '../../test/render';
 import type { AppState, Decision } from '../../types';
-import { BriefPage } from './BriefPage';
+
+// The brief is a section of the decision workspace; the old /brief URL opens it.
+function stored(): AppState {
+  return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as AppState;
+}
 
 const decision: Decision = {
   id: 'd-trial',
@@ -148,47 +150,19 @@ describe('BriefPage', () => {
   });
 
   it('continues to options and moves the decision forward', async () => {
-    const state = stateWith();
-    const user = userEvent.setup();
-    function OptionsProbe() {
-      const d = useDecision(useParams().id);
-      return <p>options page, status {d?.status}</p>;
-    }
-    render(
-      <StoreProvider initialState={state}>
-        <MemoryRouter initialEntries={['/decisions/d-trial/brief']}>
-          <Routes>
-            <Route path="/decisions/:id/brief" element={<BriefPage />} />
-            <Route path="/decisions/:id/options" element={<OptionsProbe />} />
-          </Routes>
-        </MemoryRouter>
-      </StoreProvider>,
-    );
+    const { user } = renderApp('/decisions/d-trial/work', stateWith());
     await screen.findByRole('heading', { name: /^Context/, level: 2 }, WAIT);
+    expect(screen.queryByRole('region', { name: 'Options' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Looks right, show options' }));
-    expect(screen.getByText('options page, status options')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Options' })).toBeInTheDocument();
+    expect(stored().decisions.find((d) => d.id === 'd-trial')?.status).toBe('options');
   });
 
   it('does not move a decided decision backward', async () => {
-    const state = signedInState();
-    const user = userEvent.setup();
-    function OptionsProbe() {
-      const d = useDecision(useParams().id);
-      return <p>options page, status {d?.status}</p>;
-    }
-    render(
-      <StoreProvider initialState={state}>
-        <MemoryRouter initialEntries={['/decisions/d-pricing-seats/brief']}>
-          <Routes>
-            <Route path="/decisions/:id/brief" element={<BriefPage />} />
-            <Route path="/decisions/:id/options" element={<OptionsProbe />} />
-          </Routes>
-        </MemoryRouter>
-      </StoreProvider>,
-    );
+    const { user } = renderApp('/decisions/d-pricing-seats/work');
     await screen.findByRole('heading', { name: /^Context/, level: 2 }, WAIT);
     await user.click(screen.getByRole('button', { name: 'Looks right, show options' }));
-    expect(screen.getByText('options page, status decided')).toBeInTheDocument();
+    expect(stored().decisions.find((d) => d.id === 'd-pricing-seats')?.status).toBe('decided');
   });
 
   it('F-14: a logged decision is never gathered again, so its record keeps the context it was logged with', async () => {
@@ -201,6 +175,6 @@ describe('BriefPage', () => {
   it('shows a helpful message for an unknown decision', () => {
     renderApp('/decisions/nope/brief');
     expect(screen.getByRole('heading', { name: 'Decision not found' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Back to decisions' })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: 'Back to your decisions' })).toHaveAttribute('href', '/');
   });
 });

@@ -298,3 +298,40 @@
   color: var(--ink2);
   font-size: 14px;
 }
+
+/* F-16 outcome */
+.outcome {
+  scroll-margin-top: 88px;
+}
+
+.outcome-due {
+  border-color: var(--alert);
+}
+
+.outcome p {
+  margin: 0;
+}
+
+.outcome-results {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.outcome-when {
+  font-size: 14px;
+}
+
+.log-tags,
+.log-connections {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 6px;
+}
+
+.log-connections {
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+}

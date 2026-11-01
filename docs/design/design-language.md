@@ -103,6 +103,18 @@ light/dark themes and future retints stay centralized. Tokens are defined in
 | `endBg` | `#25272B` | `#581C32` | Final CTA / signup section |
 | `chipBg` | `rgba(37,39,43,.06)` | `rgba(247,244,239,.1)` | Neutral chip / banner fill |
 
+Added in the Rooted app (`src/styles/global.css`, decision 0006):
+
+| Token | Light | Dark | Meaning |
+|---|---|---|---|
+| `alert` / `alertFg` | `#A94438` dusty red / cream | `#D9776B` / charcoal | Something is due: the inbox count, an overdue outcome |
+| `ai` / `aiLine` / `aiBg` | `#5D6B4F` deep sage / `#8C9A7C` / sage at 18% | `#C2CBB4` / `#A4AD96` / sage at 16% | What the agent suggested and a person hasn't accepted: dashed links, outlined tags, ✦ labels |
+| `ochre` / `ochreBg` | `#96601A` / ochre at 14% | `#E0A458` / ochre at 14% | Work in progress: open decisions, drafts, the current setup step (decision 0008) |
+| `moss` | `#5F7A4A` | `#A9C08F` | A closed loop: outcome logged, a finished setup step |
+| `person1`–`person7` | wine, moss, ochre, `#4F7A78` teal, `#7A5C8A` plum, `#A0603F` clay, ink2 | lighter tints of the same | A teammate's avatar and lane swatch; muted, never for state |
+
+Pair both with a shape or icon (a square dot, a ✦, a dashed line), never color alone.
+
 Status/log accents (used in the live status line and canvas narration):
 `logMap`=sage, `logWeigh`=ink2, `logPrune`=berry/dusty-rose, `logRec`=wine/cream.
 Semantic rule: **sage = mapping/alive, berry = pruning, wine = decided.**

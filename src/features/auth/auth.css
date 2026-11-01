@@ -1,20 +1,5 @@
-/* Sign in (F-01, F-21) and data access (F-02, F-03). Tokens only. */
-
-.auth-shell {
-  min-height: 100vh;
-  background: var(--ground);
-}
-
-.auth-header {
-  border-bottom: 1px solid var(--card-rule);
-}
-
-.auth-header-inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 64px;
-}
+/* Sign in (F-01, F-20, F-21) and data access (F-02, F-03). Tokens only, except
+   the brand panel's cream-on-wine colors, which match --soil in both themes. */
 
 .auth-wordmark {
   display: inline-flex;
@@ -25,15 +10,196 @@
   letter-spacing: -0.02em;
 }
 
-.auth-signin {
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  align-items: start;
-  gap: clamp(32px, 5vw, 80px);
+/* Sign in: a wine brand panel (soil is wine in both themes) beside the form. */
+.auth-split {
+  --brand-fg: #f7f4ef;
+  --brand-line: rgba(247, 244, 239, 0.55);
+  --brand-chosen: #f7f4ef;
+  --brand-pruned: #c39aa3;
+  --brand-alive: #a4ad96;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  background: var(--ground);
 }
 
-.auth-card {
-  max-width: 460px;
-  width: 100%;
+.auth-brand {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 40px;
+  padding: 40px clamp(32px, 5vw, 72px);
+  background:
+    radial-gradient(120% 80% at 100% 0%, rgba(142, 64, 86, 0.55), transparent 60%),
+    radial-gradient(90% 70% at 0% 100%, rgba(164, 173, 150, 0.18), transparent 60%),
+    var(--soil);
+  color: var(--brand-fg);
+}
+
+.auth-brand .auth-wordmark {
+  color: var(--brand-fg);
+}
+
+.auth-brand-body {
+  display: grid;
+  gap: 16px;
+  max-width: 34em;
+}
+
+.auth-brand-kicker {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(247, 244, 239, 0.75);
+}
+
+.auth-brand-title {
+  font-size: clamp(36px, 4.2vw, 60px);
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+  font-weight: 500;
+}
+
+.auth-brand-lead {
+  margin: 0;
+  font-size: clamp(16px, 1.25vw, 18px);
+  line-height: 1.45;
+  color: rgba(247, 244, 239, 0.85);
+}
+
+.auth-tree {
+  width: min(100%, 420px);
+  height: auto;
+  margin-top: 16px;
+}
+
+.auth-points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  font-size: 15px;
+  color: rgba(247, 244, 239, 0.9);
+}
+
+.auth-points li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth-point-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.auth-point-sage {
+  background: var(--brand-alive);
+}
+
+.auth-point-ochre {
+  background: #e0a458;
+}
+
+.auth-point-cream {
+  background: var(--brand-chosen);
+}
+
+.auth-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px var(--gutter);
+}
+
+.auth-panel-inner {
+  width: min(100%, 420px);
+  display: grid;
+  gap: 24px;
+}
+
+.auth-proto {
+  justify-self: start;
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--chip-bg);
+}
+
+.auth-tabs button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink2);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.auth-tabs button[aria-selected='true'] {
+  background: var(--card-bg);
+  color: var(--ink);
+  box-shadow: var(--card-shadow);
+}
+
+.auth-title {
+  font-size: clamp(26px, 2.4vw, 32px);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.auth-tight {
+  gap: 6px;
+}
+
+.auth-tight p {
+  margin: 0;
+}
+
+.auth-link {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.auth-fineprint {
+  padding-top: 16px;
+  border-top: 1px solid var(--card-rule);
+}
+
+@media (max-width: 880px) {
+  .auth-split {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-brand {
+    padding: 24px var(--gutter) 28px;
+    gap: 20px;
+  }
+
+  .auth-tree,
+  .auth-points {
+    display: none;
+  }
 }
 
 .auth-providers {
@@ -60,6 +226,53 @@
   padding-left: 20px;
   display: grid;
   gap: 6px;
+}
+
+.auth-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+  font-size: 14px;
+  color: var(--ink2);
+}
+
+.auth-steps li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auth-step-n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.auth-step-done .auth-step-n {
+  background: var(--moss);
+  border-color: var(--moss);
+  color: var(--ground);
+}
+
+.auth-step-now {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.auth-step-now .auth-step-n {
+  background: var(--ochre-bg);
+  border-color: var(--ochre);
+  color: var(--ink);
 }
 
 .auth-whoami {
@@ -150,14 +363,6 @@
 }
 
 @media (max-width: 880px) {
-  .auth-signin {
-    grid-template-columns: 1fr;
-  }
-
-  .auth-card {
-    max-width: none;
-  }
-
   .auth-source-head {
     flex-wrap: wrap;
   }

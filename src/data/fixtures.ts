@@ -1,6 +1,16 @@
 // Synthetic seed data. Every name, company, channel and message here is made up;
 // real Slack data never goes into fixtures (AGENTS.md).
 import type { AppState, ContextItem, Decision, OptionNode, Source, User } from '../types';
+import {
+  fixtureExtras,
+  historyDecisions,
+  historyOptions,
+  openDecisions,
+  seedLinks,
+  seedOutcomes,
+  seedSuggestions,
+  seedTeammates,
+} from './history';
 
 export const demoUser: User = {
   id: 'u-1',
@@ -45,8 +55,8 @@ export const seedSources: Source[] = [
   },
 ];
 
-// Three past decisions, already logged, so the brief can cite them and the
-// history list isn't empty on first load.
+// Three past decisions, already logged, so the brief can cite them. The rest of
+// the history the map shows lives in history.ts.
 export const seedDecisions: Decision[] = [
   {
     id: 'd-onboarding-checklist',
@@ -192,13 +202,23 @@ export const seedContextItems: ContextItem[] = [
 ];
 
 export function seedState(): AppState {
+  const decisions = [
+    ...openDecisions,
+    ...seedDecisions.map((d) => ({ ...d, ...fixtureExtras[d.id] })),
+    ...historyDecisions,
+  ];
   return {
     user: null,
     sources: structuredClone(seedSources),
-    decisions: structuredClone(seedDecisions),
+    decisions: structuredClone(decisions),
     contextItems: structuredClone(seedContextItems),
     gaps: [],
-    options: structuredClone(seedOptions),
+    options: structuredClone([...seedOptions, ...historyOptions]),
     reports: [],
+    teammates: structuredClone(seedTeammates),
+    links: structuredClone(seedLinks),
+    outcomes: structuredClone(seedOutcomes),
+    suggestions: structuredClone(seedSuggestions),
+    messages: [],
   };
 }

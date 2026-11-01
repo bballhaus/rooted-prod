@@ -1,5 +1,6 @@
 import { screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { seedState } from '../../data/fixtures';
 import { STORAGE_KEY } from '../../store/store';
 import { renderApp } from '../../test/render';
 import type { AppState } from '../../types';
@@ -107,7 +108,7 @@ describe('Settings', () => {
     await user.click(screen.getByRole('button', { name: 'Reset sample data' }));
     const dialog = screen.getByRole('dialog', { name: 'Reset sample data?' });
     await user.click(within(dialog).getByRole('button', { name: 'Reset sample data' }));
-    expect(stored().decisions).toHaveLength(3);
+    expect(stored().decisions.map((d) => d.id)).toEqual(seedState().decisions.map((d) => d.id));
     expect(stored().user?.name).toBe('Jordan Lee');
   });
 });

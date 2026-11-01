@@ -64,13 +64,15 @@ function stateWithOptions(): AppState {
   };
 }
 
+// Options are a section of the decision workspace, next to the brief; the old /options URL opens them.
+const region = () => screen.getByRole('region', { name: 'Options' });
 const cards = () => screen.getAllByRole('listitem').filter((li) => li.classList.contains('options-card'));
 const card = (label: string) => cards().find((c) => within(c).queryByRole('heading', { name: label }))!;
 
 describe('OptionsPage', () => {
   it('F-10: generates options with a narrated loading state when the decision has none', async () => {
     renderApp('/decisions/d-trial/options', state());
-    expect(screen.getByRole('status')).toHaveTextContent(/reading your evidence brief/i);
+    expect(within(region()).getByRole('status')).toHaveTextContent(/reading your evidence brief/i);
     expect(await screen.findByRole('heading', { name: 'Usage limit' }, { timeout: 3000 })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '14-day time limit' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Gather more evidence first' })).toBeInTheDocument();
@@ -212,10 +214,10 @@ describe('OptionsPage', () => {
 
   it('decided decisions are read-only, show the chosen option as wine and link to the record', () => {
     renderApp('/decisions/d-onboarding-checklist/options');
-    expect(screen.queryByRole('button', { name: /choose this branch/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^edit/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^prune/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /add your own option/i })).not.toBeInTheDocument();
+    expect(within(region()).queryByRole('button', { name: /choose this branch/i })).not.toBeInTheDocument();
+    expect(within(region()).queryByRole('button', { name: /^edit/i })).not.toBeInTheDocument();
+    expect(within(region()).queryByRole('button', { name: /^prune/i })).not.toBeInTheDocument();
+    expect(within(region()).queryByRole('button', { name: /add your own option/i })).not.toBeInTheDocument();
     expect(card('Setup checklist')).toHaveClass('card-rec');
     expect(card('Guided product tour')).not.toHaveClass('card-rec');
     expect(within(card('Guided product tour')).getByText(/one-time tour misses them/i)).toBeInTheDocument();
