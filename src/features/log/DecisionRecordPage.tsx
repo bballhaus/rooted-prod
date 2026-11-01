@@ -6,6 +6,7 @@ import { ReportWrongAnswer } from '../../components/ReportWrongAnswer';
 import { Stepper } from '../../components/Stepper';
 import { useDecision, useStore } from '../../store/store';
 import { pathLabel } from '../../store/tree';
+import type { Decision } from '../../types';
 import { continuePath, formatDate, STATUS_LABEL } from './format';
 import './log.css';
 
@@ -163,6 +164,8 @@ export function DecisionRecordPage() {
             )}
           </section>
 
+          <OutcomeSection decision={decision} />
+
           <details className="log-details">
             <summary>Context snapshot ({context.length})</summary>
             {context.length === 0 ? (
@@ -202,7 +205,12 @@ export function DecisionRecordPage() {
               </dd>
             </div>
           </dl>
-          {decision.reviewDate && <p className="muted log-note">We'll ask what happened on the review date.</p>}
+          {decision.reviewDate && !decision.outcome && (
+            <p className="muted log-note">We'll ask what happened on the review date.</p>
+          )}
+          {decision.outcome && (
+            <p className="muted log-note">Outcome recorded {formatDate(decision.outcome.loggedAt)}.</p>
+          )}
           {decision.constraints.length > 0 && (
             <section aria-labelledby="record-constraints" className="stack">
               <h2 id="record-constraints" className="log-side-title">
@@ -218,5 +226,118 @@ export function DecisionRecordPage() {
         </aside>
       </div>
     </div>
+  );
+}
+
+// F-16: on (or after) the review date, record what actually happened and the
+// numbers that moved. The outcome shows up on the decision map and history so a
+// past call carries its result, not just its intent.
+function OutcomeSection({ decision }: { decision: Decision }) {
+  const { dispatch } = useStore();
+  const [editing, setEditing] = useState(false);
+  const [result, setResult] = useState(decision.outcome?.result ?? '');
+  const [metrics, setMetrics] = useState(decision.outcome?.metrics ?? '');
+  const [error, setError] = useState('');
+  const outcome = decision.outcome;
+
+  function save(e: React.FormEvent) {
+    e.preventDefault();
+    if (!result.trim()) {
+      setError('Say what happened before saving the outcome.');
+      return;
+    }
+    dispatch({
+      type: 'logOutcome',
+      decisionId: decision.id,
+      outcome: { result: result.trim(), metrics: metrics.trim() || undefined, loggedAt: new Date().toISOString() },
+    });
+    setEditing(false);
+    setError('');
+  }
+
+  if (outcome && !editing) {
+    return (
+      <section aria-labelledby="record-outcome" className="stack">
+        <h2 id="record-outcome" className="section-title">
+          Outcome
+        </h2>
+        <div className="card log-outcome">
+          <div className="card-section stack">
+            <p className="log-prose">{outcome.result}</p>
+            {outcome.metrics && <p className="log-outcome-metric tabular">{outcome.metrics}</p>}
+          </div>
+          <div className="card-section row">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                setResult(outcome.result);
+                setMetrics(outcome.metrics ?? '');
+                setEditing(true);
+              }}
+            >
+              Edit outcome
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section aria-labelledby="record-outcome" className="stack">
+      <h2 id="record-outcome" className="section-title">
+        Outcome
+      </h2>
+      <p className="muted">
+        {decision.reviewDate
+          ? `Review date ${formatDate(decision.reviewDate)}. Record what happened so this call carries its result.`
+          : 'Record what happened so this call carries its result.'}
+      </p>
+      <form className="card" onSubmit={save}>
+        <div className="card-section stack">
+          <div className="field">
+            <label htmlFor="outcome-result">What happened?</label>
+            <textarea
+              id="outcome-result"
+              className="textarea"
+              rows={3}
+              value={result}
+              onChange={(e) => {
+                setResult(e.target.value);
+                if (e.target.value.trim()) setError('');
+              }}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? 'outcome-error' : undefined}
+            />
+            {error && (
+              <p id="outcome-error" className="error" role="alert">
+                {error}
+              </p>
+            )}
+          </div>
+          <div className="field">
+            <label htmlFor="outcome-metrics">Metrics that moved (optional)</label>
+            <input
+              id="outcome-metrics"
+              className="input"
+              value={metrics}
+              placeholder="e.g. Activation 31% → 38%"
+              onChange={(e) => setMetrics(e.target.value)}
+            />
+          </div>
+          <div className="row">
+            <button type="submit" className="btn">
+              Save outcome
+            </button>
+            {editing && (
+              <button type="button" className="btn btn-secondary" onClick={() => setEditing(false)}>
+                Cancel
+              </button>
+            )}
+          </div>
+        </div>
+      </form>
+    </section>
   );
 }

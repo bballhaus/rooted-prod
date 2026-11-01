@@ -2,6 +2,8 @@
 // real Slack data never goes into fixtures (AGENTS.md).
 import type { AppState, ContextItem, Decision, OptionNode, Source, User } from '../types';
 
+export { demoState } from './demoFixtures';
+
 export const demoUser: User = {
   id: 'u-1',
   name: 'Jordan Lee',
@@ -63,6 +65,13 @@ export const seedDecisions: Decision[] = [
     rationale:
       'Interviews showed admins come back to setup over several days, which a checklist supports and a one-time tour does not. The checklist is also two sprints cheaper.',
     loggedAt: '2026-08-27T21:00:00.000Z',
+    metric: 'Activation',
+    horizon: 'past',
+    outcome: {
+      result: 'The checklist shipped for the September cohort and activation climbed over six weeks.',
+      metrics: 'Activation 31% → 38%',
+      loggedAt: '2026-10-15T17:00:00.000Z',
+    },
   },
   {
     id: 'd-pricing-seats',
@@ -79,6 +88,13 @@ export const seedDecisions: Decision[] = [
     rationale:
       'Removes the friction for small teams that sales flagged while protecting revenue from large accounts.',
     loggedAt: '2026-09-18T19:30:00.000Z',
+    metric: 'Expansion',
+    horizon: 'past',
+    outcome: {
+      result: 'Two rollouts that had stalled on per-seat pricing reopened within a month of the change.',
+      metrics: 'Net revenue retention +4 pts',
+      loggedAt: '2026-11-20T18:00:00.000Z',
+    },
   },
   {
     id: 'd-mobile-push',
@@ -94,6 +110,13 @@ export const seedDecisions: Decision[] = [
     summary: 'Defer push; ship email digests first.',
     rationale: 'Digests reach the 91% of users not on mobile and reuse the existing notification service.',
     loggedAt: '2026-10-02T18:00:00.000Z',
+    metric: 'Engagement',
+    horizon: 'past',
+    outcome: {
+      result: 'Email digests shipped in three weeks and landed well; push stayed on the shelf.',
+      metrics: 'Digest open rate 42%',
+      loggedAt: '2026-12-01T18:00:00.000Z',
+    },
   },
 ];
 
@@ -200,5 +223,6 @@ export function seedState(): AppState {
     gaps: [],
     options: structuredClone(seedOptions),
     reports: [],
+    demo: false,
   };
 }

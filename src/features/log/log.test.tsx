@@ -258,7 +258,7 @@ describe('DecisionRecordPage', () => {
 
 describe('DecisionsPage', () => {
   it('F-17: lists in-progress decisions first, then logged ones newest first', () => {
-    renderApp('/', trialState());
+    renderApp('/history', trialState());
     const inProgress = screen.getByRole('list', { name: 'In progress' });
     expect(within(inProgress).getByText(trialDecision.question)).toBeInTheDocument();
     expect(within(inProgress).getByRole('link', { name: /Continue/ })).toHaveAttribute(
@@ -281,7 +281,7 @@ describe('DecisionsPage', () => {
   });
 
   it('F-17: search filters both in-progress and logged decisions', async () => {
-    const { user } = renderApp('/', trialState());
+    const { user } = renderApp('/history', trialState());
     const search = screen.getByLabelText('Search decisions');
     await user.type(search, 'seat');
     expect(screen.queryByRole('list', { name: 'In progress' })).not.toBeInTheDocument();
@@ -299,13 +299,13 @@ describe('DecisionsPage', () => {
   });
 
   it('F-17: with no decisions, prompts the PM to frame the first one', () => {
-    renderApp('/', signedInState({ decisions: [], options: [], contextItems: [] }));
+    renderApp('/history', signedInState({ decisions: [], options: [], contextItems: [] }));
     expect(screen.getByRole('heading', { name: 'Start with one decision.' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Frame your first decision' })).toHaveAttribute('href', '/decisions/new');
   });
 
   it('F-17: a logged decision opens its record', async () => {
-    const { user } = renderApp('/');
+    const { user } = renderApp('/history');
     await user.click(screen.getByRole('link', { name: /Build mobile push notifications/ }));
     expect(screen.getByRole('heading', { level: 1, name: /Build mobile push notifications/ })).toBeInTheDocument();
   });

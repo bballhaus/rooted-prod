@@ -30,6 +30,17 @@
   --input-border: rgba(37, 39, 43, 0.25);
   --soil: #581c32;
 
+  /* App chrome: a faintly elevated "paper" rail against the ground. */
+  --rail-bg: #fbf9f5;
+  --rail-border: rgba(37, 39, 43, 0.1);
+  --hair: rgba(37, 39, 43, 0.1);
+  --hover: rgba(37, 39, 43, 0.05);
+  --shadow-sm: 0 1px 2px rgba(37, 39, 43, 0.05), 0 12px 24px -18px rgba(88, 28, 50, 0.22);
+  --wine-tint: rgba(88, 28, 50, 0.08);
+  --wine-line: rgba(88, 28, 50, 0.28);
+  --sage-tint: rgba(164, 173, 150, 0.22);
+  --berry-tint: rgba(142, 64, 86, 0.14);
+
   --gutter: clamp(20px, 4vw, 56px);
   --max: 1240px;
   --font: 'Bricolage Grotesque', 'Avenir Next', 'Segoe UI', Helvetica, Arial, sans-serif;
@@ -57,6 +68,16 @@
     --chip-on-fg: #25272b;
     --input-bg: rgba(247, 244, 239, 0.06);
     --input-border: rgba(247, 244, 239, 0.3);
+
+    --rail-bg: #2a2c30;
+    --rail-border: rgba(247, 244, 239, 0.1);
+    --hair: rgba(247, 244, 239, 0.1);
+    --hover: rgba(247, 244, 239, 0.06);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25), 0 12px 24px -18px rgba(0, 0, 0, 0.5);
+    --wine-tint: rgba(142, 64, 86, 0.18);
+    --wine-line: rgba(195, 154, 163, 0.4);
+    --sage-tint: rgba(164, 173, 150, 0.18);
+    --berry-tint: rgba(195, 154, 163, 0.16);
   }
 }
 

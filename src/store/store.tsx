@@ -2,13 +2,14 @@
 // Every feature reads and writes through these actions; add new ones here
 // rather than keeping parallel state in a feature.
 import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react';
-import { seedState } from '../data/fixtures';
+import { demoState, seedState } from '../data/fixtures';
 import type {
   AppState,
   ContextItem,
   Decision,
   Gap,
   OptionNode,
+  Outcome,
   Provider,
   Source,
   User,
@@ -45,8 +46,11 @@ export type Action =
       loggedAt: string;
     }
   | { type: 'addReport'; report: WrongAnswerReport }
+  | { type: 'logOutcome'; decisionId: string; outcome: Outcome }
   | { type: 'deleteAllData' }
-  | { type: 'resetDemo' };
+  | { type: 'resetDemo' }
+  | { type: 'loadDemo' }
+  | { type: 'exitDemo' };
 
 const ORIGIN_OF: Record<Source['type'], ContextItem['origin']> = { slack: 'slack', 'google-drive': 'drive' };
 
@@ -176,6 +180,15 @@ export function reducer(state: AppState, action: Action): AppState {
     }
     case 'addReport':
       return { ...state, reports: [action.report, ...state.reports] };
+    case 'logOutcome':
+      // F-16: record what happened. The decision stays decided; it just gains
+      // an outcome so the history and causal map can show what came of it.
+      return {
+        ...state,
+        decisions: state.decisions.map((d) =>
+          d.id === action.decisionId ? { ...d, outcome: action.outcome } : d,
+        ),
+      };
     case 'deleteAllData':
       // F-23: wipes decisions, context and reports and disconnects every source.
       return {
@@ -188,6 +201,12 @@ export function reducer(state: AppState, action: Action): AppState {
         sources: state.sources.map((s) => ({ ...s, connected: false, connectedAt: undefined })),
       };
     case 'resetDemo':
+      return { ...seedState(), user: state.user };
+    case 'loadDemo':
+      // Swap in the planted forest of connected decisions. Keeps the signed-in
+      // user so the demo feels like their own workspace.
+      return { ...demoState(), user: state.user };
+    case 'exitDemo':
       return { ...seedState(), user: state.user };
   }
 }

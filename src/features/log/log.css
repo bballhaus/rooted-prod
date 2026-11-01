@@ -298,3 +298,14 @@
   color: var(--ink2);
   font-size: 14px;
 }
+
+/* F-16: recorded outcome on the decision record. */
+.log-outcome {
+  border-color: var(--wine-line);
+  background: var(--wine-tint);
+}
+
+.log-outcome-metric {
+  margin: 0;
+  font-weight: 600;
+}

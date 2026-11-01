@@ -1,0 +1,77 @@
+/* Dot-based step row for one decision's workflow. */
+.stepper {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.stepper-step {
+  display: flex;
+  align-items: center;
+}
+
+/* The connector between dots. */
+.stepper-step + .stepper-step::before {
+  content: '';
+  width: clamp(16px, 3vw, 40px);
+  height: 1.5px;
+  background: var(--hair);
+  margin: 0 2px;
+}
+
+.stepper-step-done + .stepper-step::before,
+.stepper-step-current + .stepper-step::before {
+  background: var(--sage);
+}
+
+.stepper-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 999px;
+  text-decoration: none;
+  color: var(--ink2);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+a.stepper-link:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.stepper-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  flex: none;
+  box-sizing: border-box;
+}
+
+.stepper-dot-done {
+  background: var(--sage);
+}
+
+.stepper-dot-current {
+  background: var(--ground);
+  border: 3px solid var(--ink);
+}
+
+.stepper-dot-ahead {
+  border: 1.5px solid var(--line);
+}
+
+.stepper-step-current .stepper-label {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.stepper-step-ahead .stepper-label {
+  opacity: 0.7;
+}

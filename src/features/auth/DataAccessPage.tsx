@@ -166,6 +166,17 @@ export function DataAccessPage() {
   return (
     <div className="page">
       <div className="stack">
+        <ol className="auth-steps" aria-label="Setup steps">
+          <li className="auth-step">
+            <span className="auth-step-dot" aria-hidden="true" /> Sign in
+          </li>
+          <li className="auth-step auth-step-current" aria-current="step">
+            <span className="auth-step-dot" aria-hidden="true" /> Choose sources
+          </li>
+          <li className="auth-step">
+            <span className="auth-step-dot" aria-hidden="true" /> Start deciding
+          </li>
+        </ol>
         {user && (
           <p className="pill auth-whoami">
             Signed in as {user.role}, {user.team}
@@ -192,7 +203,21 @@ export function DataAccessPage() {
         <button type="button" className="btn btn-lg" onClick={() => navigate('/')}>
           Continue to Rooted
         </button>
+        <button
+          type="button"
+          className="btn btn-secondary btn-lg"
+          onClick={() => {
+            dispatch({ type: 'loadDemo' });
+            navigate('/');
+          }}
+        >
+          Explore the demo instead
+        </button>
       </div>
+      <p className="muted auth-small">
+        Not sure yet? Load a worked example — a full year of connected decisions — and come back to connect your own
+        sources any time.
+      </p>
 
       <Dialog
         open={connecting !== null}

@@ -9,6 +9,7 @@ import { DecisionRecordPage } from './features/log/DecisionRecordPage';
 import { DecisionsPage } from './features/log/DecisionsPage';
 import { OptionsPage } from './features/options/OptionsPage';
 import { SettingsPage } from './features/settings/SettingsPage';
+import { WorkspaceHome } from './features/workspace/WorkspaceHome';
 import { useStore } from './store/store';
 
 function RequireAuth() {
@@ -25,7 +26,8 @@ export function App() {
       <Route element={<RequireAuth />}>
         <Route element={<Layout />}>
           <Route path="/onboarding" element={<DataAccessPage />} />
-          <Route path="/" element={<DecisionsPage />} />
+          <Route path="/" element={<WorkspaceHome />} />
+          <Route path="/history" element={<DecisionsPage />} />
           <Route path="/decisions/new" element={<FramePage />} />
           <Route path="/decisions/:id/frame" element={<FramePage />} />
           <Route path="/decisions/:id/brief" element={<BriefPage />} />

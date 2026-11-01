@@ -34,6 +34,17 @@ export interface Source {
 
 export type DecisionStatus = 'framing' | 'brief' | 'options' | 'decided';
 
+// Where a decision sits on the causal map. Most decisions derive this from their
+// status, but the demo's planted "future directions" are marked explicitly.
+export type Horizon = 'past' | 'now' | 'future';
+
+// F-16: what actually happened after the call, recorded on the review date.
+export interface Outcome {
+  result: string; // what happened, in the PM's words
+  metrics?: string; // the numbers that moved
+  loggedAt: string;
+}
+
 export interface Decision {
   id: string;
   question: string;
@@ -49,6 +60,17 @@ export interface Decision {
   summary?: string;
   rationale?: string;
   loggedAt?: string;
+  // F-16: the recorded result, once the review date comes around.
+  outcome?: Outcome;
+  // The decisions this one built on — the roots of the causal map. Ids point at
+  // earlier decisions; the map draws an edge from each to this one.
+  builtOn?: string[];
+  // A short goal label shown on the map node, e.g. "Activation" or "Expansion".
+  metric?: string;
+  // Demo only: a planted direction the PM can explore but hasn't committed to.
+  // Rendered as a dashed, speculative node the user can step into.
+  speculative?: boolean;
+  horizon?: Horizon;
 }
 
 export type ContextOrigin = 'slack' | 'drive' | 'past-decision' | 'user-note';
@@ -115,4 +137,7 @@ export interface AppState {
   gaps: Gap[];
   options: OptionNode[];
   reports: WrongAnswerReport[];
+  // True when the workspace is loaded with the planted demo forest, so the UI
+  // can label it honestly as a demonstration rather than the PM's own data.
+  demo: boolean;
 }

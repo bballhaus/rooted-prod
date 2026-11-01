@@ -1,0 +1,347 @@
+/* ── Home layout ───────────────────────────────────────────────────────── */
+.wk-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.wk-head-text {
+  display: grid;
+  gap: 10px;
+  max-width: 44em;
+}
+
+.wk-stats {
+  display: flex;
+  gap: 10px;
+  margin: 0;
+}
+
+.wk-stat {
+  min-width: 92px;
+  padding: 12px 16px;
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  background: var(--card-bg);
+  box-shadow: var(--shadow-sm);
+}
+
+.wk-stat dt {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink2);
+}
+
+.wk-stat dd {
+  margin: 4px 0 0;
+  font-size: 32px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.wk-canvas-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 328px;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1080px) {
+  .wk-canvas-wrap {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Forest canvas ─────────────────────────────────────────────────────── */
+.wk-forest {
+  padding: 0;
+  position: relative;
+  background:
+    radial-gradient(120% 80% at 10% 0%, var(--wine-tint), transparent 60%),
+    var(--card-bg);
+}
+
+/* A faint fade on the right edge to hint the map scrolls further. */
+.wk-forest::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  bottom: 1px;
+  width: 40px;
+  border-radius: 0 16px 16px 0;
+  background: linear-gradient(to right, transparent, var(--card-bg));
+  pointer-events: none;
+}
+
+.forest-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 10px;
+}
+
+.forest {
+  position: relative;
+  min-height: 300px;
+}
+
+.forest-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.forest-edge {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 1.5;
+  opacity: 0.45;
+}
+
+.forest-edge-future {
+  stroke: var(--berry);
+  stroke-dasharray: 4 5;
+  opacity: 0.6;
+}
+
+.forest-band {
+  stroke: var(--hair);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 4;
+}
+
+.forest-band-label {
+  position: absolute;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink2);
+}
+
+.forest-node {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 11px 13px;
+  text-align: left;
+  border: 1px solid var(--card-border);
+  border-left: 3px solid var(--line);
+  border-radius: 14px;
+  background: var(--card-bg);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  font: inherit;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.forest-node:hover {
+  transform: translateY(-1px);
+}
+
+.forest-node-decided {
+  border-left-color: var(--wine);
+}
+
+@media (prefers-color-scheme: dark) {
+  .forest-node-decided {
+    border-left-color: var(--berry);
+  }
+}
+
+.forest-node-open {
+  border-left-color: var(--sage);
+}
+
+.forest-node-future {
+  border-style: dashed;
+  border-left: 1px dashed var(--berry);
+  border-color: var(--wine-line);
+  background: var(--berry-tint);
+}
+
+.forest-node-selected {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+.forest-node-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.forest-node-metric {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink2);
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--chip-bg);
+}
+
+.forest-node-q {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.22;
+  letter-spacing: -0.01em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.forest-node-foot {
+  font-size: 12px;
+  color: var(--ink2);
+  margin-top: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.forest-node-foot-decided {
+  color: var(--rec-bg);
+  font-weight: 600;
+}
+
+.forest-node-foot-future {
+  color: var(--pruned-fg);
+  font-weight: 600;
+}
+
+/* ── Inspector ─────────────────────────────────────────────────────────── */
+.wk-inspector {
+  position: sticky;
+  top: 20px;
+}
+
+@media (max-width: 1080px) {
+  .wk-inspector {
+    position: static;
+  }
+}
+
+.wk-legend-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.wk-legend-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.wk-detail-tags {
+  gap: 8px;
+}
+
+.wk-detail-notes {
+  margin: 0;
+  color: var(--ink2);
+  line-height: 1.5;
+}
+
+.wk-detail-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink2);
+  margin-bottom: 4px;
+}
+
+.wk-detail-chose {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.wk-detail-why {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.wk-outcome {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--wine-tint);
+  border: 1px solid var(--wine-line);
+}
+
+.wk-outcome p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.wk-outcome-metric {
+  margin-top: 6px !important;
+  font-weight: 600;
+}
+
+.wk-paths {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.wk-paths li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.wk-links-group + .wk-links-group {
+  margin-top: 14px;
+}
+
+.wk-link-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13.5px;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.wk-link-btn:hover {
+  background: var(--hover);
+}
+
+.wk-detail-actions {
+  justify-content: space-between;
+}
+
+.wk-empty {
+  max-width: 46em;
+}
