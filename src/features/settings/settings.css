@@ -1,0 +1,130 @@
+/* Settings page. Semantic tokens only; one 880px breakpoint. */
+
+.settings-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--card-border);
+  background: var(--chip-bg);
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.settings-sections {
+  display: grid;
+  gap: 24px;
+  max-width: 880px;
+}
+
+.settings-section {
+  scroll-margin-top: 24px;
+}
+
+.settings-plan-head {
+  justify-content: space-between;
+}
+
+.settings-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.settings-legend {
+  padding: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.settings-fieldset .hint {
+  margin: 0;
+  font-size: 13px;
+}
+
+.settings-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.settings-choice:has(input:checked) {
+  background: var(--chip-on-bg);
+  color: var(--chip-on-fg);
+  border-color: var(--chip-on-bg);
+}
+
+.settings-choice input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--ink);
+}
+
+.settings-status {
+  margin: 0;
+  min-height: 1.5em;
+  font-weight: 600;
+}
+
+.settings-source-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.settings-source,
+.settings-data-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.settings-source-info,
+.settings-data-text {
+  gap: 4px;
+}
+
+.settings-source-name {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.settings-source-meta,
+.settings-data-text p {
+  margin: 0;
+  font-size: 14px;
+  gap: 8px;
+}
+
+@media (max-width: 880px) {
+  .settings-source,
+  .settings-data-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+
+.settings-dot-off {
+  border: 1.5px solid var(--line);
+}

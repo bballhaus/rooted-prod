@@ -103,6 +103,25 @@ light/dark themes and future retints stay centralized. Tokens are defined in
 | `endBg` | `#25272B` | `#581C32` | Final CTA / signup section |
 | `chipBg` | `rgba(37,39,43,.06)` | `rgba(247,244,239,.1)` | Neutral chip / banner fill |
 
+Added in the Rooted app (`src/styles/global.css`, decision 0006):
+
+| Token | Light | Dark | Meaning |
+|---|---|---|---|
+| `alert` / `alertFg` | `#A94438` dusty red / cream | `#D9776B` / charcoal | Something is due: the inbox count, an overdue outcome |
+| `ai` / `aiLine` / `aiBg` | `#5D6B4F` deep sage / `#8C9A7C` / sage at 18% | `#C2CBB4` / `#A4AD96` / sage at 16% | What the agent suggested and a person hasn't accepted: dashed links, outlined tags, ✦ labels |
+| `ochre` / `ochreBg` | `#96601A` / ochre at 14% | `#E0A458` / ochre at 14% | Work in progress: open decisions, drafts, the current setup step (decision 0008) |
+| `moss` | `#5F7A4A` | `#A9C08F` | A closed loop: outcome logged, a finished setup step |
+| `person1`–`person7` | wine, moss, ochre, `#4F7A78` teal, `#7A5C8A` plum, `#A0603F` clay, ink2 | lighter tints of the same | A teammate's avatar and lane swatch; muted, never for state |
+| `goal1`–`goal6` | moss, ochre, `person4` teal, `person6` clay, `person5` plum, `aiLine` (aliases) | follow the theme | The map's "Color by goal" stripes and legend, for the six most common goals; the rest share ink2 as "Other" (decision 0010). Never wine or berry, never for state |
+| `canvasBg` / `gridDot` | `#F5F6F8` neutral / charcoal at 9% | `#1B1D21` / at 6% | The map canvas and its dot grid only; pages keep cream and charcoal (0010) |
+| `nodeGlow` | charcoal at 16% | cream at 28% | The halo on the picked map node and on its traced lineage; ink, not wine |
+| `sageTint` | sage at 20% | sage at 16% | A planted "direction to explore" on the map (dashed, demo data) |
+| `hair`, `hover`, `shadowSm`, `railBg` | charcoal at 10% / 5%, a soft shadow, card-like fill | cream at 10% / 6%, a deeper shadow, raised charcoal | Hairlines, hover fills and light elevation in the app chrome |
+
+Pair both with a shape or icon (a square dot, a ✦, a dashed line), never color alone.
+
+**Theme in the app.** The Rooted app sets `data-theme="light"` or `"dark"` on `<html>` (`src/theme.ts`). It starts from the system setting and can be switched from the profile menu. The dark values above apply under `:root[data-theme='dark']`, not a media query.
+
 Status/log accents (used in the live status line and canvas narration):
 `logMap`=sage, `logWeigh`=ink2, `logPrune`=berry/dusty-rose, `logRec`=wine/cream.
 Semantic rule: **sage = mapping/alive, berry = pruning, wine = decided.**

@@ -1,0 +1,34 @@
+# Deploys main to Vercel production on every push (decision 0011).
+# Needs the repo secrets VERCEL_TOKEN, VERCEL_ORG_ID and VERCEL_PROJECT_ID,
+# which a person sets in GitHub; never put their values in this file.
+name: Vercel Production Deployment
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# One production deploy at a time; a newer push replaces a queued one.
+concurrency:
+  group: vercel-production
+  cancel-in-progress: false
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Pinned, since this CLI runs with the deploy token.
+      - run: npm install --global vercel@65.9.0
+      - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      - run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}

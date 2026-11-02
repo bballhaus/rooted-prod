@@ -2,15 +2,20 @@
 
 Rooted is an AI decision partner and decision history for startup PMs. It gathers context from where the team already works (Slack first), helps the PM weigh options as a decision tree, logs the choice with its rationale and rejected options, and later asks what happened. The PM makes the call; the agent never decides. Built by Team 10 (Geckos) for Stanford CS 177, Fall 2026. Human-facing intro: `README.md`.
 
-## Status: docs only, no stack yet
+## Status: MVP prototype, Vite + React + TypeScript
 
-- There is no application code, package manifest or test suite yet, so there is nothing to build, test or run. Don't invent commands (`npm test`, `pnpm dev`) or report them as passing.
-- Database and auth are Supabase, project `hxqyudcrlzkiqiwithke` (`docs/decisions/0002-supabase.md`). The framework, LLM provider and hosting are still open. Don't scaffold a framework, add a `package.json`, or pick a provider unless the task says to. If a task needs code, stop and ask which stack. The PR that picks it fills the command table in `docs/engineering/testing.md`, copies the commands here, and adds the test run to CI.
+- Stack (decision 0003): Vite + React 18 + TypeScript (strict), react-router v6, Vitest + Testing Library (jsdom). Client-only: state lives in one reducer store (`src/store/store.tsx`) persisted to `localStorage`, seeded from synthetic fixtures (`src/data/fixtures.ts`, with a planted demo workspace in `demoFixtures.ts` behind `loadDemo`, 0009). The agent's one door is `src/agent/index.ts`: it tries the LLM through the Supabase Edge Function `supabase/functions/agent` (decision 0007) and falls back to scripted answers (`chat.ts`, `tags.ts`) that the UI labels "Sample answer". Evidence, options and record drafts are still scripted (`brief.ts`, `options.ts`, `record.ts`). No real OAuth. The map uses React Flow (`@xyflow/react`, 0006), with a draggable Graph view and a Timeline view (0010). Light/dark is `data-theme` on `<html>`, set by `src/theme.ts`. Don't add dependencies (UI kits, CSS frameworks, state libraries) without a decision record.
+- Layout: `src/types.ts` (models from `features.md` §6), `src/components/` (Layout shell with header, inbox, profile menu and footer; Stepper, Dialog, Popover, ReportWrongAnswer), `src/styles/global.css` (design tokens and base classes), `src/features/<feature>/` (one folder per screen group, with its tests: `dashboard` is the home map and "Needs you" rail, `agent` the docked chat, `workspace` the one-page decision), `src/store/dashboard.ts` (status, inbox and link selectors), `src/features/dashboard/graphLayout.ts` (graph layout and lineage), `src/test/render.tsx` (`renderApp`, `renderWithStore`).
+- Database and auth are Supabase, project `hxqyudcrlzkiqiwithke` (`docs/decisions/0002-supabase.md`). Only the agent Edge Function exists; tables aren't wired in. The LLM provider is still open (hosting is Vercel, 0011, with `vercel.json` at the root): the function reads `LLM_PROVIDER`, `LLM_API_KEY` and `LLM_MODEL` secrets and answers `not_configured` without them, and serves only signed-in Supabase users, so the mocked sign-in gets sample answers. `AGENT_ALLOW_ANONYMOUS` is for local testing only. A person deploys it and sets secrets; agents don't.
 - The public landing page (rooted-stanford.vercel.app) is a separate repo, `rrsudev/CS177-geckos` (Vite + React 18, Supabase signups, PostHog). Its interactive tree is a marketing demo: no ingestion, scoring or integrations stand behind it, and none of its code is in this repo.
 
-## Commands and checks (docs only, for now)
+## Commands and checks
 
 ```bash
+npm ci                                             # install
+npm run dev                                        # local dev server
+npm run typecheck && npm test && npm run build     # full gate
+supabase functions serve agent --env-file supabase/functions/.env.local   # local LLM endpoint (optional)
 npx markdownlint-cli2                              # lint every Markdown file (.markdownlint-cli2.jsonc)
 lychee --offline --include-fragments .             # links between repo files resolve
 ```
@@ -30,8 +35,8 @@ CI (`.github/workflows/`) runs both, plus a gitleaks secret scan and the agent r
 ## Conventions
 
 - Name the feature ID in issues, branches, commits and PR titles: branch `<name>/F-14-log-decision`, commit `feat(F-14): log decision and rationale in one step`. Docs-only work uses `docs:`.
-- Scope is Release 1 (MVP) unless an issue says otherwise: the PM's own data, Slack as the only source, manual decision entry. Release 2/3 items (team views, meeting transcripts, Notion/Gmail, automatic decision detection, trends) don't ride along with an MVP change.
-- Use the product's vocabulary in UI, code and copy: decision, option, branch, prune (reject with a reason), trace, record, outcome, review date. A rejected option is kept with its reason, never deleted. Model names follow `features.md` §6: `User`, `Source`, `Decision`, `ContextItem`, `OptionNode`, `ChatMessage`, `Outcome`.
+- Scope is the working MVP (decision 0005): Slack as the only source and manual decision entry, plus fake teammates, AI tags, AI-found links and AI-suggested decisions on synthetic data. Real team features (invites, permissions, other people's real data), other sources (meeting transcripts, Notion/Gmail) and trends don't ride along unless an issue says so.
+- Use the product's vocabulary in UI, code and copy: decision, option, branch, prune (reject with a reason), trace, record, outcome, review date. A rejected option is kept with its reason, never deleted. Model names follow `features.md` §6: `User`, `Source`, `Decision`, `ContextItem`, `OptionNode`, `ChatMessage`, `Outcome`, plus `Teammate`, `Tag`, `DecisionLink` and `SuggestedDecision` (0005). What the agent suggests (tags, links, decisions) stays visibly the agent's (sage, ✦) until a person accepts it.
 - Tests come from the acceptance notes: each note for a feature you build gets a test named with its ID (`F-08: ...`). For a bug, show the test failing before the fix. Never delete, skip or loosen a test, or update a snapshot or eval baseline, to get a change through. Fixtures are synthetic, never real Slack data.
 - Every agent output in the product is editable (F-08) and has a "report wrong answer" action (F-28). Trust in gathered context is the MVP's learning goal, so no AI surface ships without both.
 - UI follows `design-language.md`: color through semantic tokens, never raw hex; Bricolage Grotesque only; wine marks the chosen option and nothing else; one 880px breakpoint; touch targets of 44px or more; a reduced-motion fallback for every animation; sentence case.

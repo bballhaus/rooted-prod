@@ -1,0 +1,657 @@
+/* Tokens and base components from docs/design/design-language.md.
+   Components use the semantic tokens (--ground, --ink, ...), never raw hex.
+
+   Theme is driven by data-theme on <html> (set in main.tsx from a stored
+   preference or the system setting), so the in-app toggle works without
+   depending on the OS (decision 0010). Pages keep the brand's cream and
+   charcoal; only the map canvas uses the crisp neutral (--canvas-bg). */
+
+:root {
+  --wine: #581c32;
+  --berry: #8e4056;
+  --cream: #f7f4ef;
+  --charcoal: #25272b;
+  --sage: #a4ad96;
+
+  --ground: #f7f4ef;
+  --ink: #25272b;
+  --ink2: #5b5d61;
+  --line: rgba(37, 39, 43, 0.4);
+  --btn-bg: #581c32;
+  --btn-fg: #f7f4ef;
+  --btn2-border: rgba(37, 39, 43, 0.4);
+  --rec-bg: #581c32;
+  --rec-fg: #f7f4ef;
+  --alive-dot: #a4ad96;
+  --pruned-fg: #8e4056;
+  --card-bg: #fcfbf8;
+  --card-border: rgba(37, 39, 43, 0.12);
+  --card-rule: rgba(37, 39, 43, 0.08);
+  --card-shadow: 0 1px 2px rgba(37, 39, 43, 0.05), 0 30px 60px -30px rgba(88, 28, 50, 0.28);
+  --chip-bg: rgba(37, 39, 43, 0.06);
+  --chip-on-bg: #25272b;
+  --chip-on-fg: #f7f4ef;
+  --input-bg: rgba(255, 255, 255, 0.6);
+  --input-border: rgba(37, 39, 43, 0.25);
+  --soil: #581c32;
+  /* Added for the dashboard (design-language.md §3.2): dusty red for things
+     that are due, and a deeper sage for what the agent suggested (links,
+     tags), dark enough to read as text. */
+  --alert: #a94438;
+  --alert-fg: #f7f4ef;
+  --ai: #5d6b4f;
+  --ai-line: #8c9a7c;
+  --ai-bg: rgba(164, 173, 150, 0.18);
+  /* Accents (design-language.md §3.2, decision 0008). Ochre marks work in
+     progress; moss marks a closed loop (outcome logged). Used sparingly. */
+  --ochre: #96601a;
+  --ochre-bg: rgba(201, 137, 58, 0.14);
+  --moss: #5f7a4a;
+  /* Muted person colors for avatars and lane labels, so "who" reads at a glance. */
+  --person-1: #8e4056;
+  --person-2: #5f7a4a;
+  --person-3: #96601a;
+  --person-4: #4f7a78;
+  --person-5: #7a5c8a;
+  --person-6: #a0603f;
+  --person-7: #5b5d61;
+
+  /* Shell and canvas (decision 0010). */
+  --rail-bg: #fcfbf8;
+  --rail-border: rgba(37, 39, 43, 0.1);
+  --hair: rgba(37, 39, 43, 0.1);
+  --hover: rgba(37, 39, 43, 0.05);
+  --shadow-sm: 0 1px 2px rgba(37, 39, 43, 0.06), 0 12px 24px -18px rgba(88, 28, 50, 0.18);
+  --wine-tint: rgba(88, 28, 50, 0.07);
+  --wine-line: rgba(88, 28, 50, 0.26);
+  --sage-tint: rgba(134, 144, 115, 0.2);
+  --canvas-bg: #f5f6f8;
+  --grid-dot: rgba(34, 36, 42, 0.09);
+  --node-glow: rgba(37, 39, 43, 0.16);
+  /* "Color by goal" on the map (0010): six existing accents, never wine or
+     berry. Aliases, so they follow the theme. */
+  --goal-1: var(--moss);
+  --goal-2: var(--ochre);
+  --goal-3: var(--person-4);
+  --goal-4: var(--person-6);
+  --goal-5: var(--person-5);
+  --goal-6: var(--ai-line);
+
+  --gutter: clamp(20px, 4vw, 56px);
+  --max: 1240px;
+  --font: 'Bricolage Grotesque', 'Avenir Next', 'Segoe UI', Helvetica, Arial, sans-serif;
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --ground: #25272b;
+  --ink: #f7f4ef;
+  --ink2: #c5c8bc;
+  --line: rgba(247, 244, 239, 0.42);
+  --btn-bg: #f7f4ef;
+  --btn-fg: #25272b;
+  --btn2-border: rgba(247, 244, 239, 0.45);
+  --rec-bg: #8e4056;
+  --rec-fg: #f7f4ef;
+  --pruned-fg: #c39aa3;
+  --card-bg: #2e3034;
+  --card-border: rgba(247, 244, 239, 0.12);
+  --card-rule: rgba(247, 244, 239, 0.08);
+  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 30px 60px -30px rgba(0, 0, 0, 0.5);
+  --chip-bg: rgba(247, 244, 239, 0.1);
+  --chip-on-bg: #f7f4ef;
+  --chip-on-fg: #25272b;
+  --input-bg: rgba(247, 244, 239, 0.06);
+  --input-border: rgba(247, 244, 239, 0.3);
+  --alert: #d9776b;
+  --alert-fg: #25272b;
+  --ai: #c2cbb4;
+  --ai-line: #a4ad96;
+  --ai-bg: rgba(164, 173, 150, 0.16);
+  --ochre: #e0a458;
+  --ochre-bg: rgba(224, 164, 88, 0.14);
+  --moss: #a9c08f;
+  --person-1: #d193a4;
+  --person-2: #a9c08f;
+  --person-3: #e0a458;
+  --person-4: #8fc1bd;
+  --person-5: #bfa3cf;
+  --person-6: #dc9e7f;
+  --person-7: #c5c8bc;
+
+  --rail-bg: #2a2c30;
+  --rail-border: rgba(247, 244, 239, 0.1);
+  --hair: rgba(247, 244, 239, 0.1);
+  --hover: rgba(247, 244, 239, 0.06);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 24px -18px rgba(0, 0, 0, 0.6);
+  --wine-tint: rgba(142, 64, 86, 0.2);
+  --wine-line: rgba(195, 154, 163, 0.4);
+  --sage-tint: rgba(164, 173, 150, 0.16);
+  --canvas-bg: #1b1d21;
+  --grid-dot: rgba(233, 235, 238, 0.06);
+  --node-glow: rgba(247, 244, 239, 0.28);
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 500;
+}
+
+.page-title {
+  font-size: clamp(32px, 3.6vw, 52px);
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+  max-width: 14em;
+}
+
+.section-title {
+  font-size: clamp(20px, 1.8vw, 26px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.kicker {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink2);
+}
+
+.lead {
+  font-size: clamp(16px, 1.25vw, 18px);
+  color: var(--ink2);
+  max-width: 40em;
+  line-height: 1.45;
+}
+
+.muted {
+  color: var(--ink2);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Layout */
+.container {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+.page {
+  padding-top: clamp(32px, 4vw, 64px);
+  padding-bottom: clamp(64px, 7vw, 120px);
+  display: grid;
+  gap: clamp(24px, 2.5vw, 40px);
+}
+
+.stack {
+  display: grid;
+  gap: 16px;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+@media (max-width: 880px) {
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--btn2-border);
+  font-weight: 500;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink2);
+  font-weight: 500;
+  padding: 0 12px;
+}
+
+.btn-lg {
+  min-height: 48px;
+  padding: 0 24px;
+}
+
+/* Cards */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+}
+
+.card-section {
+  padding: 20px 24px;
+}
+
+.card-section + .card-section {
+  border-top: 1px solid var(--card-rule);
+}
+
+.card-rec {
+  background: var(--rec-bg);
+  color: var(--rec-fg);
+}
+
+/* Pills, chips */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--chip-bg);
+  color: var(--ink);
+}
+
+.pill-rec {
+  background: var(--rec-bg);
+  color: var(--rec-fg);
+}
+
+/* A pill that is also a link (a reached step) still needs a 44px target. */
+a.pill {
+  min-height: 44px;
+}
+
+/* Where you are (a step, a filter). Neutral: wine is for the chosen option. */
+.pill-current {
+  background: var(--chip-on-bg);
+  color: var(--chip-on-fg);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  font-size: 13px;
+}
+
+.toggle {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.toggle[aria-pressed='true'] {
+  background: var(--chip-on-bg);
+  color: var(--chip-on-fg);
+  border-color: var(--chip-on-bg);
+}
+
+/* Status dots: color plus shape for every state */
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.dot-alive {
+  background: var(--alive-dot);
+}
+
+/* A decision still being worked on (not an option): ochre ring. */
+.dot-progress {
+  border: 2px solid var(--ochre);
+}
+
+.dot-pruned {
+  border: 1.5px solid var(--pruned-fg);
+}
+
+.dot-chosen {
+  background: var(--rec-bg);
+  box-shadow: 0 0 0 2px var(--card-bg), 0 0 0 3px var(--rec-bg);
+}
+
+.pruned-label {
+  color: var(--pruned-fg);
+  text-decoration: line-through;
+}
+
+/* Inputs */
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field label,
+.field .label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.field .hint {
+  font-size: 13px;
+  color: var(--ink2);
+}
+
+.input,
+.textarea,
+.select {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--ink);
+  font: inherit;
+}
+
+.textarea {
+  min-height: 120px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: inherit;
+  opacity: 0.55;
+}
+
+.error {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.checkbox input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--ink);
+}
+
+/* Banners */
+.banner {
+  border-radius: 12px;
+  padding: 16px 20px;
+  background: var(--chip-bg);
+}
+
+/* Dialog */
+.dialog {
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  background: var(--card-bg);
+  color: var(--ink);
+  padding: 0;
+  width: min(640px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  box-shadow: var(--card-shadow);
+}
+
+.dialog::backdrop {
+  background: rgba(37, 39, 43, 0.45);
+}
+
+.dialog-body {
+  padding: 24px;
+  display: grid;
+  gap: 16px;
+}
+
+/* Spinner, with a reduced-motion fallback */
+.spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  border-top-color: var(--ink);
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  .spinner {
+    border-top-color: var(--line);
+    border-style: dotted;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Agent output: suggested by Rooted, not yet the PM's. Sage plus a ✦ so it
+   never relies on color alone. */
+.ai-mark {
+  color: var(--ai);
+  font-weight: 600;
+}
+
+.sample-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px dashed var(--line);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink2);
+}
+
+/* Tags: the PM's are filled, the agent's are outlined sage with a ✦. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--chip-bg);
+  color: var(--ink);
+  border: 1px solid transparent;
+}
+
+.tag-ai {
+  background: var(--ai-bg);
+  color: var(--ai);
+  border: 1px dashed var(--ai-line);
+}
+
+.tag-btn {
+  position: relative;
+  min-width: 24px;
+  min-height: 24px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  border-radius: 999px;
+}
+
+/* A 44px hit area around the small keep/remove buttons inside a tag. */
+.tag-btn::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--chip-bg);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+  flex: none;
+}
+
+.avatar-me {
+  background: var(--chip-on-bg);
+  color: var(--chip-on-fg);
+}
+
+/* A person's color: set --person on the element (see personColor()). */
+.avatar[style*='--person'] {
+  background: color-mix(in srgb, var(--person) 18%, transparent);
+  color: var(--person);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--person) 40%, transparent);
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--btn2-border);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  flex: none;
+}
+
+.badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--alert);
+  color: var(--alert-fg);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 20px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.due-label {
+  color: var(--alert);
+  font-weight: 600;
+}

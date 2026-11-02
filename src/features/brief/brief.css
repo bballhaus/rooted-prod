@@ -1,0 +1,145 @@
+/* Evidence brief (F-06 to F-09). Tokens only; wine stays reserved for the chosen option. */
+
+.brief-subtitle {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.brief-sources {
+  display: grid;
+  gap: 6px;
+}
+
+.brief-sources p {
+  margin: 0;
+}
+
+.brief-gathering {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+}
+
+.brief-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.brief-search {
+  flex: 0 1 360px;
+}
+
+.brief-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.brief-group {
+  gap: 12px;
+}
+
+.brief-item {
+  display: grid;
+  gap: 12px;
+}
+
+.brief-item-flagged {
+  border-style: dashed;
+  border-color: var(--line);
+}
+
+.brief-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  font-size: 14px;
+}
+
+.brief-item-source {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.brief-flag {
+  background: transparent;
+  border: 1.5px dashed var(--ink2);
+}
+
+.brief-snippet {
+  margin: 0;
+  max-width: 64em;
+}
+
+/* Color is not the only signal: flagged text is also struck through and labeled. */
+.brief-snippet-flagged {
+  color: var(--ink2);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.brief-item-actions {
+  gap: 8px;
+}
+
+.brief-gaps {
+  border-left: 4px solid var(--alive-dot);
+}
+
+.brief-gap-question {
+  margin: 0;
+  font-weight: 600;
+}
+
+.brief-gap-answer {
+  margin: 0;
+  flex: 1 1 20em;
+}
+
+.brief-gap-input {
+  min-height: 72px;
+}
+
+.brief-removed summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.brief-removed-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+}
+
+.brief-removed-item {
+  justify-content: space-between;
+  color: var(--ink2);
+}
+
+.brief-removed-item span {
+  flex: 1 1 24em;
+}
+
+.brief-actions {
+  padding-top: 8px;
+  border-top: 1px solid var(--card-rule);
+}
+
+@media (max-width: 880px) {
+  .brief-search {
+    flex-basis: 100%;
+  }
+
+  .brief-actions .btn {
+    flex: 1 1 100%;
+  }
+}

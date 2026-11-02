@@ -31,6 +31,8 @@ Interviewees trust AI to support a decision but not to make it. Rooted gathers a
 
 The full list with acceptance notes is `features.md`.
 
+The working prototype goes past the Release 1 line on synthetic data: fake teammates, AI tags, AI-found links and AI-suggested decisions ([decision 0005](../decisions/0005-working-mvp-scope.md)). The release plan above is unchanged until the team confirms otherwise.
+
 ## Evidence so far
 
 - 16 discovery interviews in Weeks 1–2 with PMs and PM-adjacent roles. Decision overload was coded in 5 of 16; the team picked it over AI-as-teammate (9) and prioritization (8) because no tool helps PMs make the call and the problem grows as AI speeds up building. These are qualitative coding counts, not prevalence.
