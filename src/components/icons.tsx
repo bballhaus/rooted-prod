@@ -142,3 +142,33 @@ export function IconArrowRight(props: { size?: number }) {
     </Icon>
   );
 }
+
+// Filters: three sliders. Opens the map's who / tag / status / colour controls.
+export function IconSliders(props: { size?: number }) {
+  return (
+    <Icon {...props}>
+      <path d="M4 7h10M18 7h2M4 17h2M10 17h10" />
+      <circle cx="16" cy="7" r="2" />
+      <circle cx="8" cy="17" r="2" />
+    </Icon>
+  );
+}
+
+// Detail density: stacked rows (full cards) vs the plain titles of the simple view.
+export function IconRows(props: { size?: number }) {
+  return (
+    <Icon {...props}>
+      <rect x="4" y="5" width="16" height="4.5" rx="1.5" />
+      <rect x="4" y="14.5" width="16" height="4.5" rx="1.5" />
+    </Icon>
+  );
+}
+
+// Collapse a side panel back toward the edge.
+export function IconChevronLeft(props: { size?: number }) {
+  return (
+    <Icon {...props}>
+      <path d="M14 6l-6 6 6 6" />
+    </Icon>
+  );
+}

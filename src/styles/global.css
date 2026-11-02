@@ -2,9 +2,11 @@
    Components use the semantic tokens (--ground, --ink, ...), never raw hex.
 
    Theme is driven by data-theme on <html> (set in main.tsx from a stored
-   preference or the system setting), so the in-app toggle works without
-   depending on the OS (decision 0010). Pages keep the brand's cream and
-   charcoal; only the map canvas uses the crisp neutral (--canvas-bg). */
+   preference, defaulting to light, decision 0013), so the in-app toggle works
+   without depending on the OS (decision 0010). The home workspace — the map canvas and
+   the panels around it — sits on one clean surface (--canvas-bg): white in light,
+   a crisp dark in dark, Figma/Obsidian-style. It is deliberately not the brand
+   cream, which reads as off-white (decision 0012); every other page keeps cream. */
 
 :root {
   --wine: #581c32;
@@ -34,6 +36,15 @@
   --input-bg: rgba(255, 255, 255, 0.6);
   --input-border: rgba(37, 39, 43, 0.25);
   --soil: #581c32;
+  /* The top app bar is a wine (dark-red) surface in both themes (decision 0014):
+     cream ink and controls on it, cream-inverted primary button, cream-translucent
+     search field. Built from the core palette, so it holds across light and dark. */
+  --header-bg: var(--wine);
+  --header-fg: var(--cream);
+  --header-muted: rgba(247, 244, 239, 0.72);
+  --header-line: rgba(247, 244, 239, 0.16);
+  --header-field-bg: rgba(247, 244, 239, 0.1);
+  --header-field-border: rgba(247, 244, 239, 0.3);
   /* Added for the dashboard (design-language.md §3.2): dusty red for things
      that are due, and a deeper sage for what the agent suggested (links,
      tags), dark enough to read as text. */
@@ -59,14 +70,21 @@
   /* Shell and canvas (decision 0010). */
   --rail-bg: #fcfbf8;
   --rail-border: rgba(37, 39, 43, 0.1);
+  /* Border for chrome that floats directly on the canvas (the dock, the filter
+     panel, the reopen button): strong enough to clear WCAG 3:1 against both the
+     white light canvas and the dark one, where the faint card border vanishes. */
+  --chrome-border: rgba(37, 39, 43, 0.5);
   --hair: rgba(37, 39, 43, 0.1);
   --hover: rgba(37, 39, 43, 0.05);
   --shadow-sm: 0 1px 2px rgba(37, 39, 43, 0.06), 0 12px 24px -18px rgba(88, 28, 50, 0.18);
   --wine-tint: rgba(88, 28, 50, 0.07);
   --wine-line: rgba(88, 28, 50, 0.26);
   --sage-tint: rgba(134, 144, 115, 0.2);
-  --canvas-bg: #f5f6f8;
-  --grid-dot: rgba(34, 36, 42, 0.09);
+  /* The home workspace surface (map canvas + the chrome around it): a clean white,
+     not the cream ground, so nothing reads as off-white (0012). Nodes lift off it
+     with a border and a soft shadow. */
+  --canvas-bg: #ffffff;
+  --grid-dot: rgba(34, 36, 42, 0.08);
   --node-glow: rgba(37, 39, 43, 0.16);
   /* "Color by goal" on the map (0010): six existing accents, never wine or
      berry. Aliases, so they follow the theme. */
@@ -121,12 +139,14 @@
 
   --rail-bg: #2a2c30;
   --rail-border: rgba(247, 244, 239, 0.1);
+  --chrome-border: rgba(247, 244, 239, 0.5);
   --hair: rgba(247, 244, 239, 0.1);
   --hover: rgba(247, 244, 239, 0.06);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 24px -18px rgba(0, 0, 0, 0.6);
   --wine-tint: rgba(142, 64, 86, 0.2);
   --wine-line: rgba(195, 154, 163, 0.4);
   --sage-tint: rgba(164, 173, 150, 0.16);
+  /* A crisp dark workspace surface, a step below the charcoal ground. */
   --canvas-bg: #1b1d21;
   --grid-dot: rgba(233, 235, 238, 0.06);
   --node-glow: rgba(247, 244, 239, 0.28);

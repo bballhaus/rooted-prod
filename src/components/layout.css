@@ -30,14 +30,18 @@
   }
 }
 
+/* The top app bar is a wine (dark-red) surface; its contents are cream (0014). */
 .site-header {
-  border-bottom: 1px solid var(--card-rule);
+  border-bottom: 1px solid var(--header-line);
   position: sticky;
   top: 0;
   z-index: 20;
-  background: var(--ground);
+  background: var(--header-bg);
+  color: var(--header-fg);
 }
 
+/* Three balanced zones — wordmark left, search centred, actions right — so the
+   right cluster reads as anchored, not floating in empty space. */
 .site-header-inner {
   display: flex;
   align-items: center;
@@ -46,19 +50,28 @@
   padding: 0 var(--gutter);
 }
 
+.header-lead {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
 .wordmark {
   font-weight: 600;
   font-size: 20px;
   letter-spacing: -0.02em;
   text-decoration: none;
+  color: var(--header-fg);
   min-height: 44px;
   display: inline-flex;
   align-items: center;
 }
 
 .header-search {
-  flex: 1;
-  max-width: 560px;
+  flex: 0 1 560px;
+  width: 100%;
   position: relative;
   display: flex;
   align-items: center;
@@ -68,26 +81,68 @@
   position: absolute;
   left: 16px;
   display: inline-flex;
-  color: var(--ink2);
+  color: var(--header-muted);
   pointer-events: none;
 }
 
 .header-search-input {
   padding-left: 44px;
   padding-right: 88px;
+  background: var(--header-field-bg);
+  border-color: var(--header-field-border);
+  color: var(--header-fg);
+}
+
+.header-search-input::placeholder {
+  color: var(--header-fg);
+  opacity: 0.62;
 }
 
 .header-search-ask {
   position: absolute;
   right: 2px;
-  color: var(--ai);
+  color: var(--header-fg);
   font-weight: 600;
 }
 
 .header-actions {
-  margin-left: auto;
+  flex: 1 1 0;
+  justify-content: flex-end;
   gap: 8px;
   flex-wrap: nowrap;
+}
+
+/* The primary button inverts to cream-on-wine on the wine bar (design-language §6.1). */
+.header-new {
+  background: var(--cream);
+  color: var(--wine);
+}
+
+/* Icon buttons (inbox, profile) and pills read in cream on the wine bar. */
+.site-header .icon-btn {
+  border-color: var(--header-field-border);
+  color: var(--header-fg);
+}
+
+.site-header .icon-btn:hover {
+  background: var(--header-field-bg);
+}
+
+.site-header .pill {
+  background: var(--header-field-bg);
+  color: var(--header-fg);
+}
+
+/* The due-count badge pops as cream-on-wine (red-on-wine would vanish); the
+   same badge on the canvas keeps its alert red. */
+.site-header .badge {
+  background: var(--cream);
+  color: var(--wine);
+}
+
+.site-header .avatar-me {
+  background: var(--cream);
+  color: var(--wine);
 }
 
 .profile-btn {
@@ -254,9 +309,18 @@
     padding-bottom: 8px;
   }
 
+  /* Wordmark + actions share the first row; search drops to its own full row. */
+  .header-lead {
+    flex: 0 1 auto;
+  }
+
+  .header-actions {
+    flex: 1 1 auto;
+  }
+
   .header-search {
     order: 3;
-    flex-basis: 100%;
+    flex: 1 1 100%;
     max-width: none;
   }
 

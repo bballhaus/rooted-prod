@@ -113,14 +113,14 @@ Added in the Rooted app (`src/styles/global.css`, decision 0006):
 | `moss` | `#5F7A4A` | `#A9C08F` | A closed loop: outcome logged, a finished setup step |
 | `person1`–`person7` | wine, moss, ochre, `#4F7A78` teal, `#7A5C8A` plum, `#A0603F` clay, ink2 | lighter tints of the same | A teammate's avatar and lane swatch; muted, never for state |
 | `goal1`–`goal6` | moss, ochre, `person4` teal, `person6` clay, `person5` plum, `aiLine` (aliases) | follow the theme | The map's "Color by goal" stripes and legend, for the six most common goals; the rest share ink2 as "Other" (decision 0010). Never wine or berry, never for state |
-| `canvasBg` / `gridDot` | `#F5F6F8` neutral / charcoal at 9% | `#1B1D21` / at 6% | The map canvas and its dot grid only; pages keep cream and charcoal (0010) |
+| `canvasBg` / `gridDot` | `#FFFFFF` clean white / charcoal at 8% | `#1B1D21` crisp dark / at 6% | The home workspace surface — the map canvas, its dot grid, and the rail/bar/filter chrome around it — so the canvas and its background are one clean colour, deliberately not the cream (which reads as off-white). Every other page keeps cream and charcoal (0012, signing off the deferred canvas colour in 0010) |
 | `nodeGlow` | charcoal at 16% | cream at 28% | The halo on the picked map node and on its traced lineage; ink, not wine |
 | `sageTint` | sage at 20% | sage at 16% | A planted "direction to explore" on the map (dashed, demo data) |
 | `hair`, `hover`, `shadowSm`, `railBg` | charcoal at 10% / 5%, a soft shadow, card-like fill | cream at 10% / 6%, a deeper shadow, raised charcoal | Hairlines, hover fills and light elevation in the app chrome |
 
 Pair both with a shape or icon (a square dot, a ✦, a dashed line), never color alone.
 
-**Theme in the app.** The Rooted app sets `data-theme="light"` or `"dark"` on `<html>` (`src/theme.ts`). It starts from the system setting and can be switched from the profile menu. The dark values above apply under `:root[data-theme='dark']`, not a media query.
+**Theme in the app.** The Rooted app sets `data-theme="light"` or `"dark"` on `<html>` (`src/theme.ts`). It defaults to light (decision 0013), remembers the user's choice, and can be switched from the profile menu or the workspace dock. The dark values above apply under `:root[data-theme='dark']`, not a media query.
 
 Status/log accents (used in the live status line and canvas narration):
 `logMap`=sage, `logWeigh`=ink2, `logPrune`=berry/dusty-rose, `logRec`=wine/cream.
@@ -128,13 +128,17 @@ Semantic rule: **sage = mapping/alive, berry = pruning, wine = decided.**
 
 ### 3.3 Surface hierarchy
 
-Three branded surfaces carry meaning — use them deliberately, not interchangeably:
+Branded surfaces carry meaning — use them deliberately, not interchangeably:
 
 1. **Cream / Charcoal (`ground`)** — neutral canvas. Most content lives here.
 2. **Wine (`soil`)** — the "roots" surface. Reserved for explaining *how Rooted
    works* (depth, foundation, what's underneath a decision). Wine in both themes.
 3. **Charcoal / Wine (`endBg`)** — the commitment surface. The final "start with
    one decision" CTA. Darker, quieter, decisive.
+4. **Wine app bar (`header-bg`)** — the top navigation bar (app chrome, both
+   themes). Cream ink and controls, cream-inverted primary button (§6.1). This is
+   chrome, not content, so it does not dilute *wine = the chosen option* inside the
+   map and records (decision 0014).
 
 Elevation is expressed with a near-invisible lift, not heavy shadow:
 `cardShadow` light = `0 1px 2px rgba(37,39,43,.05), 0 30px 60px -30px rgba(88,28,50,.28)`

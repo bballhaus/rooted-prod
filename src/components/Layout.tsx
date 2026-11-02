@@ -46,14 +46,16 @@ function Shell() {
       </a>
       <header className="site-header">
         <div className="site-header-inner">
-          <NavLink to="/" className="wordmark" aria-label="Rooted home">
-            Rooted
-          </NavLink>
-          {state.demo && (
-            <span className="pill demo-badge">
-              Demo<span className="demo-badge-more"> workspace · sample data</span>
-            </span>
-          )}
+          <div className="header-lead">
+            <NavLink to="/" className="wordmark" aria-label="Rooted home">
+              Rooted
+            </NavLink>
+            {state.demo && (
+              <span className="pill demo-badge">
+                Demo<span className="demo-badge-more"> workspace · sample data</span>
+              </span>
+            )}
+          </div>
           {setup ? (
             <div className="row header-actions">
               <span className="pill">Setup</span>
