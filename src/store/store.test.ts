@@ -77,3 +77,47 @@ describe('privacy of suggestions', () => {
     expect(disconnected.suggestions).toEqual([]);
   });
 });
+
+describe('demo mode and outcomes', () => {
+  it('loadDemo swaps in a connected forest and marks the workspace as demo, keeping the user', () => {
+    const s0 = { ...seedState(), user: structuredClone(demoUser) };
+    const s1 = reducer(s0, { type: 'loadDemo' });
+    expect(s1.demo).toBe(true);
+    expect(s1.user?.name).toBe('Jordan Lee');
+    // Its own planted world, with causal links between its decisions and at least one direction.
+    expect(s1.decisions.some((d) => d.id === 'd-self-serve-expansion')).toBe(true);
+    const ids = new Set(s1.decisions.map((d) => d.id));
+    expect(s1.links.length).toBeGreaterThan(0);
+    expect(s1.links.every((l) => ids.has(l.fromId) && ids.has(l.toId) && l.kind === 'builds-on')).toBe(true);
+    expect(s1.decisions.some((d) => d.speculative)).toBe(true);
+    expect(s1.outcomes.every((o) => ids.has(o.decisionId))).toBe(true);
+  });
+
+  it('exitDemo returns to the seed and clears the demo flag, keeping the user', () => {
+    const demo = reducer({ ...seedState(), user: structuredClone(demoUser) }, { type: 'loadDemo' });
+    const s1 = reducer(demo, { type: 'exitDemo' });
+    expect(s1.demo).toBe(false);
+    expect(s1.user?.name).toBe('Jordan Lee');
+    expect(s1.decisions).toHaveLength(seedState().decisions.length);
+  });
+
+  it('F-16: logOutcome records the result for the decision without changing its status', () => {
+    const s0 = seedState();
+    const d0 = s0.decisions[0];
+    const s1 = reducer(s0, {
+      type: 'logOutcome',
+      outcome: {
+        id: 'out-test',
+        decisionId: d0.id,
+        result: 'worked',
+        summary: 'It worked',
+        metrics: 'Activation +7',
+        loggedAt: '2026-11-01T00:00:00.000Z',
+      },
+    });
+    const o = s1.outcomes.find((x) => x.decisionId === d0.id);
+    expect(o?.summary).toBe('It worked');
+    expect(o?.metrics).toBe('Activation +7');
+    expect(s1.decisions.find((x) => x.id === d0.id)?.status).toBe(d0.status);
+  });
+});

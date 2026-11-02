@@ -11,6 +11,11 @@
   min-height: 560px;
 }
 
+/* The rail can be hidden so the map runs the full width (0010). */
+.dash-rail-hidden {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .needs {
   border-right: 1px solid var(--card-rule);
   overflow-y: auto;
@@ -181,6 +186,51 @@
   gap: 6px;
 }
 
+.dash-color-legend {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex-wrap: wrap;
+}
+
+.dash-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.toggle svg {
+  vertical-align: -2px;
+}
+
+.toggle:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.detail-metric {
+  margin-left: 8px;
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.detail-title-row {
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+}
+
+.detail-rename {
+  flex-wrap: nowrap;
+}
+
+.detail-rename .input {
+  flex: 1;
+  min-width: 0;
+}
+
 .dash-stage {
   position: relative;
   flex: 1;
@@ -191,10 +241,11 @@
   margin: 24px;
 }
 
-/* Map */
+/* Map: a crisp neutral canvas with a dot grid (0010), not the page's cream. */
 .map-canvas {
   position: absolute;
   inset: 0;
+  background: var(--canvas-bg);
 }
 
 .map-canvas .react-flow {
@@ -304,8 +355,16 @@
   border-radius: 12px;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
-  box-shadow: var(--card-shadow);
+  box-shadow: var(--shadow-sm);
   transition: opacity 0.15s ease, box-shadow 0.15s ease;
+}
+
+.map-canvas .react-flow__node-decision.draggable .map-node-hit {
+  cursor: grab;
+}
+
+.map-canvas .react-flow__node-decision.dragging .map-node-hit {
+  cursor: grabbing;
 }
 
 .map-node p {
@@ -322,7 +381,7 @@
   bottom: 10px;
   width: 4px;
   border-radius: 0 4px 4px 0;
-  background: var(--ink2);
+  background: var(--node-accent, var(--ink2));
 }
 
 .map-node-open {
@@ -330,15 +389,40 @@
 }
 
 .map-node-open::before {
-  background: var(--ochre);
+  background: var(--node-accent, var(--ochre));
 }
 
 .map-node-outcome-due::before {
-  background: var(--alert);
+  background: var(--node-accent, var(--alert));
 }
 
 .map-node-outcome-logged::before {
-  background: var(--moss);
+  background: var(--node-accent, var(--moss));
+}
+
+/* A planted direction to explore (demo data): dashed berry, never wine. */
+.map-node-speculative {
+  border-style: dashed;
+  border-color: var(--berry);
+  background: var(--berry-tint);
+}
+
+.map-node-speculative::before {
+  background: var(--node-accent, var(--berry));
+}
+
+/* Trace: the picked decision's whole lineage glows; the rest fades. */
+.map-node-traced {
+  box-shadow: 0 0 0 3px var(--node-glow), var(--shadow-sm);
+}
+
+.map-node-metric {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink2);
 }
 
 .map-node-faded {
@@ -348,6 +432,7 @@
 .map-node-selected {
   border: 2px solid var(--ink);
   padding: 9px 11px 9px 15px;
+  box-shadow: 0 0 0 5px var(--node-glow), var(--shadow-sm);
 }
 
 .map-node-highlighted {

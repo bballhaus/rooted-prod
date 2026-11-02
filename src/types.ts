@@ -50,6 +50,10 @@ export interface Tag {
 
 export type DecisionStatus = 'framing' | 'brief' | 'options' | 'decided';
 
+// Where a decision sits on the map. Most decisions derive this from their
+// status, but the demo's planted "directions to explore" are marked explicitly.
+export type Horizon = 'past' | 'now' | 'future';
+
 export interface Decision {
   id: string;
   question: string;
@@ -68,6 +72,12 @@ export interface Decision {
   summary?: string;
   rationale?: string;
   loggedAt?: string;
+  // A short goal label shown on the map node, e.g. "Activation" (0010).
+  metric?: string;
+  // Demo only: a planted direction the PM can explore but hasn't committed to.
+  // Drawn as a dashed berry node. It's sample data, not an agent suggestion.
+  speculative?: boolean;
+  horizon?: Horizon;
 }
 
 export type ContextOrigin = 'slack' | 'drive' | 'past-decision' | 'user-note';
@@ -193,4 +203,7 @@ export interface AppState {
   outcomes: Outcome[];
   suggestions: SuggestedDecision[];
   messages: ChatMessage[];
+  // True when the planted demo workspace is loaded, so the UI can label it
+  // as sample data rather than the PM's own decisions (0009).
+  demo: boolean;
 }

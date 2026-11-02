@@ -14,6 +14,9 @@ Rooted is a decision record, so the team keeps its own here. One file per decisi
 | [0006](0006-home-map-and-workspace.md) | Decision map as home; think decisions through in one workspace beside the agent | Decided 2026-10-31 |
 | [0007](0007-llm-behind-edge-function.md) | Call the LLM from a Supabase Edge Function, with sample answers as the fallback | Decided 2026-10-31 (provider open) |
 | [0008](0008-accents-threads-sign-in.md) | Two restrained accents, thread lanes on the map, a split sign-in page | Decided 2026-10-31 |
+| [0009](0009-demo-mode-and-outcomes.md) | A planted demo workspace, causal links on the map, and recorded outcomes | Decided 2026-10-31, merged 2026-11-02 |
+| [0010](0010-interactive-canvas-and-theme.md) | A draggable, traceable graph view of the map, and a light/dark toggle | Decided 2026-10-31, merged 2026-11-02 |
+| [0011](0011-host-on-vercel.md) | Host the prototype on Vercel as a static single-page app | Decided 2026-11-02 |
 
 ## Open decisions
 
@@ -21,7 +24,7 @@ Raise these with the team. Agents don't settle them.
 
 | Decision | Where it stands |
 |---|---|
-| LLM provider and hosting | Provider not chosen. The path to it is built (0007): set three Edge Function secrets to switch it on. Hosting is still open. |
+| LLM provider | Not chosen. The path to it is built (0007): set three Edge Function secrets to switch it on. Hosting is Vercel (0011). |
 | MVP context source: Slack or meeting transcripts | Story map picks Slack; the parking lot still asks. |
 | What counts as a decision, and the minimum decision record | Parking lot: "answer first." The prototype's AI-suggested decisions are hand-written examples (0005) and don't settle it. |
 | Lead story: context gathering or option mapping and scoring | Value proposition and landing page disagree. The prototype shows rough ratings (0004) without settling it. |

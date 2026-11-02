@@ -220,5 +220,6 @@ export function seedState(): AppState {
     outcomes: structuredClone(seedOutcomes),
     suggestions: structuredClone(seedSuggestions),
     messages: [],
+    demo: false,
   };
 }

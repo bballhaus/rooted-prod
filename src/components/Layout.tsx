@@ -1,5 +1,6 @@
 // The app shell: header (search and ask, new decision, inbox, profile menu),
-// footer (help, support, privacy) and the agent dock in the corner.
+// footer (help, support, privacy) and the agent dock in the corner. The
+// profile menu also holds the light/dark toggle and the demo switch (0009, 0010).
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { AgentProvider, useAgent } from '../features/agent/AgentContext';
@@ -7,7 +8,8 @@ import { AgentLauncher, AgentPanel } from '../features/agent/AgentPanel';
 import { InboxRow } from '../features/dashboard/InboxRow';
 import { inboxItems, localToday } from '../store/dashboard';
 import { useStore } from '../store/store';
-import { BellIcon, SearchIcon, SparkIcon } from './icons';
+import { useTheme } from '../theme';
+import { BellIcon, IconMoon, IconSun, SearchIcon, SparkIcon } from './icons';
 import { Popover } from './Popover';
 import './layout.css';
 
@@ -21,6 +23,7 @@ export function Layout() {
 
 function Shell() {
   const { open } = useAgent();
+  const { state } = useStore();
   const location = useLocation();
   // First-run setup gets a quiet header: no search, inbox or agent until sources are chosen.
   const setup = location.pathname === '/onboarding';
@@ -46,6 +49,11 @@ function Shell() {
           <NavLink to="/" className="wordmark" aria-label="Rooted home">
             Rooted
           </NavLink>
+          {state.demo && (
+            <span className="pill demo-badge">
+              Demo<span className="demo-badge-more"> workspace · sample data</span>
+            </span>
+          )}
           {setup ? (
             <div className="row header-actions">
               <span className="pill">Setup</span>
@@ -176,6 +184,7 @@ function InboxMenu() {
 function ProfileMenu() {
   const { state, dispatch } = useStore();
   const navigate = useNavigate();
+  const { theme, toggle } = useTheme();
   const me = state.teammates.find((t) => t.id === state.user?.id);
   const initials = me?.initials ?? state.user?.name.slice(0, 2).toUpperCase() ?? '?';
   if (!state.user) return null;
@@ -185,7 +194,7 @@ function ProfileMenu() {
       className="icon-btn profile-btn"
       button={<span className="avatar avatar-me">{initials}</span>}
     >
-      {() => (
+      {(close) => (
         <div className="profile-menu">
           <div className="profile-who">
             <p className="profile-name">{state.user!.name}</p>
@@ -210,6 +219,27 @@ function ProfileMenu() {
               </li>
             </ul>
           </nav>
+          <div className="profile-actions">
+            <button
+              type="button"
+              className="btn btn-ghost profile-action"
+              aria-pressed={theme === 'dark'}
+              onClick={toggle}
+            >
+              {theme === 'dark' ? <IconSun size={16} /> : <IconMoon size={16} />} Dark mode
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost profile-action"
+              onClick={() => {
+                dispatch({ type: state.demo ? 'exitDemo' : 'loadDemo' });
+                close();
+                navigate('/');
+              }}
+            >
+              {state.demo ? 'Leave demo' : 'Explore the demo'}
+            </button>
+          </div>
           <button
             type="button"
             className="btn btn-secondary profile-signout"

@@ -1,5 +1,10 @@
 /* Tokens and base components from docs/design/design-language.md.
-   Components use the semantic tokens (--ground, --ink, ...), never raw hex. */
+   Components use the semantic tokens (--ground, --ink, ...), never raw hex.
+
+   Theme is driven by data-theme on <html> (set in main.tsx from a stored
+   preference or the system setting), so the in-app toggle works without
+   depending on the OS (decision 0010). Pages keep the brand's cream and
+   charcoal; only the map canvas uses the crisp neutral (--canvas-bg). */
 
 :root {
   --wine: #581c32;
@@ -51,49 +56,91 @@
   --person-6: #a0603f;
   --person-7: #5b5d61;
 
+  /* Shell and canvas (decision 0010). */
+  --rail-bg: #fcfbf8;
+  --rail-border: rgba(37, 39, 43, 0.1);
+  --hair: rgba(37, 39, 43, 0.1);
+  --hover: rgba(37, 39, 43, 0.05);
+  --shadow-sm: 0 1px 2px rgba(37, 39, 43, 0.06), 0 12px 24px -18px rgba(88, 28, 50, 0.18);
+  --wine-tint: rgba(88, 28, 50, 0.07);
+  --wine-line: rgba(88, 28, 50, 0.26);
+  --sage-tint: rgba(134, 144, 115, 0.2);
+  --berry-tint: rgba(142, 64, 86, 0.12);
+  --canvas-bg: #f5f6f8;
+  --grid-dot: rgba(34, 36, 42, 0.09);
+  --node-glow: rgba(88, 28, 50, 0.25);
+  /* Muted goal colors for "Color by goal" on the map (0010). Earthy, never wine. */
+  --goal-1: #8e4056;
+  --goal-2: #7d8a68;
+  --goal-3: #4a5a63;
+  --goal-4: #9a6b4a;
+  --goal-5: #6e4a59;
+  --goal-6: #5f6b4f;
+  --goal-7: #c39aa3;
+
   --gutter: clamp(20px, 4vw, 56px);
   --max: 1240px;
   --font: 'Bricolage Grotesque', 'Avenir Next', 'Segoe UI', Helvetica, Arial, sans-serif;
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ground: #25272b;
-    --ink: #f7f4ef;
-    --ink2: #c5c8bc;
-    --line: rgba(247, 244, 239, 0.42);
-    --btn-bg: #f7f4ef;
-    --btn-fg: #25272b;
-    --btn2-border: rgba(247, 244, 239, 0.45);
-    --rec-bg: #8e4056;
-    --rec-fg: #f7f4ef;
-    --pruned-fg: #c39aa3;
-    --card-bg: #2e3034;
-    --card-border: rgba(247, 244, 239, 0.12);
-    --card-rule: rgba(247, 244, 239, 0.08);
-    --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 30px 60px -30px rgba(0, 0, 0, 0.5);
-    --chip-bg: rgba(247, 244, 239, 0.1);
-    --chip-on-bg: #f7f4ef;
-    --chip-on-fg: #25272b;
-    --input-bg: rgba(247, 244, 239, 0.06);
-    --input-border: rgba(247, 244, 239, 0.3);
-    --alert: #d9776b;
-    --alert-fg: #25272b;
-    --ai: #c2cbb4;
-    --ai-line: #a4ad96;
-    --ai-bg: rgba(164, 173, 150, 0.16);
-    --ochre: #e0a458;
-    --ochre-bg: rgba(224, 164, 88, 0.14);
-    --moss: #a9c08f;
-    --person-1: #d193a4;
-    --person-2: #a9c08f;
-    --person-3: #e0a458;
-    --person-4: #8fc1bd;
-    --person-5: #bfa3cf;
-    --person-6: #dc9e7f;
-    --person-7: #c5c8bc;
-  }
+:root[data-theme='dark'] {
+  --ground: #25272b;
+  --ink: #f7f4ef;
+  --ink2: #c5c8bc;
+  --line: rgba(247, 244, 239, 0.42);
+  --btn-bg: #f7f4ef;
+  --btn-fg: #25272b;
+  --btn2-border: rgba(247, 244, 239, 0.45);
+  --rec-bg: #8e4056;
+  --rec-fg: #f7f4ef;
+  --pruned-fg: #c39aa3;
+  --card-bg: #2e3034;
+  --card-border: rgba(247, 244, 239, 0.12);
+  --card-rule: rgba(247, 244, 239, 0.08);
+  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 30px 60px -30px rgba(0, 0, 0, 0.5);
+  --chip-bg: rgba(247, 244, 239, 0.1);
+  --chip-on-bg: #f7f4ef;
+  --chip-on-fg: #25272b;
+  --input-bg: rgba(247, 244, 239, 0.06);
+  --input-border: rgba(247, 244, 239, 0.3);
+  --alert: #d9776b;
+  --alert-fg: #25272b;
+  --ai: #c2cbb4;
+  --ai-line: #a4ad96;
+  --ai-bg: rgba(164, 173, 150, 0.16);
+  --ochre: #e0a458;
+  --ochre-bg: rgba(224, 164, 88, 0.14);
+  --moss: #a9c08f;
+  --person-1: #d193a4;
+  --person-2: #a9c08f;
+  --person-3: #e0a458;
+  --person-4: #8fc1bd;
+  --person-5: #bfa3cf;
+  --person-6: #dc9e7f;
+  --person-7: #c5c8bc;
+
+  --rail-bg: #2a2c30;
+  --rail-border: rgba(247, 244, 239, 0.1);
+  --hair: rgba(247, 244, 239, 0.1);
+  --hover: rgba(247, 244, 239, 0.06);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 24px -18px rgba(0, 0, 0, 0.6);
+  --wine-tint: rgba(142, 64, 86, 0.2);
+  --wine-line: rgba(195, 154, 163, 0.4);
+  --sage-tint: rgba(164, 173, 150, 0.16);
+  --berry-tint: rgba(195, 154, 163, 0.14);
+  --canvas-bg: #1b1d21;
+  --grid-dot: rgba(233, 235, 238, 0.06);
+  --node-glow: rgba(195, 154, 163, 0.5);
+  --goal-1: #d193a4;
+  --goal-2: #b5c19f;
+  --goal-3: #9fb4bf;
+  --goal-4: #dc9e7f;
+  --goal-5: #bfa3cf;
+  --goal-6: #a9c08f;
+  --goal-7: #e0c2c8;
+
+  color-scheme: dark;
 }
 
 *,

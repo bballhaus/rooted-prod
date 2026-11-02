@@ -1,5 +1,7 @@
-// F-17, F-19: the decision map. Each node is a decision placed by when it was
-// made, in a swimlane. Solid lines are links the team made ("builds on");
+// F-17, F-19: the decision map. In Timeline, each node is a decision placed by
+// when it was made, in a swimlane. In Graph (the default, decision 0010), a
+// force layout arranges decisions by their links, and nodes can be dragged;
+// where you put them is remembered per scope. Solid lines are links the team made ("builds on");
 // dashed sage lines are connections Rooted found, until someone accepts or
 // dismisses them. Wine marks only the chosen option on each node. Lines stay
 // faint until you hover or pick a decision; then its connections light up.
@@ -13,12 +15,14 @@ import {
   ReactFlowProvider,
   useReactFlow,
   useViewport,
+  BackgroundVariant,
   type Edge,
   type Node,
+  type NodeChange,
   type NodeProps,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { personColor } from '../../components/Avatar';
 import { formatDate } from '../log/format';
 import {
@@ -31,7 +35,44 @@ import {
   type MapStatus,
 } from '../../store/dashboard';
 import type { AppState, Decision } from '../../types';
+import { graphLayout, lineage, type GraphEdge, type Pt } from './graphLayout';
 import { LANE_LABEL_W, layoutMap, NODE_H, NODE_W, type LaneBy } from './mapLayout';
+
+export type MapLayoutMode = 'graph' | 'timeline';
+export type ColorBy = 'status' | 'goal' | 'owner';
+
+/** What "goal" colours by: the decision's goal label, else its first tag. */
+export function goalOf(d: Decision): string | undefined {
+  return d.metric ?? d.tags?.[0]?.label;
+}
+
+const GOAL_COLORS = 7;
+/** A muted categorical token (--goal-1…7) for a goal, stable for the set shown. */
+export function goalColor(value: string, values: string[]): string {
+  return `var(--goal-${(Math.max(0, values.indexOf(value)) % GOAL_COLORS) + 1})`;
+}
+
+// Where nodes were dragged to, per scope, in their own key (never the app store).
+const POS_KEY = 'rooted-map-pos-v1';
+type Positions = Record<string, Pt>;
+
+function loadPositions(key: string): Positions {
+  try {
+    return (JSON.parse(localStorage.getItem(POS_KEY) || '{}') as Record<string, Positions>)[key] ?? {};
+  } catch {
+    return {};
+  }
+}
+
+function savePositions(key: string, positions: Positions) {
+  try {
+    const all = JSON.parse(localStorage.getItem(POS_KEY) || '{}') as Record<string, Positions>;
+    all[key] = positions;
+    localStorage.setItem(POS_KEY, JSON.stringify(all));
+  } catch {
+    // positions just won't be remembered
+  }
+}
 
 interface DecisionData extends Record<string, unknown> {
   decision: Decision;
@@ -44,6 +85,8 @@ interface DecisionData extends Record<string, unknown> {
   faded: boolean; // a decision is picked and this one isn't connected to it
   matched: boolean;
   highlighted: boolean;
+  traced: boolean; // on the picked decision's lineage while Trace is on
+  accent?: string; // stripe color when coloring by goal or owner
   onOpen: (id: string) => void;
 }
 
@@ -57,26 +100,41 @@ function DecisionNode({ data, selected }: NodeProps<Node<DecisionData>>) {
     data.faded ? 'map-node-faded' : '',
     data.matched ? 'map-node-match' : '',
     data.highlighted ? 'map-node-highlighted' : '',
+    data.traced ? 'map-node-traced' : '',
+    d.speculative ? 'map-node-speculative' : '',
   ]
     .filter(Boolean)
     .join(' ');
   return (
-    <div className={cls} style={{ width: NODE_W, height: NODE_H }}>
+    <div
+      className={cls}
+      style={{ width: NODE_W, height: NODE_H, ...(data.accent ? { '--node-accent': data.accent } : {}) } as CSSProperties}
+    >
       <Handle type="target" id="left" position={Position.Left} isConnectable={false} className="map-handle" />
+      {/* In Graph, links can arrive and leave on any side. */}
+      <Handle type="target" id="in-right" position={Position.Right} isConnectable={false} className="map-handle" />
+      <Handle type="target" id="in-top" position={Position.Top} isConnectable={false} className="map-handle" />
+      <Handle type="target" id="in-bottom" position={Position.Bottom} isConnectable={false} className="map-handle" />
+      <Handle type="source" id="out-left" position={Position.Left} isConnectable={false} className="map-handle" />
+      <Handle type="source" id="out-top" position={Position.Top} isConnectable={false} className="map-handle" />
+      <Handle type="source" id="out-bottom" position={Position.Bottom} isConnectable={false} className="map-handle" />
       {/* Elbows leave near the left edge, so a follow-up hangs off its parent like an indented outline. */}
       <Handle type="source" id="top" position={Position.Top} isConnectable={false} className="map-handle map-handle-elbow" />
       <button
         type="button"
         className="map-node-hit"
-        aria-label={`${d.question}, ${MAP_STATUS_LABEL[data.status]}`}
+        aria-label={`${d.question}, ${d.speculative ? 'direction to explore' : MAP_STATUS_LABEL[data.status]}`}
         aria-pressed={!!selected}
         onClick={() => data.onOpen(d.id)}
       />
       <p className="map-node-meta" aria-hidden="true">
         <span className={`map-dot map-dot-${data.status}`} aria-hidden="true" />
-        <span className={data.status === 'outcome-due' ? 'due-label' : undefined}>{MAP_STATUS_LABEL[data.status]}</span>
+        <span className={data.status === 'outcome-due' ? 'due-label' : undefined}>
+          {d.speculative ? 'Direction to explore' : MAP_STATUS_LABEL[data.status]}
+        </span>
         <span aria-hidden="true">·</span>
         <span className="tabular">{formatDate(decisionDate(d))}</span>
+        {d.metric && <span className="map-node-metric">{d.metric}</span>}
       </p>
       <p className="map-node-q" aria-hidden="true">
         {d.question}
@@ -139,7 +197,11 @@ const nodeTypes = { decision: DecisionNode, lane: LaneNode, month: MonthNode };
 export interface DecisionMapProps {
   state: AppState;
   decisions: Decision[]; // already filtered
+  mode: MapLayoutMode;
   laneBy: LaneBy;
+  colorBy: ColorBy;
+  trace: boolean;
+  positionsKey: string; // which saved arrangement to use, e.g. the "who" filter
   today: string;
   selectedId?: string;
   matchIds: Set<string> | null; // search matches; null when not searching
@@ -155,10 +217,24 @@ export function DecisionMap(props: DecisionMapProps) {
   );
 }
 
-function MapInner({ state, decisions, laneBy, today, selectedId, matchIds, highlightIds, onSelect }: DecisionMapProps) {
+function MapInner({
+  state,
+  decisions,
+  mode,
+  laneBy,
+  colorBy,
+  trace,
+  positionsKey,
+  today,
+  selectedId,
+  matchIds,
+  highlightIds,
+  onSelect,
+}: DecisionMapProps) {
   const flow = useReactFlow();
   const canvas = useRef<HTMLDivElement>(null);
-  const layout = useMemo(() => layoutMap(decisions, laneBy, state, today), [decisions, laneBy, state, today]);
+  const graph = mode === 'graph';
+  const timeline = useMemo(() => layoutMap(decisions, laneBy, state, today), [decisions, laneBy, state, today]);
   const [hoverId, setHoverId] = useState<string | undefined>(undefined);
 
   // The decision whose connections stand out: the one under the pointer, else the one picked.
@@ -167,7 +243,64 @@ function MapInner({ state, decisions, laneBy, today, selectedId, matchIds, highl
     const shown = new Set(decisions.map((d) => d.id));
     return visibleLinks(state).filter((l) => shown.has(l.fromId) && shown.has(l.toId));
   }, [decisions, state]);
+  // Lineage follows links the team made or accepted, not ones Rooted only suggested.
+  const confirmed = useMemo<GraphEdge[]>(
+    () => links.filter((l) => l.status === 'accepted').map((l) => ({ from: l.fromId, to: l.toId })),
+    [links],
+  );
+  const traced = useMemo(
+    () => (trace && selectedId ? lineage(confirmed, selectedId) : null),
+    [trace, selectedId, confirmed],
+  );
+
+  // Graph: the force layout, with any node the PM dragged where they left it.
+  const [custom, setCustom] = useState<Positions>(() => loadPositions(positionsKey));
+  useEffect(() => setCustom(loadPositions(positionsKey)), [positionsKey]);
+  const forced = useMemo(
+    () => (graph ? graphLayout(decisions.map((d) => d.id), confirmed) : new Map<string, Pt>()),
+    [graph, decisions, confirmed],
+  );
+  const layout = useMemo(() => {
+    if (!graph) return timeline;
+    const placed = timeline.placed.map((p) => {
+      const c = forced.get(p.decision.id) ?? { x: 0, y: 0 };
+      const at = custom[p.decision.id] ?? { x: c.x - NODE_W / 2, y: c.y - NODE_H / 2 };
+      return { ...p, x: at.x, y: at.y };
+    });
+    return { ...timeline, placed, lanes: [], months: [] };
+  }, [graph, timeline, forced, custom]);
+
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      if (!graph) return;
+      const moved = changes.filter((c) => c.type === 'position' && c.position);
+      if (moved.length === 0) return;
+      setCustom((prev) => {
+        const next = { ...prev };
+        for (const c of moved) if (c.type === 'position' && c.position) next[c.id] = c.position;
+        return next;
+      });
+    },
+    [graph],
+  );
+  const onNodeDragStop = useCallback(
+    (_: unknown, node: Node) => {
+      setCustom((prev) => {
+        const next = { ...prev, [node.id]: node.position };
+        savePositions(positionsKey, next);
+        return next;
+      });
+    },
+    [positionsKey],
+  );
+
+  const goals = useMemo(
+    () => [...new Set(decisions.map(goalOf).filter((g): g is string => !!g))].sort(),
+    [decisions],
+  );
+
   const neighbors = useMemo(() => {
+    if (traced) return traced;
     if (!selectedId) return null;
     const ids = new Set([selectedId]);
     for (const l of links) {
@@ -175,7 +308,7 @@ function MapInner({ state, decisions, laneBy, today, selectedId, matchIds, highl
       if (l.toId === selectedId) ids.add(l.fromId);
     }
     return ids;
-  }, [links, selectedId]);
+  }, [links, selectedId, traced]);
 
   const nodes = useMemo<Node[]>(() => {
     const laneNodes: Node[] = layout.lanes.map((lane, i) => ({
@@ -199,12 +332,21 @@ function MapInner({ state, decisions, laneBy, today, selectedId, matchIds, highl
     }));
     const decisionNodes: Node<DecisionData>[] = layout.placed.map(({ decision, x, y }) => {
       const owner = ownerOf(decision, state);
+      const goal = goalOf(decision);
+      const accent =
+        colorBy === 'owner'
+          ? personColor(owner?.id, state.teammates)
+          : colorBy === 'goal'
+            ? goal
+              ? goalColor(goal, goals)
+              : 'var(--card-border)'
+            : undefined;
       return {
         id: decision.id,
         type: 'decision',
         position: { x, y },
         selected: decision.id === selectedId,
-        draggable: false,
+        draggable: graph,
         // The card's own button takes focus, so the node wrapper doesn't add a second tab stop.
         focusable: false,
         data: {
@@ -218,31 +360,37 @@ function MapInner({ state, decisions, laneBy, today, selectedId, matchIds, highl
           dimmed: !!matchIds && !matchIds.has(decision.id),
           matched: !!matchIds && matchIds.has(decision.id),
           highlighted: highlightIds.includes(decision.id),
+          traced: !!traced && traced.has(decision.id),
+          accent,
           onOpen: onSelect,
         },
       };
     });
     return [...laneNodes, ...monthNodes, ...decisionNodes];
-  }, [layout, state, today, selectedId, matchIds, highlightIds, onSelect, neighbors]);
+  }, [layout, state, today, selectedId, matchIds, highlightIds, onSelect, neighbors, traced, colorBy, goals, graph]);
 
   const edges = useMemo<Edge[]>(() => {
     const at = new Map(layout.placed.map((p) => [p.decision.id, p]));
     return links.map((l) => {
         const ai = l.origin === 'ai';
-        const lit = !!focusId && (l.fromId === focusId || l.toId === focusId);
+        const lit = traced
+          ? traced.has(l.fromId) && traced.has(l.toId) && l.status === 'accepted'
+          : !!focusId && (l.fromId === focusId || l.toId === focusId);
         const color = ai ? 'var(--ai-line)' : lit ? 'var(--ink)' : 'var(--ink2)';
         // A follow-up that starts before its parent's card ends would make a curve loop back over
         // the cards, so it leaves from the parent's bottom (or top) as a right-angle elbow instead.
         const from = at.get(l.fromId);
         const to = at.get(l.toId);
-        const overlaps = !!from && !!to && to.x < from.x + NODE_W + 40;
-        const sourceHandle = overlaps ? (to!.y >= from!.y ? 'bottom' : 'top') : 'right';
+        const overlaps = !graph && !!from && !!to && to.x < from.x + NODE_W + 40;
+        const [sourceHandle, targetHandle] = graph
+          ? graphHandles(from, to)
+          : [overlaps ? (to!.y >= from!.y ? 'bottom' : 'top') : 'right', 'left'];
         return {
           id: l.id,
           source: l.fromId,
           target: l.toId,
           sourceHandle,
-          targetHandle: 'left',
+          targetHandle,
           type: overlaps ? 'smoothstep' : 'default',
           selectable: false,
           focusable: false,
@@ -252,7 +400,7 @@ function MapInner({ state, decisions, laneBy, today, selectedId, matchIds, highl
             stroke: color,
             strokeWidth: lit ? 2.4 : 1.4,
             strokeDasharray: ai ? '6 5' : undefined,
-            opacity: lit ? 1 : focusId ? 0.12 : 0.4,
+            opacity: lit ? 1 : focusId || traced ? 0.12 : 0.4,
           },
           markerEnd: { type: MarkerType.ArrowClosed, color, width: 16, height: 16 },
           // The "suggested" label only shows on the picked decision's lines, so it doesn't clutter the map.
@@ -260,7 +408,7 @@ function MapInner({ state, decisions, laneBy, today, selectedId, matchIds, highl
           labelClassName: 'map-edge-label',
         };
       });
-  }, [links, focusId, layout]);
+  }, [links, focusId, layout, graph, traced]);
 
   const laneLabels = layout.lanes.map((lane) => {
     const mate = laneBy === 'owner' ? state.teammates.find((t) => t.name === lane.key) : undefined;
@@ -286,6 +434,10 @@ function MapInner({ state, decisions, laneBy, today, selectedId, matchIds, highl
   }, [selectedId, layout, flow]);
 
   function openView() {
+    if (graph) {
+      void flow.fitView({ padding: 0.12, maxZoom: 1 });
+      return;
+    }
     const w = canvas.current?.clientWidth ?? 0;
     const h = canvas.current?.clientHeight ?? 0;
     const fit = Math.min(w / (layout.width + 80), h / (layout.height + 120));
@@ -300,27 +452,42 @@ function MapInner({ state, decisions, laneBy, today, selectedId, matchIds, highl
   return (
     <div className="map-canvas" ref={canvas}>
       <ReactFlow
-        key={laneBy}
+        key={graph ? `graph-${positionsKey}` : laneBy}
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
         onInit={openView}
         minZoom={0.25}
         maxZoom={1.5}
-        nodesDraggable={false}
+        nodesDraggable={graph}
         nodesConnectable={false}
-        translateExtent={[
-          [-LANE_LABEL_W, -200],
-          [layout.width + 600, layout.height + 400],
-        ]}
+        onNodesChange={onNodesChange}
+        onNodeDragStop={onNodeDragStop}
+        translateExtent={
+          graph
+            ? undefined
+            : [
+                [-LANE_LABEL_W, -200],
+                [layout.width + 600, layout.height + 400],
+              ]
+        }
         onPaneClick={() => onSelect(undefined)}
         onNodeMouseEnter={(_, node) => node.type === 'decision' && setHoverId(node.id)}
         onNodeMouseLeave={() => setHoverId(undefined)}
       >
-        <Background gap={32} size={1} color="var(--card-rule)" />
-        <Controls showInteractive={false} position="bottom-left" />
-        {laneBy !== 'none' && <LaneLabels lanes={laneLabels} />}
+        <Background variant={BackgroundVariant.Dots} gap={24} size={1.3} color="var(--grid-dot)" />
+        <Controls showInteractive={false} position="bottom-right" />
+        {!graph && laneBy !== 'none' && <LaneLabels lanes={laneLabels} />}
       </ReactFlow>
     </div>
   );
+}
+
+// In Graph, a link leaves the side of its source that faces its target.
+function graphHandles(from?: { x: number; y: number }, to?: { x: number; y: number }): [string, string] {
+  if (!from || !to) return ['right', 'left'];
+  const dx = to.x - from.x;
+  const dy = (to.y - from.y) * (NODE_W / NODE_H);
+  if (Math.abs(dx) >= Math.abs(dy)) return dx >= 0 ? ['right', 'left'] : ['out-left', 'in-right'];
+  return dy >= 0 ? ['out-bottom', 'in-top'] : ['out-top', 'in-bottom'];
 }

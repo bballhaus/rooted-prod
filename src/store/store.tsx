@@ -2,6 +2,7 @@
 // Every feature reads and writes through these actions; add new ones here
 // rather than keeping parallel state in a feature.
 import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react';
+import { demoState } from '../data/demoFixtures';
 import { seedState } from '../data/fixtures';
 import type {
   AppState,
@@ -57,7 +58,9 @@ export type Action =
   | { type: 'addMessage'; message: ChatMessage }
   | { type: 'updateMessage'; messageId: string; patch: Partial<ChatMessage> }
   | { type: 'deleteAllData' }
-  | { type: 'resetDemo' };
+  | { type: 'resetDemo' }
+  | { type: 'loadDemo' }
+  | { type: 'exitDemo' };
 
 const ORIGIN_OF: Record<Source['type'], ContextItem['origin']> = { slack: 'slack', 'google-drive': 'drive' };
 
@@ -239,6 +242,12 @@ export function reducer(state: AppState, action: Action): AppState {
         sources: state.sources.map((s) => ({ ...s, connected: false, connectedAt: undefined })),
       };
     case 'resetDemo':
+      return { ...seedState(), user: state.user };
+    case 'loadDemo':
+      // Swap in the planted demo workspace (0009). Keeps the signed-in user so
+      // the demo feels like their own workspace.
+      return { ...demoState(), user: state.user };
+    case 'exitDemo':
       return { ...seedState(), user: state.user };
   }
 }

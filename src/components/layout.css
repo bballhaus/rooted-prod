@@ -200,6 +200,32 @@
   background: var(--chip-bg);
 }
 
+/* Theme toggle and demo switch (0009, 0010). */
+.profile-actions {
+  display: grid;
+  border-top: 1px solid var(--card-rule);
+  padding-top: 8px;
+}
+
+.profile-action {
+  justify-content: flex-start;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 8px;
+}
+
+.demo-badge {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (max-width: 880px) {
+  .demo-badge-more {
+    display: none;
+  }
+}
+
 .site-footer {
   border-top: 1px solid var(--card-rule);
   margin-top: 48px;

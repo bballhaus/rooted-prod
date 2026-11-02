@@ -212,7 +212,21 @@ export function DataAccessPage() {
         <button type="button" className="btn btn-lg" onClick={() => navigate('/')}>
           Continue to Rooted
         </button>
+        <button
+          type="button"
+          className="btn btn-secondary btn-lg"
+          onClick={() => {
+            dispatch({ type: 'loadDemo' });
+            navigate('/');
+          }}
+        >
+          Explore the demo instead
+        </button>
       </div>
+      <p className="muted auth-small">
+        Not sure yet? Load a worked example, six months of connected decisions on sample data, and connect your own
+        sources any time.
+      </p>
 
       <Dialog
         open={connecting !== null}

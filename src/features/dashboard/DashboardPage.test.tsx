@@ -1,5 +1,6 @@
 import { screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { demoState } from '../../data/demoFixtures';
 import { STORAGE_KEY } from '../../store/store';
 import { renderApp, signedInState } from '../../test/render';
 import type { AppState } from '../../types';
@@ -211,5 +212,144 @@ describe('Header and footer', () => {
     await user.click(screen.getByRole('button', { name: 'Your account' }));
     await user.click(screen.getByRole('button', { name: 'Sign out' }));
     expect(await screen.findByRole('button', { name: /continue with google/i })).toBeInTheDocument();
+  });
+});
+
+// The canvas work from decision 0010, on the planted demo workspace (0009).
+describe('Decision canvas', () => {
+  const demo = () => demoState();
+  const panelFor = (name: RegExp) => within(screen.getByRole('complementary', { name }));
+
+  it('F-17: opens as a graph, with timeline, color and trace controls', () => {
+    renderApp('/', demo());
+    expect(screen.getByRole('button', { name: /Graph/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /Timeline/ })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByLabelText('Color by')).toHaveValue('status');
+    expect(screen.getByRole('button', { name: /Trace/ })).toBeDisabled();
+    // Lanes only apply to the timeline.
+    expect(screen.queryByLabelText('Lanes')).not.toBeInTheDocument();
+  });
+
+  it('F-17: switching to the timeline brings back the lanes', async () => {
+    const { user } = renderApp('/', demo());
+    await user.click(screen.getByRole('button', { name: /Timeline/ }));
+    expect(screen.getByLabelText('Lanes')).toBeInTheDocument();
+  });
+
+  it('F-18: picking a decided decision shows its reasoning, outcome and a link to the record', async () => {
+    const { user } = renderApp('/?focus=d-activation-metric', demo());
+    const panel = panelFor(/How should we define activation/);
+    expect(panel.getByText(/strongest predictor/)).toBeInTheDocument();
+    expect(panel.getByText(/north-star activation metric/)).toBeInTheDocument();
+    expect(panel.getByRole('link', { name: 'Open the full record' })).toHaveAttribute('href', '/decisions/d-activation-metric');
+    await user.click(screen.getByRole('button', { name: 'Close details' }));
+    expect(screen.queryByRole('complementary', { name: /How should we define activation/ })).not.toBeInTheDocument();
+  });
+
+  it('a planted direction is labelled as one and can be explored', () => {
+    renderApp('/?focus=d-future-usage-pricing', demo());
+    const panel = panelFor(/usage-based pricing/);
+    expect(panel.getByText('Direction to explore')).toBeInTheDocument();
+    expect(panel.getByRole('link', { name: 'Explore this direction' })).toHaveAttribute(
+      'href',
+      '/decisions/d-future-usage-pricing/work',
+    );
+  });
+
+  it('builds-on lets you walk back to the decisions a call grew from', async () => {
+    const { user } = renderApp('/?focus=d-self-serve-expansion', demo());
+    await user.click(panelFor(/drive expansion revenue/).getByRole('link', { name: /Charge per seat or per workspace/ }));
+    expect(screen.getByRole('complementary', { name: /Charge per seat or per workspace/ })).toBeInTheDocument();
+  });
+
+  it('F-08: the PM can rename their own decision from the details', async () => {
+    const { user } = renderApp('/?focus=d-onboarding-checklist', demo());
+    await user.click(panelFor(/checklist or a guided tour/).getByRole('button', { name: 'Rename decision' }));
+    const input = screen.getByLabelText('Rename decision');
+    await user.clear(input);
+    await user.type(input, 'Rework onboarding end to end?{Enter}');
+    expect(screen.getByRole('complementary', { name: /Rework onboarding end to end/ })).toBeInTheDocument();
+    expect(stored().decisions.find((d) => d.id === 'd-onboarding-checklist')?.question).toBe('Rework onboarding end to end?');
+  });
+
+  it('a teammate’s decision has no rename', () => {
+    renderApp('/?focus=o-api-v2', demo());
+    expect(panelFor(/Ship API v2/).queryByRole('button', { name: 'Rename decision' })).not.toBeInTheDocument();
+  });
+
+  it('Trace turns on once a decision is picked', async () => {
+    const { user } = renderApp('/?focus=d-self-serve-expansion', demo());
+    const trace = screen.getByRole('button', { name: /Trace/ });
+    expect(trace).toBeEnabled();
+    await user.click(trace);
+    expect(trace).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('coloring by goal or by person shows what each color means', async () => {
+    const { user } = renderApp('/', demo());
+    await user.selectOptions(screen.getByLabelText('Color by'), 'goal');
+    expect(within(screen.getByRole('list', { name: 'Goals' })).getByText('Activation')).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Color by'), 'owner');
+    expect(within(screen.getByRole('list', { name: 'People' })).getByText('Dev Patel')).toBeInTheDocument();
+  });
+
+  it('the demo labels itself as sample data, and "Just me" hides teammates’ decisions', async () => {
+    const { user } = await openListWith(demo());
+    expect(screen.getByText(/Demo/).closest('.demo-badge')).toHaveTextContent('Demo workspace · sample data');
+    expect(screen.getByRole('button', { name: /Ship API v2 with breaking changes/ })).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Who'), 'me');
+    expect(screen.queryByRole('button', { name: /Ship API v2 with breaking changes/ })).not.toBeInTheDocument();
+  });
+
+  it('the Needs you panel can be hidden for a full-width map', async () => {
+    const { user } = renderApp('/', demo());
+    await user.click(screen.getByRole('button', { name: 'Hide the Needs you panel' }));
+    expect(screen.queryByRole('complementary', { name: 'Needs you' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Show the Needs you panel' }));
+    expect(screen.getByRole('complementary', { name: 'Needs you' })).toBeInTheDocument();
+  });
+
+  it('with no decisions, offers to frame the first one or load the demo', async () => {
+    const { user } = renderApp('/', signedInState({ decisions: [], options: [], contextItems: [], links: [] }));
+    expect(screen.getByRole('link', { name: 'Frame your first decision' })).toHaveAttribute('href', '/decisions/new');
+    await user.click(screen.getByRole('button', { name: 'Explore the demo' }));
+    expect(stored().demo).toBe(true);
+    expect(screen.getByText(/workspace · sample data/)).toBeInTheDocument();
+  });
+});
+
+async function openListWith(state: AppState) {
+  const utils = renderApp('/', state);
+  await utils.user.click(screen.getByRole('button', { name: 'List' }));
+  return utils;
+}
+
+describe('Profile menu: theme and demo', () => {
+  afterEach(() => {
+    document.documentElement.dataset.theme = 'light';
+  });
+
+  it('dark mode toggles from the profile menu and is remembered', async () => {
+    document.documentElement.dataset.theme = 'light';
+    const { user } = renderApp('/');
+    await user.click(screen.getByRole('button', { name: 'Your account' }));
+    const toggle = screen.getByRole('button', { name: /Dark mode/ });
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    await user.click(toggle);
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(localStorage.getItem('rooted-theme')).toBe('dark');
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('the demo can be entered and left from the profile menu', async () => {
+    const { user } = renderApp('/');
+    await user.click(screen.getByRole('button', { name: 'Your account' }));
+    await user.click(screen.getByRole('button', { name: 'Explore the demo' }));
+    expect(stored().demo).toBe(true);
+    expect(screen.getByText(/workspace · sample data/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Your account' }));
+    await user.click(screen.getByRole('button', { name: 'Leave demo' }));
+    expect(stored().demo).toBe(false);
+    expect(screen.queryByText(/workspace · sample data/)).not.toBeInTheDocument();
   });
 });

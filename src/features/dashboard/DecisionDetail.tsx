@@ -2,12 +2,15 @@
 // shows what was decided, why, what it was based on, who decided and who was
 // consulted, the options not taken, the outcome, and how it connects to other
 // decisions. AI tags and AI links can be accepted, dismissed or reported here.
+// The PM can rename their own decisions in place (0010).
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Avatar } from '../../components/Avatar';
 import { CloseIcon } from '../../components/icons';
 import { ReportWrongAnswer } from '../../components/ReportWrongAnswer';
 import {
   decisionDate,
+  isMine,
   linksOf,
   MAP_STATUS_LABEL,
   mapStatus,
@@ -35,6 +38,16 @@ export function DecisionDetail({ decision, today, onClose }: { decision: Decisio
   const outcome = state.outcomes.find((o) => o.decisionId === decision.id);
   const { buildsOn, ledTo } = linksOf(decision.id, state);
   const titleId = `detail-${decision.id}`;
+  const [renaming, setRenaming] = useState(false);
+  const [title, setTitle] = useState(decision.question);
+
+  function saveTitle() {
+    const next = title.trim();
+    if (next && next !== decision.question) {
+      dispatch({ type: 'updateDecision', decisionId: decision.id, patch: { question: next } });
+    }
+    setRenaming(false);
+  }
 
   function setTags(tags: Decision['tags']) {
     dispatch({ type: 'updateDecision', decisionId: decision.id, patch: { tags } });
@@ -43,14 +56,60 @@ export function DecisionDetail({ decision, today, onClose }: { decision: Decisio
   return (
     <aside className="detail card" aria-labelledby={titleId}>
       <div className="detail-head">
-        <p className={status === 'outcome-due' ? 'kicker due-label' : 'kicker'}>{MAP_STATUS_LABEL[status]}</p>
+        <p className={status === 'outcome-due' ? 'kicker due-label' : 'kicker'}>
+          {decision.speculative ? 'Direction to explore' : MAP_STATUS_LABEL[status]}
+          {decision.metric && <span className="pill detail-metric">{decision.metric}</span>}
+        </p>
         <button type="button" className="icon-btn" aria-label="Close details" onClick={onClose}>
           <CloseIcon />
         </button>
       </div>
-      <h2 id={titleId} className="detail-title">
-        {decision.question}
-      </h2>
+      {renaming ? (
+        <form
+          className="row detail-rename"
+          onSubmit={(e) => {
+            e.preventDefault();
+            saveTitle();
+          }}
+        >
+          <h2 id={titleId} className="visually-hidden">
+            {decision.question}
+          </h2>
+          <label htmlFor={`${titleId}-rename`} className="visually-hidden">
+            Rename decision
+          </label>
+          <input
+            id={`${titleId}-rename`}
+            className="input"
+            value={title}
+            autoFocus
+            onChange={(e) => setTitle(e.target.value)}
+            onBlur={saveTitle}
+          />
+          <button type="submit" className="btn">
+            Save
+          </button>
+        </form>
+      ) : (
+        <div className="row detail-title-row">
+          <h2 id={titleId} className="detail-title">
+            {decision.question}
+          </h2>
+          {isMine(decision, state) && (
+            <button
+              type="button"
+              className="btn btn-ghost detail-rename-btn"
+              aria-label="Rename decision"
+              onClick={() => {
+                setTitle(decision.question);
+                setRenaming(true);
+              }}
+            >
+              Rename
+            </button>
+          )}
+        </div>
+      )}
 
       <section className="detail-section" aria-label="People">
         <p className="row detail-people">
@@ -192,7 +251,11 @@ export function DecisionDetail({ decision, today, onClose }: { decision: Decisio
 
       <div className="detail-actions">
         <Link to={continuePath(decision)} className="btn">
-          {decision.status === 'decided' ? 'Open the full record' : 'Continue this decision'}
+          {decision.status === 'decided'
+            ? 'Open the full record'
+            : decision.speculative
+              ? 'Explore this direction'
+              : 'Continue this decision'}
         </Link>
         <button
           type="button"

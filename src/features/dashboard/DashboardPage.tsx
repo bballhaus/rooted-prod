@@ -1,11 +1,13 @@
 // F-17, F-19: home. Above the fold: what needs the PM (outcomes due, deadlines,
-// decisions Rooted spotted, drafts) and the decision map, which can be laid
-// out in lanes by tag, owner, team or status, filtered, and searched from the
-// header. Picking a decision opens its details beside the map.
+// decisions Rooted spotted, drafts) and the decision map. The map is a graph
+// you can drag and trace (0010), or a timeline in lanes by tag, owner, team or
+// status; it can be colored, filtered, and searched from the header. Picking a
+// decision opens its details beside the map.
 import { useEffect, useId, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { rankDecisions } from '../../agent/chat';
-import { Avatar } from '../../components/Avatar';
+import { Avatar, personColor } from '../../components/Avatar';
+import { IconGraph, IconSidebar, IconTimeline, IconTrace } from '../../components/icons';
 import { ReportWrongAnswer } from '../../components/ReportWrongAnswer';
 import {
   chosenLabel,
@@ -24,7 +26,7 @@ import type { AppState, Decision } from '../../types';
 import { useAgent } from '../agent/AgentContext';
 import { continuePath, formatDate } from '../log/format';
 import { DecisionDetail } from './DecisionDetail';
-import { DecisionMap } from './DecisionMap';
+import { DecisionMap, goalColor, goalOf, type ColorBy, type MapLayoutMode } from './DecisionMap';
 import { InboxRow } from './InboxRow';
 import { LANE_LABEL, laneOf, type LaneBy } from './mapLayout';
 import { useInboxActions } from './useInboxActions';
@@ -59,9 +61,13 @@ export function DashboardPage() {
   const { highlight } = useAgent();
   const [params, setParams] = useSearchParams();
   const today = localToday();
-  const ids = { lanes: useId(), who: useId(), tag: useId(), status: useId() };
+  const ids = { lanes: useId(), who: useId(), tag: useId(), status: useId(), color: useId() };
 
   const [view, setView] = useState<View>(initialView);
+  const [mode, setMode] = useState<MapLayoutMode>('graph');
+  const [colorBy, setColorBy] = useState<ColorBy>('status');
+  const [trace, setTrace] = useState(false);
+  const [railOpen, setRailOpen] = useState(true);
   const [laneBy, setLaneBy] = useState<LaneBy>('thread');
   const [who, setWho] = useState<string>('everyone');
   const [status, setStatus] = useState<StatusFilter>('all');
@@ -101,8 +107,8 @@ export function DashboardPage() {
   const dueCount = state.decisions.filter((d) => isMine(d, state) && mapStatus(d, state, today) === 'outcome-due').length;
 
   return (
-    <div className="dash">
-      <NeedsYou today={today} />
+    <div className={railOpen ? 'dash' : 'dash dash-rail-hidden'}>
+      {railOpen && <NeedsYou today={today} />}
 
       <section className="dash-main" aria-labelledby="dash-title">
         <div className="dash-toolbar">
@@ -118,6 +124,15 @@ export function DashboardPage() {
           </div>
 
           <div className="row dash-controls">
+            <button
+              type="button"
+              className="icon-btn dash-rail-btn"
+              aria-label={railOpen ? 'Hide the Needs you panel' : 'Show the Needs you panel'}
+              aria-pressed={!railOpen}
+              onClick={() => setRailOpen(!railOpen)}
+            >
+              <IconSidebar size={18} />
+            </button>
             <div className="dash-seg" role="group" aria-label="View">
               <button type="button" className="toggle" aria-pressed={view === 'tree'} onClick={() => setView('tree')}>
                 Tree
@@ -126,16 +141,55 @@ export function DashboardPage() {
                 List
               </button>
             </div>
-            <div className="field dash-field">
-              <label htmlFor={ids.lanes}>{view === 'tree' ? 'Lanes' : 'Group by'}</label>
-              <select id={ids.lanes} className="select" value={laneBy} onChange={(e) => setLaneBy(e.target.value as LaneBy)}>
-                {(Object.keys(LANE_LABEL) as LaneBy[]).map((k) => (
-                  <option key={k} value={k}>
-                    {LANE_LABEL[k]}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {view === 'tree' && (
+              <div className="dash-seg" role="group" aria-label="Map layout">
+                <button type="button" className="toggle" aria-pressed={mode === 'graph'} onClick={() => setMode('graph')}>
+                  <IconGraph size={15} /> Graph
+                </button>
+                <button
+                  type="button"
+                  className="toggle"
+                  aria-pressed={mode === 'timeline'}
+                  onClick={() => setMode('timeline')}
+                >
+                  <IconTimeline size={15} /> Timeline
+                </button>
+              </div>
+            )}
+            {(view === 'list' || mode === 'timeline') && (
+              <div className="field dash-field">
+                <label htmlFor={ids.lanes}>{view === 'tree' ? 'Lanes' : 'Group by'}</label>
+                <select id={ids.lanes} className="select" value={laneBy} onChange={(e) => setLaneBy(e.target.value as LaneBy)}>
+                  {(Object.keys(LANE_LABEL) as LaneBy[]).map((k) => (
+                    <option key={k} value={k}>
+                      {LANE_LABEL[k]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {view === 'tree' && (
+              <div className="field dash-field">
+                <label htmlFor={ids.color}>Color by</label>
+                <select id={ids.color} className="select" value={colorBy} onChange={(e) => setColorBy(e.target.value as ColorBy)}>
+                  <option value="status">Status</option>
+                  <option value="goal">Goal or tag</option>
+                  <option value="owner">Who decided</option>
+                </select>
+              </div>
+            )}
+            {view === 'tree' && (
+              <button
+                type="button"
+                className="toggle dash-trace"
+                aria-pressed={trace && !!selected}
+                disabled={!selected}
+                title={selected ? 'Highlight everything this decision built on and led to' : 'Pick a decision to trace it'}
+                onClick={() => setTrace(!trace)}
+              >
+                <IconTrace size={15} /> Trace
+              </button>
+            )}
             <div className="field dash-field">
               <label htmlFor={ids.who}>Who</label>
               <select id={ids.who} className="select" value={who} onChange={(e) => setWho(e.target.value)}>
@@ -178,6 +232,7 @@ export function DashboardPage() {
               </select>
             </div>
             {view === 'tree' && <Legend />}
+            {view === 'tree' && colorBy !== 'status' && <ColorLegend decisions={filtered} colorBy={colorBy} />}
           </div>
         </div>
 
@@ -190,7 +245,11 @@ export function DashboardPage() {
             <DecisionMap
               state={state}
               decisions={filtered}
+              mode={mode}
               laneBy={laneBy}
+              colorBy={colorBy}
+              trace={trace}
+              positionsKey={`${state.demo ? 'demo' : 'own'}:${who}`}
               today={today}
               selectedId={selectedId}
               matchIds={matchIds}
@@ -230,7 +289,34 @@ function Legend() {
   );
 }
 
+// What each stripe color means when the map is colored by goal or by person.
+function ColorLegend({ decisions, colorBy }: { decisions: Decision[]; colorBy: ColorBy }) {
+  const { state } = useStore();
+  const items =
+    colorBy === 'goal'
+      ? (() => {
+          const goals = [...new Set(decisions.map(goalOf).filter((g): g is string => !!g))].sort();
+          return goals.map((g) => ({ key: g, label: g, color: goalColor(g, goals) }));
+        })()
+      : [...new Set(decisions.map((d) => ownerOf(d, state)?.id))].map((id) => {
+          const mate = state.teammates.find((t) => t.id === id);
+          return { key: id ?? 'unknown', label: mate?.name ?? 'Unknown', color: personColor(id, state.teammates) };
+        });
+  return (
+    <ul className="row dash-legend dash-color-legend muted" aria-label={colorBy === 'goal' ? 'Goals' : 'People'}>
+      {items.map((i) => (
+        <li key={i.key} className="row dash-legend-item">
+          <span className="dash-swatch" style={{ background: i.color }} aria-hidden="true" />
+          {i.label}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function EmptyState() {
+  const { dispatch } = useStore();
+  const navigate = useNavigate();
   return (
     <section className="card dash-empty" aria-labelledby="decisions-empty">
       <div className="card-section stack">
@@ -244,7 +330,17 @@ function EmptyState() {
         <p>
           <Link to="/decisions/new" className="btn">
             Frame your first decision
-          </Link>
+          </Link>{' '}
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => {
+              dispatch({ type: 'loadDemo' });
+              navigate('/');
+            }}
+          >
+            Explore the demo
+          </button>
         </p>
       </div>
     </section>
