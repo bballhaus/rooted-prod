@@ -211,7 +211,7 @@
 
 .detail-metric {
   margin-left: 8px;
-  font-size: 11px;
+  font-size: 12px;
   text-transform: none;
   letter-spacing: 0;
 }
@@ -400,15 +400,16 @@
   background: var(--node-accent, var(--moss));
 }
 
-/* A planted direction to explore (demo data): dashed berry, never wine. */
+/* A planted direction to explore (demo data): dashed sage, for "alive, not
+   yet mapped". Not berry (pruning) and never wine. */
 .map-node-speculative {
   border-style: dashed;
-  border-color: var(--berry);
-  background: var(--berry-tint);
+  border-color: var(--ink2);
+  background: var(--sage-tint);
 }
 
 .map-node-speculative::before {
-  background: var(--node-accent, var(--berry));
+  background: var(--node-accent, var(--alive-dot));
 }
 
 /* Trace: the picked decision's whole lineage glows; the rest fades. */
@@ -418,11 +419,11 @@
 
 .map-node-metric {
   margin-left: auto;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--ink2);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .map-node-faded {

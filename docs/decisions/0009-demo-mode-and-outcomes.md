@@ -15,6 +15,13 @@ Written as 0005 on a parallel branch, alongside the records now numbered 0005–
 - **Model fields**: `metric` (a goal label), `horizon` and `speculative` on `Decision`.
 - **The dot stepper**, now the navigation between the sections of 0006's one-page workspace.
 
+Changed in review:
+
+- **The PM's work is kept.** Loading the demo sets the PM's workspace aside (`AppState.beforeDemo`), and leaving it brings that back. The PM's sources and channel choices stay as they set them throughout (F-02). "Delete all data" deletes the saved workspace too and leaves the demo (F-23).
+- **The dates follow today.** Each load moves every demo date by the days since the demo was written, so outcomes stay in the past and directions stay ahead.
+- **Directions are kept apart.** Planted directions are drawn dashed sage, not berry, since berry means pruning. They're left out of "Your decisions in progress", and the agent is told they're planted, not work under way.
+- **The new fields are optional.** `metric`, `horizon` and `speculative` are map and demo metadata. They don't settle what counts as a decision or the minimum record, which stays open.
+
 These parts were replaced:
 
 - **`builtOn`** became `DecisionLink` records (`kind: 'builds-on'`, `origin: 'user'`, `status: 'accepted'`), built from the demo data when it loads, so they sit beside the links the agent suggests (0005).

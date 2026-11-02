@@ -36,6 +36,7 @@ import {
 } from '../../store/dashboard';
 import type { AppState, Decision } from '../../types';
 import { graphLayout, lineage, type GraphEdge, type Pt } from './graphLayout';
+import { loadPositions, savePositions, type Positions } from './positions';
 import { LANE_LABEL_W, layoutMap, NODE_H, NODE_W, type LaneBy } from './mapLayout';
 
 export type MapLayoutMode = 'graph' | 'timeline';
@@ -46,33 +47,28 @@ export function goalOf(d: Decision): string | undefined {
   return d.metric ?? d.tags?.[0]?.label;
 }
 
-const GOAL_COLORS = 7;
-/** A muted categorical token (--goal-1…7) for a goal, stable for the set shown. */
-export function goalColor(value: string, values: string[]): string {
-  return `var(--goal-${(Math.max(0, values.indexOf(value)) % GOAL_COLORS) + 1})`;
-}
+const GOAL_COLORS = 6;
+export const OTHER_GOAL = 'Other';
+const OTHER_COLOR = 'var(--ink2)';
 
-// Where nodes were dragged to, per scope, in their own key (never the app store).
-const POS_KEY = 'rooted-map-pos-v1';
-type Positions = Record<string, Pt>;
-
-function loadPositions(key: string): Positions {
-  try {
-    return (JSON.parse(localStorage.getItem(POS_KEY) || '{}') as Record<string, Positions>)[key] ?? {};
-  } catch {
-    return {};
+/**
+ * Colors for "Color by goal": the six most common goals get a muted token
+ * (--goal-1…6) each, and the rest share a neutral "Other", so no two goals in
+ * the legend look alike.
+ */
+export function goalPalette(decisions: Decision[]): { colorOf: (goal?: string) => string; legend: { label: string; color: string }[] } {
+  const counts = new Map<string, number>();
+  for (const d of decisions) {
+    const g = goalOf(d);
+    if (g) counts.set(g, (counts.get(g) ?? 0) + 1);
   }
+  const ranked = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([g]) => g);
+  const top = new Map(ranked.slice(0, GOAL_COLORS).map((g, i) => [g, `var(--goal-${i + 1})`]));
+  const legend = [...top].map(([label, color]) => ({ label, color }));
+  if (ranked.length > GOAL_COLORS) legend.push({ label: OTHER_GOAL, color: OTHER_COLOR });
+  return { colorOf: (g) => (g ? (top.get(g) ?? OTHER_COLOR) : 'var(--card-border)'), legend };
 }
 
-function savePositions(key: string, positions: Positions) {
-  try {
-    const all = JSON.parse(localStorage.getItem(POS_KEY) || '{}') as Record<string, Positions>;
-    all[key] = positions;
-    localStorage.setItem(POS_KEY, JSON.stringify(all));
-  } catch {
-    // positions just won't be remembered
-  }
-}
 
 interface DecisionData extends Record<string, unknown> {
   decision: Decision;
@@ -87,6 +83,7 @@ interface DecisionData extends Record<string, unknown> {
   highlighted: boolean;
   traced: boolean; // on the picked decision's lineage while Trace is on
   accent?: string; // stripe color when coloring by goal or owner
+  goal?: string; // shown on the card when coloring by goal, so color isn't the only cue
   onOpen: (id: string) => void;
 }
 
@@ -123,7 +120,7 @@ function DecisionNode({ data, selected }: NodeProps<Node<DecisionData>>) {
       <button
         type="button"
         className="map-node-hit"
-        aria-label={`${d.question}, ${d.speculative ? 'direction to explore' : MAP_STATUS_LABEL[data.status]}`}
+        aria-label={`${d.question}, ${d.speculative ? 'direction to explore' : MAP_STATUS_LABEL[data.status]}${data.traced ? ', on the traced path' : ''}`}
         aria-pressed={!!selected}
         onClick={() => data.onOpen(d.id)}
       />
@@ -134,7 +131,7 @@ function DecisionNode({ data, selected }: NodeProps<Node<DecisionData>>) {
         </span>
         <span aria-hidden="true">·</span>
         <span className="tabular">{formatDate(decisionDate(d))}</span>
-        {d.metric && <span className="map-node-metric">{d.metric}</span>}
+        {(data.goal ?? d.metric) && <span className="map-node-metric">{data.goal ?? d.metric}</span>}
       </p>
       <p className="map-node-q" aria-hidden="true">
         {d.question}
@@ -294,10 +291,7 @@ function MapInner({
     [positionsKey],
   );
 
-  const goals = useMemo(
-    () => [...new Set(decisions.map(goalOf).filter((g): g is string => !!g))].sort(),
-    [decisions],
-  );
+  const palette = useMemo(() => goalPalette(decisions), [decisions]);
 
   const neighbors = useMemo(() => {
     if (traced) return traced;
@@ -337,9 +331,7 @@ function MapInner({
         colorBy === 'owner'
           ? personColor(owner?.id, state.teammates)
           : colorBy === 'goal'
-            ? goal
-              ? goalColor(goal, goals)
-              : 'var(--card-border)'
+            ? palette.colorOf(goal)
             : undefined;
       return {
         id: decision.id,
@@ -362,12 +354,13 @@ function MapInner({
           highlighted: highlightIds.includes(decision.id),
           traced: !!traced && traced.has(decision.id),
           accent,
+          goal: colorBy === 'goal' ? goal : undefined,
           onOpen: onSelect,
         },
       };
     });
     return [...laneNodes, ...monthNodes, ...decisionNodes];
-  }, [layout, state, today, selectedId, matchIds, highlightIds, onSelect, neighbors, traced, colorBy, goals, graph]);
+  }, [layout, state, today, selectedId, matchIds, highlightIds, onSelect, neighbors, traced, colorBy, palette, graph]);
 
   const edges = useMemo<Edge[]>(() => {
     const at = new Map(layout.placed.map((p) => [p.decision.id, p]));

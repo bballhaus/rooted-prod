@@ -39,7 +39,7 @@ export function buildPrompt(task: Task, payload: any): Built {
         ? 'The PM is working on the decision named in <scope>. Help them think it through.'
         : 'The PM is asking about their decision history.';
     return {
-      system: `${ROLE}\n\n${UNTRUSTED}\n\nAnswer from the decisions and context given. If they don't cover the question, say so and suggest what to check. Keep answers under 120 words. In "citations", list the ids of the decisions your answer relies on (only ids that appear in <decisions>).`,
+      system: `${ROLE}\n\n${UNTRUSTED}\n\nAnswer from the decisions and context given. If they don't cover the question, say so and suggest what to check. A decision marked "plantedDirection" is sample data for a direction the PM could explore, not work anyone has started; never describe it as in progress. Keep answers under 120 words. In "citations", list the ids of the decisions your answer relies on (only ids that appear in <decisions>).`,
       user: [
         focus,
         data('scope', {

@@ -75,7 +75,7 @@ export interface Decision {
   // A short goal label shown on the map node, e.g. "Activation" (0010).
   metric?: string;
   // Demo only: a planted direction the PM can explore but hasn't committed to.
-  // Drawn as a dashed berry node. It's sample data, not an agent suggestion.
+  // Drawn as a dashed sage node. It's sample data, not an agent suggestion.
   speculative?: boolean;
   horizon?: Horizon;
 }
@@ -206,4 +206,10 @@ export interface AppState {
   // True when the planted demo workspace is loaded, so the UI can label it
   // as sample data rather than the PM's own decisions (0009).
   demo: boolean;
+  // The PM's own workspace, kept aside while the demo is loaded so leaving the
+  // demo brings it back (0009). Never set outside the demo.
+  beforeDemo?: Workspace;
 }
+
+// Everything the PM owns in a workspace: what the demo swaps out and back in.
+export type Workspace = Omit<AppState, 'user' | 'sources' | 'demo' | 'beforeDemo'>;

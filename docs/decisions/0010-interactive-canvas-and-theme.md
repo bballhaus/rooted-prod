@@ -18,6 +18,13 @@ Written as 0006 on a parallel branch, with its own hand-built canvas. The team k
 - **Shell.** 0006's header and footer stay in place of this branch's left rail. This branch's floating zoom controls sit bottom right.
 - **Moved:** the hand-drawn engine is now a pruned option below.
 
+Changed in review:
+
+- **The halo is ink.** It sits on the picked node and on its traced path, and is ink rather than wine, so wine still marks only the chosen option.
+- **Goal colors reuse the palette.** "Color by goal" uses six aliases of existing accents (`--goal-1…6`). The rest share a neutral "Other", and the card shows the goal's name, so color is never the only cue.
+- **Rename is for open decisions.** It's offered only on the PM's own open decisions. A logged record keeps the question its rationale answers.
+- **The canvas needs sign-off.** Its neutral background (`--canvas-bg`) is the one color outside the five core colors and their mixes. It needs the team's sign-off at review.
+
 ### Pruned in the merge: keep the hand-built canvas instead of React Flow
 
 It would have meant rebuilding 0006's lanes, filters, focus highlighting, dashed agent links and the keyboard and list fallbacks on custom code. React Flow already gives drag, pan, zoom and fit, so the canvas features moved onto it.

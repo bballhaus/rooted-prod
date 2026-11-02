@@ -17,6 +17,7 @@ import type {
   Source,
   SuggestedDecision,
   User,
+  Workspace,
   WrongAnswerReport,
 } from '../types';
 import { demoUser } from '../data/fixtures';
@@ -82,11 +83,47 @@ function dropContext(items: ContextItem[], source: Source, channelId?: string): 
 }
 
 // F-02, F-23: suggestions quote Slack, so they go with the access to what they quote.
-function dropSuggestions(state: AppState, source: Source, channelId?: string): AppState['suggestions'] {
-  const labels = source.channels
+function revokedLabels(source: Source, channelId?: string): string[] {
+  return source.channels
     .filter((c) => !channelId || c.id === channelId)
     .map((c) => (source.type === 'google-drive' ? `Drive: ${c.name}` : c.name));
-  return state.suggestions.filter((s) => !s.evidence.some((e) => labels.includes(e.sourceLabel)));
+}
+
+function dropSuggestions(suggestions: SuggestedDecision[], labels: string[]): SuggestedDecision[] {
+  return suggestions.filter((s) => !s.evidence.some((e) => labels.includes(e.sourceLabel)));
+}
+
+// F-02, F-23: when access is revoked, everything taken from that source or
+// channel goes: gathered context, suggestions that quote it, and agent replies
+// that quoted it (they'd otherwise go back to the LLM as chat history). The
+// PM's own messages stay. Applies to the saved workspace during the demo too.
+function revoke<W extends Pick<Workspace, 'contextItems' | 'suggestions' | 'messages'>>(
+  w: W,
+  source: Source,
+  channelId?: string,
+): W {
+  const contextItems = dropContext(w.contextItems, source, channelId);
+  const kept = new Set(contextItems.map((c) => c.id));
+  const snippets = w.contextItems.filter((c) => !kept.has(c.id)).map((c) => c.snippet);
+  const labels = revokedLabels(source, channelId);
+  const quotes = (text: string) => snippets.some((sn) => text.includes(sn)) || labels.some((l) => text.includes(l));
+  return {
+    ...w,
+    contextItems,
+    suggestions: dropSuggestions(w.suggestions, labels),
+    messages: w.messages.filter((m) => m.role !== 'agent' || !quotes(m.text)),
+  };
+}
+
+function revokeAll(state: AppState, source: Source, channelId?: string): AppState {
+  return {
+    ...revoke(state, source, channelId),
+    beforeDemo: state.beforeDemo && revoke(state.beforeDemo, source, channelId),
+  };
+}
+
+function workspaceOf({ user: _user, sources: _sources, demo: _demo, beforeDemo: _before, ...w }: AppState): Workspace {
+  return w;
 }
 
 export function reducer(state: AppState, action: Action): AppState {
@@ -100,22 +137,17 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'updateSource': {
       const source = state.sources.find((s) => s.id === action.sourceId);
       const disconnecting = source?.connected && action.patch.connected === false;
+      const next = disconnecting ? revokeAll(state, source) : state;
       return {
-        ...state,
+        ...next,
         sources: state.sources.map((s) => (s.id === action.sourceId ? { ...s, ...action.patch } : s)),
-        contextItems: disconnecting ? dropContext(state.contextItems, source) : state.contextItems,
-        suggestions: disconnecting ? dropSuggestions(state, source) : state.suggestions,
       };
     }
     case 'setChannelAllowed': {
       const source = state.sources.find((s) => s.id === action.sourceId);
+      const next = source && !action.allowed ? revokeAll(state, source, action.channelId) : state;
       return {
-        ...state,
-        contextItems:
-          source && !action.allowed
-            ? dropContext(state.contextItems, source, action.channelId)
-            : state.contextItems,
-        suggestions: source && !action.allowed ? dropSuggestions(state, source, action.channelId) : state.suggestions,
+        ...next,
         sources: state.sources.map((s) =>
           s.id !== action.sourceId
             ? s
@@ -240,15 +272,28 @@ export function reducer(state: AppState, action: Action): AppState {
         suggestions: [],
         messages: [],
         sources: state.sources.map((s) => ({ ...s, connected: false, connectedAt: undefined })),
+        // Deleting everything includes the workspace saved aside during the demo.
+        demo: false,
+        beforeDemo: undefined,
       };
     case 'resetDemo':
       return { ...seedState(), user: state.user };
     case 'loadDemo':
-      // Swap in the planted demo workspace (0009). Keeps the signed-in user so
-      // the demo feels like their own workspace.
-      return { ...demoState(), user: state.user };
+      // Swap in the planted demo workspace (0009), setting the PM's own work
+      // aside. Keeps the signed-in user and the sources and channels they chose.
+      if (state.demo) return state;
+      return { ...demoState(), user: state.user, sources: state.sources, beforeDemo: workspaceOf(state) };
     case 'exitDemo':
-      return { ...seedState(), user: state.user };
+      // Bring the PM's own workspace back as they left it.
+      if (!state.demo) return state;
+      return {
+        ...seedState(),
+        ...(state.beforeDemo ?? {}),
+        user: state.user,
+        sources: state.sources,
+        demo: false,
+        beforeDemo: undefined,
+      };
   }
 }
 

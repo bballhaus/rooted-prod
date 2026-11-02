@@ -28,6 +28,8 @@ function chatPayload(question: string, scope: ChatScope, state: AppState, histor
       owner: ownerOf(d, state)?.name,
       date: decisionDate(d),
       status: d.status,
+      // A planted demo direction, not a decision anyone has started (0009).
+      plantedDirection: d.speculative || undefined,
       tags: (d.tags ?? []).map((t) => t.label),
       chosen: chosenLabel(d, state),
       rationale: d.rationale,

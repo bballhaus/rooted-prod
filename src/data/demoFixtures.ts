@@ -11,6 +11,7 @@
 import type { AppState, ContextItem, Decision, DecisionLink, Gap, OptionNode, Outcome } from '../types';
 import { demoUser, seedSources } from './fixtures';
 import { ME, seedTeammates } from './history';
+import { localToday } from '../store/dashboard';
 
 // Written compactly: edges and the outcome sit on the decision here, and are
 // split into the store's links and outcomes when the demo loads.
@@ -833,8 +834,32 @@ const gaps: Gap[] = [
   },
 ];
 
-/** The planted demo forest: a signed-in workspace with a year of connected calls. */
-export function demoState(): AppState {
+// The demo is written as of this day. Each load moves every date by the days
+// since, so the past stays past and the directions stay ahead of today.
+const WRITTEN_ON = '2026-11-02';
+const DAY = 86_400_000;
+
+function shiftDates<T>(value: T, days: number): T {
+  if (days === 0) return value;
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}(T|$)/.test(value)) {
+    const date = value.length === 10 ? `${value}T00:00:00.000Z` : value;
+    const moved = new Date(Date.parse(date) + days * DAY).toISOString();
+    return (value.length === 10 ? moved.slice(0, 10) : moved) as T;
+  }
+  if (Array.isArray(value)) return value.map((v) => shiftDates(v, days)) as T;
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, shiftDates(v, days)])) as T;
+  }
+  return value;
+}
+
+/** The planted demo forest, dated relative to `today` (the PM's local day). */
+export function demoState(today: string = localToday()): AppState {
+  const days = Math.round((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${WRITTEN_ON}T00:00:00Z`)) / DAY);
+  return shiftDates(plantedState(), days);
+}
+
+function plantedState(): AppState {
   const sources = structuredClone(seedSources);
   // In the demo, both sources are connected so the brief and evidence read full.
   for (const s of sources) {

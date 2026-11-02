@@ -65,18 +65,17 @@
   --wine-tint: rgba(88, 28, 50, 0.07);
   --wine-line: rgba(88, 28, 50, 0.26);
   --sage-tint: rgba(134, 144, 115, 0.2);
-  --berry-tint: rgba(142, 64, 86, 0.12);
   --canvas-bg: #f5f6f8;
   --grid-dot: rgba(34, 36, 42, 0.09);
-  --node-glow: rgba(88, 28, 50, 0.25);
-  /* Muted goal colors for "Color by goal" on the map (0010). Earthy, never wine. */
-  --goal-1: #8e4056;
-  --goal-2: #7d8a68;
-  --goal-3: #4a5a63;
-  --goal-4: #9a6b4a;
-  --goal-5: #6e4a59;
-  --goal-6: #5f6b4f;
-  --goal-7: #c39aa3;
+  --node-glow: rgba(37, 39, 43, 0.16);
+  /* "Color by goal" on the map (0010): six existing accents, never wine or
+     berry. Aliases, so they follow the theme. */
+  --goal-1: var(--moss);
+  --goal-2: var(--ochre);
+  --goal-3: var(--person-4);
+  --goal-4: var(--person-6);
+  --goal-5: var(--person-5);
+  --goal-6: var(--ai-line);
 
   --gutter: clamp(20px, 4vw, 56px);
   --max: 1240px;
@@ -128,17 +127,9 @@
   --wine-tint: rgba(142, 64, 86, 0.2);
   --wine-line: rgba(195, 154, 163, 0.4);
   --sage-tint: rgba(164, 173, 150, 0.16);
-  --berry-tint: rgba(195, 154, 163, 0.14);
   --canvas-bg: #1b1d21;
   --grid-dot: rgba(233, 235, 238, 0.06);
-  --node-glow: rgba(195, 154, 163, 0.5);
-  --goal-1: #d193a4;
-  --goal-2: #b5c19f;
-  --goal-3: #9fb4bf;
-  --goal-4: #dc9e7f;
-  --goal-5: #bfa3cf;
-  --goal-6: #a9c08f;
-  --goal-7: #e0c2c8;
+  --node-glow: rgba(247, 244, 239, 0.28);
 
   color-scheme: dark;
 }

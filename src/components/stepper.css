@@ -73,5 +73,5 @@ a.stepper-link:hover {
 }
 
 .stepper-step-ahead .stepper-label {
-  opacity: 0.7;
+  color: var(--ink2);
 }

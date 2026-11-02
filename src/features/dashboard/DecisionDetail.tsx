@@ -2,7 +2,8 @@
 // shows what was decided, why, what it was based on, who decided and who was
 // consulted, the options not taken, the outcome, and how it connects to other
 // decisions. AI tags and AI links can be accepted, dismissed or reported here.
-// The PM can rename their own decisions in place (0010).
+// The PM can rename their own open decisions in place (0010); a logged record
+// keeps the question its rationale answers.
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Avatar } from '../../components/Avatar';
@@ -85,6 +86,13 @@ export function DecisionDetail({ decision, today, onClose }: { decision: Decisio
             autoFocus
             onChange={(e) => setTitle(e.target.value)}
             onBlur={saveTitle}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                e.preventDefault();
+                setTitle(decision.question);
+                setRenaming(false);
+              }
+            }}
           />
           <button type="submit" className="btn">
             Save
@@ -95,7 +103,7 @@ export function DecisionDetail({ decision, today, onClose }: { decision: Decisio
           <h2 id={titleId} className="detail-title">
             {decision.question}
           </h2>
-          {isMine(decision, state) && (
+          {isMine(decision, state) && decision.status !== 'decided' && (
             <button
               type="button"
               className="btn btn-ghost detail-rename-btn"

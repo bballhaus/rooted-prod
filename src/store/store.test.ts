@@ -1,4 +1,5 @@
 import { buildBrief } from '../agent/brief';
+import { demoState } from '../data/demoFixtures';
 import { demoUser, seedState } from '../data/fixtures';
 import { reducer } from './store';
 
@@ -93,12 +94,41 @@ describe('demo mode and outcomes', () => {
     expect(s1.outcomes.every((o) => ids.has(o.decisionId))).toBe(true);
   });
 
-  it('exitDemo returns to the seed and clears the demo flag, keeping the user', () => {
-    const demo = reducer({ ...seedState(), user: structuredClone(demoUser) }, { type: 'loadDemo' });
+  it('exitDemo brings back the PM’s own workspace as they left it, and clears the demo flag', () => {
+    const mine = {
+      id: 'd-mine',
+      question: 'Ship the beta to five design partners?',
+      notes: '',
+      links: [],
+      constraints: [],
+      status: 'framing' as const,
+      createdAt: '2026-11-01T10:00:00.000Z',
+    };
+    const own = reducer({ ...seedState(), user: structuredClone(demoUser) }, { type: 'createDecision', decision: mine });
+    const demo = reducer(own, { type: 'loadDemo' });
+    expect(demo.decisions.some((d) => d.id === 'd-mine')).toBe(false);
     const s1 = reducer(demo, { type: 'exitDemo' });
     expect(s1.demo).toBe(false);
     expect(s1.user?.name).toBe('Jordan Lee');
-    expect(s1.decisions).toHaveLength(seedState().decisions.length);
+    expect(s1.decisions).toEqual(own.decisions);
+    expect(s1.beforeDemo).toBeUndefined();
+  });
+
+  it('F-02: the demo keeps the sources and channels the PM chose', () => {
+    const s0 = reducer(
+      { ...seedState(), user: structuredClone(demoUser) },
+      { type: 'setChannelAllowed', sourceId: 'src-slack', channelId: 'ch-product', allowed: false },
+    );
+    const demo = reducer(s0, { type: 'loadDemo' });
+    expect(demo.sources).toEqual(s0.sources);
+  });
+
+  it('F-23: deleting all data in the demo deletes the saved workspace too and leaves the demo', () => {
+    const demo = reducer({ ...seedState(), user: structuredClone(demoUser) }, { type: 'loadDemo' });
+    const s1 = reducer(demo, { type: 'deleteAllData' });
+    expect(s1.demo).toBe(false);
+    expect(s1.beforeDemo).toBeUndefined();
+    expect(s1.decisions).toEqual([]);
   });
 
   it('F-16: logOutcome records the result for the decision without changing its status', () => {
@@ -119,5 +149,22 @@ describe('demo mode and outcomes', () => {
     expect(o?.summary).toBe('It worked');
     expect(o?.metrics).toBe('Activation +7');
     expect(s1.decisions.find((x) => x.id === d0.id)?.status).toBe(d0.status);
+  });
+});
+
+describe('demo dates', () => {
+  it('the demo is dated relative to today, so its outcomes stay in the past', () => {
+    const early = demoState('2026-11-02');
+    const later = demoState('2027-03-02');
+    const at = (s: ReturnType<typeof demoState>, id: string) => s.decisions.find((d) => d.id === id)!;
+    expect(at(early, 'd-activation-metric').createdAt).toBe('2026-05-07T16:00:00.000Z');
+    // 120 days later, everything moves by 120 days.
+    expect(at(later, 'd-activation-metric').createdAt).toBe('2026-09-04T16:00:00.000Z');
+    expect(at(later, 'd-onboarding-checklist').reviewDate).toBe(
+      new Date(Date.parse(`${at(early, 'd-onboarding-checklist').reviewDate}T00:00:00Z`) + 120 * 86_400_000)
+        .toISOString()
+        .slice(0, 10),
+    );
+    expect(later.outcomes.every((o) => o.loggedAt < '2027-03-02')).toBe(true);
   });
 });

@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { cleanup, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { demoState } from '../../data/demoFixtures';
 import { STORAGE_KEY } from '../../store/store';
@@ -262,27 +262,49 @@ describe('Decision canvas', () => {
     expect(screen.getByRole('complementary', { name: /Charge per seat or per workspace/ })).toBeInTheDocument();
   });
 
-  it('F-08: the PM can rename their own decision from the details', async () => {
-    const { user } = renderApp('/?focus=d-onboarding-checklist', demo());
-    await user.click(panelFor(/checklist or a guided tour/).getByRole('button', { name: 'Rename decision' }));
+  it('F-04: the PM can rename their own open decision from the details, or cancel with Escape', async () => {
+    const { user } = renderApp('/?focus=d-self-serve-expansion', demo());
+    await user.click(panelFor(/drive expansion revenue/).getByRole('button', { name: 'Rename decision' }));
+    await user.type(screen.getByLabelText('Rename decision'), ' Draft{Escape}');
+    expect(stored().decisions.find((d) => d.id === 'd-self-serve-expansion')?.question).toBe(
+      'How do we drive expansion revenue inside existing accounts?',
+    );
+    await user.click(panelFor(/drive expansion revenue/).getByRole('button', { name: 'Rename decision' }));
     const input = screen.getByLabelText('Rename decision');
     await user.clear(input);
-    await user.type(input, 'Rework onboarding end to end?{Enter}');
-    expect(screen.getByRole('complementary', { name: /Rework onboarding end to end/ })).toBeInTheDocument();
-    expect(stored().decisions.find((d) => d.id === 'd-onboarding-checklist')?.question).toBe('Rework onboarding end to end?');
+    await user.type(input, 'Grow revenue inside existing accounts?{Enter}');
+    expect(screen.getByRole('complementary', { name: /Grow revenue inside existing accounts/ })).toBeInTheDocument();
+    expect(stored().decisions.find((d) => d.id === 'd-self-serve-expansion')?.question).toBe(
+      'Grow revenue inside existing accounts?',
+    );
   });
 
-  it('a teammate’s decision has no rename', () => {
+  it('a logged record and a teammate’s decision have no rename', () => {
+    renderApp('/?focus=d-onboarding-checklist', demo());
+    expect(panelFor(/checklist or a guided tour/).queryByRole('button', { name: 'Rename decision' })).not.toBeInTheDocument();
+    cleanup();
     renderApp('/?focus=o-api-v2', demo());
     expect(panelFor(/Ship API v2/).queryByRole('button', { name: 'Rename decision' })).not.toBeInTheDocument();
   });
 
-  it('Trace turns on once a decision is picked', async () => {
-    const { user } = renderApp('/?focus=d-self-serve-expansion', demo());
+  it('planted directions are not listed as the PM’s decisions in progress', () => {
+    renderApp('/', demo());
+    const rail = within(screen.getByRole('complementary', { name: 'Needs you' }));
+    expect(rail.getByRole('link', { name: /drive expansion revenue/ })).toBeInTheDocument();
+    expect(rail.queryByRole('link', { name: /usage-based pricing/ })).not.toBeInTheDocument();
+  });
+
+  it('F-19: Trace lights up everything a decision built on and led to, and fades the rest', async () => {
+    const { user } = renderApp('/?focus=d-weekly-digest', demo());
+    const card = (id: string) => document.querySelector(`.react-flow__node[data-id="${id}"] .map-node`)!;
     const trace = screen.getByRole('button', { name: /Trace/ });
     expect(trace).toBeEnabled();
     await user.click(trace);
     expect(trace).toHaveAttribute('aria-pressed', 'true');
+    expect(card('d-weekly-digest')).toHaveClass('map-node-traced');
+    expect(card('d-mobile-push')).toHaveClass('map-node-traced');
+    expect(card('d-activation-metric')).toHaveClass('map-node-faded');
+    expect(card('d-activation-metric')).not.toHaveClass('map-node-traced');
   });
 
   it('coloring by goal or by person shows what each color means', async () => {

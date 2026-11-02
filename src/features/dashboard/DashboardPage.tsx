@@ -26,7 +26,7 @@ import type { AppState, Decision } from '../../types';
 import { useAgent } from '../agent/AgentContext';
 import { continuePath, formatDate } from '../log/format';
 import { DecisionDetail } from './DecisionDetail';
-import { DecisionMap, goalColor, goalOf, type ColorBy, type MapLayoutMode } from './DecisionMap';
+import { DecisionMap, goalPalette, type ColorBy, type MapLayoutMode } from './DecisionMap';
 import { InboxRow } from './InboxRow';
 import { LANE_LABEL, laneOf, type LaneBy } from './mapLayout';
 import { useInboxActions } from './useInboxActions';
@@ -294,10 +294,7 @@ function ColorLegend({ decisions, colorBy }: { decisions: Decision[]; colorBy: C
   const { state } = useStore();
   const items =
     colorBy === 'goal'
-      ? (() => {
-          const goals = [...new Set(decisions.map(goalOf).filter((g): g is string => !!g))].sort();
-          return goals.map((g) => ({ key: g, label: g, color: goalColor(g, goals) }));
-        })()
+      ? goalPalette(decisions).legend.map((g) => ({ key: g.label, ...g }))
       : [...new Set(decisions.map((d) => ownerOf(d, state)?.id))].map((id) => {
           const mate = state.teammates.find((t) => t.id === id);
           return { key: id ?? 'unknown', label: mate?.name ?? 'Unknown', color: personColor(id, state.teammates) };
@@ -418,8 +415,9 @@ function NeedsYou({ today }: { today: string }) {
   const actions = useInboxActions();
   const due = inboxItems(state, today).filter((i) => i.due);
   const suggestions = state.suggestions.filter((s) => s.status === 'new');
+  // Planted directions (demo data) aren't work the PM has under way.
   const drafts = state.decisions
-    .filter((d) => d.status !== 'decided' && isMine(d, state))
+    .filter((d) => d.status !== 'decided' && !d.speculative && isMine(d, state))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   return (

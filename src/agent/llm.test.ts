@@ -56,6 +56,32 @@ describe('askAgent with an LLM endpoint', () => {
     expect(sent.payload.context).toEqual([]);
   });
 
+  it('F-02: after a channel is turned off, agent replies that quoted it are not sent to the LLM again', async () => {
+    const fetch = respond(200, { ok: true, result: { text: 'ok', citations: [] } });
+    vi.stubGlobal('fetch', fetch);
+    const snippet = 'Third admin this week who invited the team, left, and came back two days later unsure what was next.';
+    const s0: AppState = {
+      ...state(),
+      messages: [
+        { id: 'm1', threadId: 'd-onboarding-checklist', role: 'user', text: 'What did support say?', createdAt: '2026-10-30T10:00:00.000Z' },
+        {
+          id: 'm2',
+          threadId: 'd-onboarding-checklist',
+          role: 'agent',
+          text: `Evidence: Priya (Support) in #customer-feedback: “${snippet}”`,
+          createdAt: '2026-10-30T10:00:01.000Z',
+        },
+      ],
+    };
+    const { reducer } = await import('../store/store');
+    const s1 = reducer(s0, { type: 'setChannelAllowed', sourceId: 'src-slack', channelId: 'ch-support', allowed: false });
+    const { askAgent } = await load();
+    await askAgent('And now?', { decisionId: 'd-onboarding-checklist' }, s1, s1.messages);
+    const body = fetch.mock.calls[0][1].body as string;
+    expect(body).not.toContain(snippet);
+    expect(s1.messages.map((m) => m.id)).toEqual(['m1']);
+  });
+
   it('falls back to a sample answer on not_configured, and stops asking for the rest of the page load', async () => {
     const fetch = respond(503, { ok: false, error: 'not_configured' });
     vi.stubGlobal('fetch', fetch);

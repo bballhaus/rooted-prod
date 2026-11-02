@@ -130,7 +130,7 @@ function generalReply(question: string, state: AppState, today: string): AgentRe
   }
 
   if (/\b(open|pending|in progress|waiting|upcoming|coming up|next|need to decide|to decide)\b/.test(q)) {
-    const open = state.decisions.filter((d) => d.status !== 'decided');
+    const open = state.decisions.filter((d) => d.status !== 'decided' && !d.speculative);
     const spotted = state.suggestions.filter((s) => s.status === 'new');
     const reply = open.length ? list('Still open:', open, state) : { text: 'Nothing is open right now.', citations: [] };
     if (spotted.length) {
