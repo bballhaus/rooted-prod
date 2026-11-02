@@ -34,6 +34,7 @@ Both would work as well. Vercel wins only because the landing page already runs 
 ## Consequences
 
 - `vercel.json` sits at the repo root. Changing the build output or routes means updating it.
+- `.github/workflows/vercel-deploy.yml` deploys `main` to production on each push. It needs the repo secrets `VERCEL_TOKEN`, `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID`, which a person sets. If the Vercel GitHub app is connected too, turn off its production deploys for `main` so the two don't both deploy.
 - The hosted prototype is public. It holds only synthetic fixtures, and each visitor's edits stay in their own browser.
 - The LLM stays off on the hosted app until a person deploys the Edge Function and sets its secrets (0007), and real Supabase sign-in exists.
 
