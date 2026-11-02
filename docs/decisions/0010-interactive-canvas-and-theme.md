@@ -14,7 +14,7 @@ Written as 0006 on a parallel branch, with its own hand-built canvas. The team k
 - **Graph and Timeline.** Graph is the default: the deterministic force layout from this branch (`src/features/dashboard/graphLayout.ts`), with draggable nodes whose positions are saved per scope under `rooted-map-pos-v1`. Timeline is 0006/0008's swimlanes on a time axis.
 - **Trace, color, rename.** Trace highlights a picked decision's whole lineage through accepted links. "Color by" offers status, goal or tag, or who decided, with a legend: people use `--person-*` and goals use new `--goal-*` tokens, in place of a hex list in code. Rename sits in the details panel, for the PM's own decisions.
 - **Full width.** The "Needs you" rail can be hidden.
-- **Theme.** `data-theme` on `<html>` (`src/theme.ts`), toggled from the profile menu, starting from the system setting. Pages keep the brand's cream and charcoal. Only the map canvas uses the crisp neutral (`--canvas-bg`) and its dot grid, so cream stays "paper" as `design-language.md` says.
+- **Theme.** `data-theme` on `<html>` (`src/theme.ts`), toggled from the profile menu, starting from the system setting. _(The first-run default is now light, not the OS setting — see [0013](0013-light-theme-default.md).)_ Pages keep the brand's cream and charcoal. Only the map canvas uses the crisp neutral (`--canvas-bg`) and its dot grid, so cream stays "paper" as `design-language.md` says. _(The canvas is now a clean white workspace surface — see [0012](0012-workspace-canvas-surface.md).)_
 - **Shell.** 0006's header and footer stay in place of this branch's left rail. This branch's floating zoom controls sit bottom right.
 - **Moved:** the hand-drawn engine is now a pruned option below.
 
@@ -23,7 +23,7 @@ Changed in review:
 - **The halo is ink.** It sits on the picked node and on its traced path, and is ink rather than wine, so wine still marks only the chosen option.
 - **Goal colors reuse the palette.** "Color by goal" uses six aliases of existing accents (`--goal-1…6`). The rest share a neutral "Other", and the card shows the goal's name, so color is never the only cue.
 - **Rename is for open decisions.** It's offered only on the PM's own open decisions. A logged record keeps the question its rationale answers.
-- **The canvas needs sign-off.** Its neutral background (`--canvas-bg`) is the one color outside the five core colors and their mixes. It needs the team's sign-off at review.
+- **The canvas needs sign-off.** Its neutral background (`--canvas-bg`) is the one color outside the five core colors and their mixes. It needs the team's sign-off at review. _(Signed off in [0012](0012-workspace-canvas-surface.md): the canvas and the whole home workspace now share one clean white surface in light — not the cream, which reads as off-white — and a crisp dark in dark; cream stays on every other page.)_
 
 ### Pruned in the merge: keep the hand-built canvas instead of React Flow
 

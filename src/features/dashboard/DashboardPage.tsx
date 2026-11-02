@@ -7,7 +7,17 @@ import { useEffect, useId, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { rankDecisions } from '../../agent/chat';
 import { Avatar, personColor } from '../../components/Avatar';
-import { IconGraph, IconSidebar, IconTimeline, IconTrace } from '../../components/icons';
+import {
+  IconChevronLeft,
+  IconGraph,
+  IconMoon,
+  IconRows,
+  IconSidebar,
+  IconSliders,
+  IconSun,
+  IconTimeline,
+  IconTrace,
+} from '../../components/icons';
 import { ReportWrongAnswer } from '../../components/ReportWrongAnswer';
 import {
   chosenLabel,
@@ -22,6 +32,7 @@ import {
   type MapStatus,
 } from '../../store/dashboard';
 import { useStore } from '../../store/store';
+import { useTheme } from '../../theme';
 import type { AppState, Decision } from '../../types';
 import { useAgent } from '../agent/AgentContext';
 import { continuePath, formatDate } from '../log/format';
@@ -36,6 +47,8 @@ type View = 'tree' | 'list';
 type StatusFilter = 'all' | MapStatus;
 
 const VIEW_KEY = 'rooted-map-view';
+const DETAIL_KEY = 'rooted-map-detailed';
+const FILTERS_KEY = 'rooted-map-filters';
 
 function initialView(): View {
   try {
@@ -46,6 +59,18 @@ function initialView(): View {
   }
   // A graph doesn't fit a phone; start small screens on the list.
   return typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 880px)').matches ? 'list' : 'tree';
+}
+
+// A remembered boolean preference, defaulting when storage is empty or unavailable.
+function storedFlag(key: string, fallback: boolean): boolean {
+  try {
+    const v = localStorage.getItem(key);
+    if (v === 'on') return true;
+    if (v === 'off') return false;
+  } catch {
+    // storage can be unavailable
+  }
+  return fallback;
 }
 
 export function searchMatches(q: string, state: AppState): Set<string> | null {
@@ -61,13 +86,18 @@ export function DashboardPage() {
   const { highlight } = useAgent();
   const [params, setParams] = useSearchParams();
   const today = localToday();
-  const ids = { lanes: useId(), who: useId(), tag: useId(), status: useId(), color: useId() };
+  const ids = { lanes: useId(), who: useId(), tag: useId(), status: useId(), color: useId(), filters: useId() };
+  const { theme, toggle: toggleTheme } = useTheme();
 
   const [view, setView] = useState<View>(initialView);
   const [mode, setMode] = useState<MapLayoutMode>('graph');
   const [colorBy, setColorBy] = useState<ColorBy>('status');
+  const [detailed, setDetailed] = useState(() => storedFlag(DETAIL_KEY, false));
+  // Filters live behind a toggle and start closed, so the default view stays clean.
+  const [filtersOpen, setFiltersOpen] = useState(() => storedFlag(FILTERS_KEY, false));
   const [trace, setTrace] = useState(false);
-  const [railOpen, setRailOpen] = useState(true);
+  // Needs-you starts closed so the canvas is the first thing you see; reopen it top-left.
+  const [railOpen, setRailOpen] = useState(false);
   const [laneBy, setLaneBy] = useState<LaneBy>('thread');
   const [who, setWho] = useState<string>('everyone');
   const [status, setStatus] = useState<StatusFilter>('all');
@@ -80,6 +110,22 @@ export function DashboardPage() {
       // the view just won't be remembered
     }
   }, [view]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(DETAIL_KEY, detailed ? 'on' : 'off');
+    } catch {
+      // the preference just won't be remembered
+    }
+  }, [detailed]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(FILTERS_KEY, filtersOpen ? 'on' : 'off');
+    } catch {
+      // the preference just won't be remembered
+    }
+  }, [filtersOpen]);
 
   const q = params.get('q') ?? '';
   const selectedId = params.get('focus') ?? undefined;
@@ -106,138 +152,42 @@ export function DashboardPage() {
 
   const dueCount = state.decisions.filter((d) => isMine(d, state) && mapStatus(d, state, today) === 'outcome-due').length;
 
+  const hasDecisions = state.decisions.length > 0;
+
   return (
     <div className={railOpen ? 'dash' : 'dash dash-rail-hidden'}>
-      {railOpen && <NeedsYou today={today} />}
+      {railOpen && <NeedsYou today={today} onMinimize={() => setRailOpen(false)} />}
 
       <section className="dash-main" aria-labelledby="dash-title">
-        <div className="dash-toolbar">
-          <div className="dash-heading">
-            <h1 id="dash-title" className="dash-title">
-              Decisions
-            </h1>
-            <p className="muted dash-count tabular" role="status">
-              {matchIds ? `${listed.length} match “${q}” · ` : ''}
-              {filtered.length} shown · {state.decisions.length} total
-              {dueCount ? ` · ${dueCount} outcome${dueCount === 1 ? '' : 's'} due` : ''}
-            </p>
-          </div>
-
-          <div className="row dash-controls">
-            <button
-              type="button"
-              className="icon-btn dash-rail-btn"
-              aria-label={railOpen ? 'Hide the Needs you panel' : 'Show the Needs you panel'}
-              aria-pressed={!railOpen}
-              onClick={() => setRailOpen(!railOpen)}
-            >
-              <IconSidebar size={18} />
-            </button>
-            <div className="dash-seg" role="group" aria-label="View">
-              <button type="button" className="toggle" aria-pressed={view === 'tree'} onClick={() => setView('tree')}>
-                Tree
-              </button>
-              <button type="button" className="toggle" aria-pressed={view === 'list'} onClick={() => setView('list')}>
-                List
-              </button>
-            </div>
-            {view === 'tree' && (
-              <div className="dash-seg" role="group" aria-label="Map layout">
-                <button type="button" className="toggle" aria-pressed={mode === 'graph'} onClick={() => setMode('graph')}>
-                  <IconGraph size={15} /> Graph
-                </button>
-                <button
-                  type="button"
-                  className="toggle"
-                  aria-pressed={mode === 'timeline'}
-                  onClick={() => setMode('timeline')}
-                >
-                  <IconTimeline size={15} /> Timeline
-                </button>
-              </div>
-            )}
-            {(view === 'list' || mode === 'timeline') && (
-              <div className="field dash-field">
-                <label htmlFor={ids.lanes}>{view === 'tree' ? 'Lanes' : 'Group by'}</label>
-                <select id={ids.lanes} className="select" value={laneBy} onChange={(e) => setLaneBy(e.target.value as LaneBy)}>
-                  {(Object.keys(LANE_LABEL) as LaneBy[]).map((k) => (
-                    <option key={k} value={k}>
-                      {LANE_LABEL[k]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-            {view === 'tree' && (
-              <div className="field dash-field">
-                <label htmlFor={ids.color}>Color by</label>
-                <select id={ids.color} className="select" value={colorBy} onChange={(e) => setColorBy(e.target.value as ColorBy)}>
-                  <option value="status">Status</option>
-                  <option value="goal">Goal or tag</option>
-                  <option value="owner">Who decided</option>
-                </select>
-              </div>
-            )}
-            {view === 'tree' && (
-              <button
-                type="button"
-                className="toggle dash-trace"
-                aria-pressed={trace && !!selected}
-                disabled={!selected}
-                title={selected ? 'Highlight everything this decision built on and led to' : 'Pick a decision to trace it'}
-                onClick={() => setTrace(!trace)}
-              >
-                <IconTrace size={15} /> Trace
-              </button>
-            )}
-            <div className="field dash-field">
-              <label htmlFor={ids.who}>Who</label>
-              <select id={ids.who} className="select" value={who} onChange={(e) => setWho(e.target.value)}>
-                <option value="everyone">Everyone</option>
-                <option value="me">Just me</option>
-                {state.teammates
-                  .filter((t) => t.id !== state.user?.id)
-                  .map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                    </option>
-                  ))}
-              </select>
-            </div>
-            <div className="field dash-field">
-              <label htmlFor={ids.tag}>Tag</label>
-              <select id={ids.tag} className="select" value={tag} onChange={(e) => setTag(e.target.value)}>
-                <option value="">All tags</option>
-                {tags.map((t) => (
-                  <option key={t} value={t}>
-                    #{t}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="field dash-field">
-              <label htmlFor={ids.status}>Status</label>
-              <select
-                id={ids.status}
-                className="select"
-                value={status}
-                onChange={(e) => setStatus(e.target.value as StatusFilter)}
-              >
-                {(['all', 'open', 'outcome-due', 'decided', 'outcome-logged'] as StatusFilter[]).map((s) => (
-                  <option key={s} value={s}>
-                    {s === 'all' ? 'Any status' : MAP_STATUS_LABEL[s]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {view === 'tree' && <Legend />}
-            {view === 'tree' && colorBy !== 'status' && <ColorLegend decisions={filtered} colorBy={colorBy} />}
-          </div>
-        </div>
+        {/* The workspace name is a landmark, not a banner — the canvas is what you see. */}
+        <h1 id="dash-title" className="visually-hidden">
+          Decisions
+        </h1>
 
         <div className={selected ? 'dash-stage dash-stage-detail' : 'dash-stage'}>
-          {state.decisions.length === 0 ? (
+          {/* The visible count is gone; search still announces its match total. */}
+          <p className="visually-hidden" role="status">
+            {matchIds ? `${listed.length} of ${state.decisions.length} decisions match “${q}”` : ''}
+          </p>
+
+          {/* The Needs-you panel is closed by default; reopen it from the top-left. */}
+          {!railOpen && hasDecisions && (
+            <button
+              type="button"
+              className="dash-rail-reopen"
+              aria-label="Show the Needs you panel"
+              onClick={() => setRailOpen(true)}
+            >
+              <IconSidebar size={18} />
+              {dueCount > 0 && (
+                <span className="badge" aria-hidden="true">
+                  {dueCount}
+                </span>
+              )}
+            </button>
+          )}
+
+          {!hasDecisions ? (
             <EmptyState />
           ) : filtered.length === 0 ? (
             <p className="banner dash-empty">No decisions match those filters.</p>
@@ -248,6 +198,7 @@ export function DashboardPage() {
               mode={mode}
               laneBy={laneBy}
               colorBy={colorBy}
+              detailed={detailed}
               trace={trace}
               positionsKey={`${state.demo ? 'demo' : 'own'}:${who}`}
               today={today}
@@ -260,6 +211,144 @@ export function DashboardPage() {
             <DecisionList decisions={listed} laneBy={laneBy} today={today} selectedId={selectedId} onSelect={select} />
           )}
           {selected && <DecisionDetail key={selected.id} decision={selected} today={today} onClose={() => select(undefined)} />}
+
+          {/* The workspace dock floats at the bottom (Figma-style), out of the canvas's way.
+              Filters open as a panel above it, so they never take up standing space. */}
+          {hasDecisions && (
+            <div className="dash-dock">
+              {filtersOpen && (
+                <div className="dash-filters" id={ids.filters}>
+                  {(view === 'list' || mode === 'timeline') && (
+                    <div className="field dash-field">
+                      <label htmlFor={ids.lanes}>{view === 'tree' ? 'Lanes' : 'Group by'}</label>
+                      <select id={ids.lanes} className="select" value={laneBy} onChange={(e) => setLaneBy(e.target.value as LaneBy)}>
+                        {(Object.keys(LANE_LABEL) as LaneBy[]).map((k) => (
+                          <option key={k} value={k}>
+                            {LANE_LABEL[k]}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  {view === 'tree' && (
+                    <div className="field dash-field">
+                      <label htmlFor={ids.color}>Color by</label>
+                      <select id={ids.color} className="select" value={colorBy} onChange={(e) => setColorBy(e.target.value as ColorBy)}>
+                        <option value="status">Status</option>
+                        <option value="goal">Goal or tag</option>
+                        <option value="owner">Who decided</option>
+                      </select>
+                    </div>
+                  )}
+                  {view === 'tree' && (
+                    <button
+                      type="button"
+                      className="toggle dash-trace"
+                      aria-pressed={trace && !!selected}
+                      disabled={!selected}
+                      title={selected ? 'Highlight everything this decision built on and led to' : 'Pick a decision to trace it'}
+                      onClick={() => setTrace(!trace)}
+                    >
+                      <IconTrace size={15} /> Trace
+                    </button>
+                  )}
+                  <div className="field dash-field">
+                    <label htmlFor={ids.who}>Who</label>
+                    <select id={ids.who} className="select" value={who} onChange={(e) => setWho(e.target.value)}>
+                      <option value="everyone">Everyone</option>
+                      <option value="me">Just me</option>
+                      {state.teammates
+                        .filter((t) => t.id !== state.user?.id)
+                        .map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <div className="field dash-field">
+                    <label htmlFor={ids.tag}>Tag</label>
+                    <select id={ids.tag} className="select" value={tag} onChange={(e) => setTag(e.target.value)}>
+                      <option value="">All tags</option>
+                      {tags.map((t) => (
+                        <option key={t} value={t}>
+                          #{t}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="field dash-field">
+                    <label htmlFor={ids.status}>Status</label>
+                    <select
+                      id={ids.status}
+                      className="select"
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value as StatusFilter)}
+                    >
+                      {(['all', 'open', 'outcome-due', 'decided', 'outcome-logged'] as StatusFilter[]).map((s) => (
+                        <option key={s} value={s}>
+                          {s === 'all' ? 'Any status' : MAP_STATUS_LABEL[s]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {view === 'tree' && <Legend />}
+                  {view === 'tree' && colorBy !== 'status' && <ColorLegend decisions={filtered} colorBy={colorBy} />}
+                </div>
+              )}
+
+              <div className="dash-dock-bar">
+                <div className="dash-seg" role="group" aria-label="View">
+                  <button type="button" className="toggle" aria-pressed={view === 'tree'} onClick={() => setView('tree')}>
+                    Tree
+                  </button>
+                  <button type="button" className="toggle" aria-pressed={view === 'list'} onClick={() => setView('list')}>
+                    List
+                  </button>
+                </div>
+                {view === 'tree' && (
+                  <div className="dash-seg" role="group" aria-label="Map layout">
+                    <button type="button" className="toggle" aria-pressed={mode === 'graph'} onClick={() => setMode('graph')}>
+                      <IconGraph size={15} /> Graph
+                    </button>
+                    <button type="button" className="toggle" aria-pressed={mode === 'timeline'} onClick={() => setMode('timeline')}>
+                      <IconTimeline size={15} /> Timeline
+                    </button>
+                  </div>
+                )}
+                <span className="dash-dock-sep" aria-hidden="true" />
+                {view === 'tree' && (
+                  <button
+                    type="button"
+                    className="toggle dash-tool"
+                    aria-pressed={detailed}
+                    title="Show the date, owner and goal on every card"
+                    onClick={() => setDetailed(!detailed)}
+                  >
+                    <IconRows size={15} /> Details
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="toggle dash-tool"
+                  aria-pressed={filtersOpen}
+                  aria-expanded={filtersOpen}
+                  aria-controls={ids.filters}
+                  onClick={() => setFiltersOpen(!filtersOpen)}
+                >
+                  <IconSliders size={15} /> Filters
+                </button>
+                <button
+                  type="button"
+                  className="icon-btn dash-theme"
+                  aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+                  onClick={toggleTheme}
+                >
+                  {theme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </section>
     </div>
@@ -410,7 +499,7 @@ function DecisionList({
   );
 }
 
-function NeedsYou({ today }: { today: string }) {
+function NeedsYou({ today, onMinimize }: { today: string; onMinimize: () => void }) {
   const { state } = useStore();
   const actions = useInboxActions();
   const due = inboxItems(state, today).filter((i) => i.due);
@@ -422,9 +511,19 @@ function NeedsYou({ today }: { today: string }) {
 
   return (
     <aside className="needs" aria-labelledby="needs-title">
-      <h2 id="needs-title" className="needs-title">
-        Needs you
-      </h2>
+      <div className="needs-head">
+        <h2 id="needs-title" className="needs-title">
+          Needs you
+        </h2>
+        <button
+          type="button"
+          className="icon-btn needs-minimize"
+          aria-label="Hide the Needs you panel"
+          onClick={onMinimize}
+        >
+          <IconChevronLeft size={18} />
+        </button>
+      </div>
 
       <section aria-labelledby="needs-due" className="needs-section">
         <h3 id="needs-due" className="kicker">

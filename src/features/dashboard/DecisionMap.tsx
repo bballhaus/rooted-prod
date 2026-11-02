@@ -84,6 +84,7 @@ interface DecisionData extends Record<string, unknown> {
   traced: boolean; // on the picked decision's lineage while Trace is on
   accent?: string; // stripe color when coloring by goal or owner
   goal?: string; // shown on the card when coloring by goal, so color isn't the only cue
+  simple: boolean; // the quiet default card: a status dot, the question, the choice — nothing else
   onOpen: (id: string) => void;
 }
 
@@ -124,32 +125,61 @@ function DecisionNode({ data, selected }: NodeProps<Node<DecisionData>>) {
         aria-pressed={!!selected}
         onClick={() => data.onOpen(d.id)}
       />
-      <p className="map-node-meta" aria-hidden="true">
-        <span className={`map-dot map-dot-${data.status}`} aria-hidden="true" />
-        <span className={data.status === 'outcome-due' ? 'due-label' : undefined}>
-          {d.speculative ? 'Direction to explore' : MAP_STATUS_LABEL[data.status]}
-        </span>
-        <span aria-hidden="true">·</span>
-        <span className="tabular">{formatDate(decisionDate(d))}</span>
-        {(data.goal ?? d.metric) && <span className="map-node-metric">{data.goal ?? d.metric}</span>}
-      </p>
-      <p className="map-node-q" aria-hidden="true">
-        {d.question}
-      </p>
-      <div className="map-node-foot" aria-hidden="true">
-        <span className="avatar" title={data.ownerName} style={{ '--person': data.ownerColor } as CSSProperties}>
-          {data.initials}
-        </span>
-        {data.chosen ? (
-          <span className="map-node-chosen">
-            <span className="dot dot-chosen" aria-hidden="true" />
-            <span className="visually-hidden">Chose: </span>
-            {data.chosen}
-          </span>
-        ) : (
-          <span className="muted map-node-undecided">Not decided yet</span>
-        )}
-      </div>
+      {data.simple ? (
+        // The quiet default: the status (dot + word), the question, and the choice.
+        // The date, owner and goal wait behind the Details toggle. Status still pairs
+        // colour with a word, and the choice keeps its wine dot, per design-language.
+        <>
+          <p className="map-node-meta" aria-hidden="true">
+            <span className={`map-dot map-dot-${data.status}`} aria-hidden="true" />
+            <span className={data.status === 'outcome-due' ? 'due-label' : undefined}>
+              {d.speculative ? 'Direction to explore' : MAP_STATUS_LABEL[data.status]}
+            </span>
+          </p>
+          <p className="map-node-q" aria-hidden="true">
+            {d.question}
+          </p>
+          {data.chosen ? (
+            <span className="map-node-chosen map-node-chosen-plain" aria-hidden="true">
+              <span className="dot dot-chosen" aria-hidden="true" />
+              {data.chosen}
+            </span>
+          ) : (
+            <span className="muted map-node-chosen-plain" aria-hidden="true">
+              {d.speculative ? '' : 'Not decided yet'}
+            </span>
+          )}
+        </>
+      ) : (
+        <>
+          <p className="map-node-meta" aria-hidden="true">
+            <span className={`map-dot map-dot-${data.status}`} aria-hidden="true" />
+            <span className={data.status === 'outcome-due' ? 'due-label' : undefined}>
+              {d.speculative ? 'Direction to explore' : MAP_STATUS_LABEL[data.status]}
+            </span>
+            <span aria-hidden="true">·</span>
+            <span className="tabular">{formatDate(decisionDate(d))}</span>
+            {(data.goal ?? d.metric) && <span className="map-node-metric">{data.goal ?? d.metric}</span>}
+          </p>
+          <p className="map-node-q" aria-hidden="true">
+            {d.question}
+          </p>
+          <div className="map-node-foot" aria-hidden="true">
+            <span className="avatar" title={data.ownerName} style={{ '--person': data.ownerColor } as CSSProperties}>
+              {data.initials}
+            </span>
+            {data.chosen ? (
+              <span className="map-node-chosen">
+                <span className="dot dot-chosen" aria-hidden="true" />
+                <span className="visually-hidden">Chose: </span>
+                {data.chosen}
+              </span>
+            ) : (
+              <span className="muted map-node-undecided">Not decided yet</span>
+            )}
+          </div>
+        </>
+      )}
       <Handle type="source" id="right" position={Position.Right} isConnectable={false} className="map-handle" />
       <Handle type="source" id="bottom" position={Position.Bottom} isConnectable={false} className="map-handle map-handle-elbow" />
     </div>
@@ -197,6 +227,7 @@ export interface DecisionMapProps {
   mode: MapLayoutMode;
   laneBy: LaneBy;
   colorBy: ColorBy;
+  detailed: boolean; // full node cards (power users); off = the quiet default
   trace: boolean;
   positionsKey: string; // which saved arrangement to use, e.g. the "who" filter
   today: string;
@@ -220,6 +251,7 @@ function MapInner({
   mode,
   laneBy,
   colorBy,
+  detailed,
   trace,
   positionsKey,
   today,
@@ -355,12 +387,13 @@ function MapInner({
           traced: !!traced && traced.has(decision.id),
           accent,
           goal: colorBy === 'goal' ? goal : undefined,
+          simple: !detailed,
           onOpen: onSelect,
         },
       };
     });
     return [...laneNodes, ...monthNodes, ...decisionNodes];
-  }, [layout, state, today, selectedId, matchIds, highlightIds, onSelect, neighbors, traced, colorBy, palette, graph]);
+  }, [layout, state, today, selectedId, matchIds, highlightIds, onSelect, neighbors, traced, colorBy, palette, graph, detailed]);
 
   const edges = useMemo<Edge[]>(() => {
     const at = new Map(layout.placed.map((p) => [p.decision.id, p]));
@@ -428,7 +461,17 @@ function MapInner({
 
   function openView() {
     if (graph) {
-      void flow.fitView({ padding: 0.12, maxZoom: 1 });
+      // Open close-up on the most recent decision, not zoomed out to fit everything,
+      // so the map reads as a workspace you're already in rather than a distant map.
+      const newest = [...layout.placed].sort((a, b) =>
+        decisionDate(b.decision).localeCompare(decisionDate(a.decision)),
+      )[0];
+      if (newest) {
+        // No animation on first paint; this is the opening position, not a move.
+        void flow.setCenter(newest.x + NODE_W / 2, newest.y + NODE_H / 2, { zoom: 0.9, duration: 0 });
+      } else {
+        void flow.fitView({ padding: 0.2, maxZoom: 1 });
+      }
       return;
     }
     const w = canvas.current?.clientWidth ?? 0;
@@ -469,7 +512,8 @@ function MapInner({
         onNodeMouseLeave={() => setHoverId(undefined)}
       >
         <Background variant={BackgroundVariant.Dots} gap={24} size={1.3} color="var(--grid-dot)" />
-        <Controls showInteractive={false} position="bottom-right" />
+        {/* Bottom-left, clear of the agent launcher in the bottom-right corner. */}
+        <Controls showInteractive={false} position="bottom-left" />
         {!graph && laneBy !== 'none' && <LaneLabels lanes={laneLabels} />}
       </ReactFlow>
     </div>
