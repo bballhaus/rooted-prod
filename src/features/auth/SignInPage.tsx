@@ -2,7 +2,7 @@
 // link, through Supabase Auth. Signing in only proves who you are: it doesn't
 // connect Slack or Drive data, which you choose on the next page.
 // F-20: request beta access with a work email (mocked; nothing is stored or sent).
-import { useEffect, useId, useState, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { AUTH_ERROR_MESSAGE, callbackError, type AuthErrorCode, type OAuthProvider } from '../../auth/client';
@@ -23,13 +23,20 @@ function markArriving() {
   }
 }
 
-function takeArriving(): boolean {
+// Read during render, cleared in an effect: render can run twice.
+function isArriving(): boolean {
   try {
-    const was = localStorage.getItem(ARRIVING_KEY) === '1';
-    localStorage.removeItem(ARRIVING_KEY);
-    return was;
+    return localStorage.getItem(ARRIVING_KEY) === '1';
   } catch {
     return false;
+  }
+}
+
+function clearArriving() {
+  try {
+    localStorage.removeItem(ARRIVING_KEY);
+  } catch {
+    // nothing to clear
   }
 }
 
@@ -39,10 +46,15 @@ export function SignInPage() {
   const { state } = useStore();
   const location = useLocation();
   const [tab, setTab] = useState<'signin' | 'request'>('signin');
+  const signedIn = !!state.user;
 
-  if (state.user) {
+  useEffect(() => {
+    if (signedIn) clearArriving();
+  }, [signedIn]);
+
+  if (signedIn) {
     const from = (location.state as { from?: string } | null)?.from;
-    return <Navigate to={takeArriving() ? '/onboarding' : (from ?? '/')} replace />;
+    return <Navigate to={isArriving() ? '/onboarding' : (from ?? '/')} replace />;
   }
 
   return (
@@ -106,7 +118,7 @@ export function SignInPage() {
           {tab === 'signin' ? <SignIn onRequest={() => setTab('request')} /> : <RequestAccess onSignIn={() => setTab('signin')} />}
 
           <p className="muted auth-small auth-fineprint">
-            Signing in is real. Your workspace starts with sample decisions and stays in this browser.
+            Your workspace starts with sample decisions and stays in this browser.
           </p>
         </div>
       </main>
@@ -115,9 +127,10 @@ export function SignInPage() {
 }
 
 function SignIn({ onRequest }: { onRequest: () => void }) {
-  const { client } = useAuth();
+  const { client, checked } = useAuth();
   const location = useLocation();
   const id = useId();
+  const sentRef = useRef<HTMLParagraphElement>(null);
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState<OAuthProvider | 'email' | null>(null);
   const [sentTo, setSentTo] = useState('');
@@ -128,6 +141,30 @@ function SignIn({ onRequest }: { onRequest: () => void }) {
     const fromUrl = callbackError(location.search, location.hash);
     if (fromUrl) setError(fromUrl);
   }, [location.search, location.hash]);
+
+  // A link carries a one-time code that only the browser that asked for it
+  // can use. If the code is still here once the session is checked and nobody
+  // is signed in, the link was opened somewhere else.
+  useEffect(() => {
+    if (checked && new URLSearchParams(location.search).has('code')) setError('other_browser');
+  }, [checked, location.search]);
+
+  // Coming back with the browser's Back button can restore this page as it
+  // was left, mid-redirect; make the buttons usable again.
+  useEffect(() => {
+    const reset = (e: PageTransitionEvent) => e.persisted && setBusy(null);
+    window.addEventListener('pageshow', reset);
+    return () => window.removeEventListener('pageshow', reset);
+  }, []);
+
+  // Move focus to the confirmation when the form it replaces goes away.
+  useEffect(() => {
+    if (sentTo) sentRef.current?.focus();
+  }, [sentTo]);
+
+  useEffect(() => {
+    if (!client) console.warn('Rooted: sign-in needs VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (see .env.example).');
+  }, [client]);
 
   async function withProvider(provider: OAuthProvider) {
     if (!client) return;
@@ -169,20 +206,20 @@ function SignIn({ onRequest }: { onRequest: () => void }) {
       </div>
 
       {!client && (
-        <p role="alert" className="banner">
-          Sign-in isn’t set up for this copy of Rooted. Whoever runs it needs to add the Supabase URL and key (see
-          .env.example).
+        <p role="status" className="banner">
+          Sign-in isn’t available right now. Try again later.
         </p>
       )}
       {error && (
-        <p role="alert" className="error">
+        <p id={`${id}-error`} role="alert" className="error">
           {AUTH_ERROR_MESSAGE[error]}
         </p>
       )}
 
       {sentTo ? (
         <div className="banner stack auth-tight" role="status">
-          <p>
+          {/* Focus lands here, so keyboard and screen reader users hear it. */}
+          <p ref={sentRef} tabIndex={-1}>
             <strong>Check your inbox.</strong> We sent a sign-in link to {sentTo}. Open it in this browser to sign in.
           </p>
           <p className="muted auth-small">Nothing there after a minute? Check spam, or send it again.</p>
@@ -243,6 +280,7 @@ function SignIn({ onRequest }: { onRequest: () => void }) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 aria-invalid={error === 'invalid_email' ? 'true' : undefined}
+                aria-describedby={error === 'invalid_email' ? `${id}-error` : undefined}
               />
             </div>
             <button type="submit" className="btn btn-lg" disabled={!client || busy !== null} aria-busy={busy === 'email'}>

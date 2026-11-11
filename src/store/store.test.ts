@@ -184,6 +184,27 @@ describe('sign-in', () => {
     expect(s2).toBe(s1);
   });
 
+  it('F-01: after a sign-out, someone else signing in on this browser starts from a fresh workspace', () => {
+    const mine = { id: 'd-ada', question: 'Ada’s call?', notes: '', links: [], constraints: [], status: 'framing' as const, createdAt: '2026-11-01T00:00:00.000Z' };
+    const ada = reducer(reducer(seedState(), { type: 'signIn', identity }), { type: 'createDecision', decision: mine });
+    const out = reducer(ada, { type: 'signOut' });
+    const ben = reducer(out, { type: 'signIn', identity: { ...identity, authId: 'auth-b', email: 'b@startup.example', name: 'Ben Ito' } });
+    expect(ben.decisions.some((d) => d.id === 'd-ada')).toBe(false);
+    expect(ben.messages).toEqual([]);
+    expect(ben.user).toMatchObject({ authId: 'auth-b', name: 'Ben Ito' });
+  });
+
+  it('F-01: signing out and back in as the same person keeps their workspace and profile', () => {
+    const mine = { id: 'd-ada', question: 'Ada’s call?', notes: '', links: [], constraints: [], status: 'framing' as const, createdAt: '2026-11-01T00:00:00.000Z' };
+    const ada = reducer(
+      reducer(reducer(seedState(), { type: 'signIn', identity }), { type: 'createDecision', decision: mine }),
+      { type: 'updateUser', patch: { name: 'Ada P.', role: 'PM', defaultReviewDays: 60 } },
+    );
+    const back = reducer(reducer(ada, { type: 'signOut' }), { type: 'signIn', identity });
+    expect(back.decisions.some((d) => d.id === 'd-ada')).toBe(true);
+    expect(back.user).toMatchObject({ name: 'Ada P.', role: 'PM', defaultReviewDays: 60 });
+  });
+
   it('F-01: someone else signing in on this browser starts from a fresh workspace', () => {
     const mine = { id: 'd-ada', question: 'Ada’s call?', notes: '', links: [], constraints: [], status: 'framing' as const, createdAt: '2026-11-01T00:00:00.000Z' };
     const s1 = reducer(reducer(seedState(), { type: 'signIn', identity }), { type: 'createDecision', decision: mine });

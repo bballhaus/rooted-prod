@@ -82,6 +82,7 @@ describe('Sign in', () => {
     await user.click(screen.getByRole('button', { name: 'Email me a sign-in link' }));
     expect(auth.sendMagicLink).toHaveBeenCalledWith('sam@startup.example', expect.stringMatching(/\/signin$/));
     expect(screen.getByRole('status')).toHaveTextContent('We sent a sign-in link to sam@startup.example');
+    expect(document.activeElement).toHaveTextContent('Check your inbox');
     await user.click(screen.getByRole('button', { name: 'Send it again' }));
     expect(auth.sendMagicLink).toHaveBeenCalledTimes(2);
     await user.click(screen.getByRole('button', { name: 'Use a different email' }));
@@ -106,10 +107,27 @@ describe('Sign in', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(message);
   });
 
+  it('F-01: a sign-in link opened in a different browser says to open it where it was asked for', async () => {
+    renderApp('/signin?code=one-time-code', { ...seedState(), user: null }, { auth: fakeAuth(null) });
+    expect(await screen.findByRole('alert')).toHaveTextContent('Open the sign-in link in the same browser');
+  });
+
+  it('F-01: a session that ends while the first check is still loading stays ended', async () => {
+    let finishFirstRead: (v: null | ReturnType<typeof identityFor>) => void = () => {};
+    const auth = fakeAuth(identityFor(signedInState().user), {
+      getIdentity: () => new Promise((resolve) => (finishFirstRead = resolve)),
+    });
+    renderApp('/', signedInState(), { auth });
+    await act(async () => auth.emit(null));
+    await act(async () => finishFirstRead(identityFor(signedInState().user)));
+    expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
+    expect(stored().user).toBeNull();
+  });
+
   it('F-01: without sign-in settings it says so, and nobody stays signed in from before', () => {
     renderApp('/', signedInState(), { auth: null });
     expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
-    expect(screen.getByRole('alert')).toHaveTextContent('Sign-in isn’t set up');
+    expect(screen.getByText('Sign-in isn’t available right now. Try again later.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Continue with Google' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Email me a sign-in link' })).toBeDisabled();
   });

@@ -129,14 +129,22 @@ function initialsOf(name: string): string {
 }
 
 // F-01: a real session signs the PM in. A different person on this browser
-// starts from a fresh workspace, so nobody sees someone else's decisions.
+// starts from a fresh workspace, so nobody sees someone else's decisions,
+// whether the last person signed out or not.
 function signIn(state: AppState, identity: AuthIdentity): AppState {
-  const prev = state.user;
+  const prev = state.user ?? state.lastUser;
   // Someone from before real sign-in (no authId) is the same person if the email matches.
   const same = prev ? (prev.authId ? prev.authId === identity.authId : prev.email === identity.email) : false;
-  if (same && prev?.authId === identity.authId && prev.email === identity.email && prev.signInProvider === identity.provider)
+  if (
+    state.user &&
+    same &&
+    prev?.authId === identity.authId &&
+    prev.email === identity.email &&
+    prev.signInProvider === identity.provider
+  )
     return state;
-  const base = prev?.authId && !same ? seedState() : state;
+  // Nobody has used this browser yet: the sample workspace is theirs.
+  const base = prev && !same ? seedState() : { ...state, lastUser: undefined };
   const kept = same ? prev : undefined;
   const name = kept?.name ?? identity.name;
   const user: User = {
@@ -160,7 +168,14 @@ function signIn(state: AppState, identity: AuthIdentity): AppState {
   };
 }
 
-function workspaceOf({ user: _user, sources: _sources, demo: _demo, beforeDemo: _before, ...w }: AppState): Workspace {
+function workspaceOf({
+  user: _user,
+  sources: _sources,
+  demo: _demo,
+  beforeDemo: _before,
+  lastUser: _last,
+  ...w
+}: AppState): Workspace {
   return w;
 }
 
@@ -169,7 +184,9 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'signIn':
       return signIn(state, action.identity);
     case 'signOut':
-      return { ...state, user: null };
+      // The workspace stays in this browser for the same person to come back
+      // to; signIn starts anyone else fresh.
+      return state.user ? { ...state, user: null, lastUser: state.user } : state;
     case 'updateUser':
       return state.user ? { ...state, user: { ...state.user, ...action.patch } } : state;
     case 'updateSource': {

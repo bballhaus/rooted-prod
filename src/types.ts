@@ -211,7 +211,10 @@ export interface AppState {
   // The PM's own workspace, kept aside while the demo is loaded so leaving the
   // demo brings it back (0009). Never set outside the demo.
   beforeDemo?: Workspace;
+  // Whose workspace this browser holds, kept through sign-out, so the same
+  // person comes back to it and anyone else starts fresh (0015).
+  lastUser?: User;
 }
 
 // Everything the PM owns in a workspace: what the demo swaps out and back in.
-export type Workspace = Omit<AppState, 'user' | 'sources' | 'demo' | 'beforeDemo'>;
+export type Workspace = Omit<AppState, 'user' | 'sources' | 'demo' | 'beforeDemo' | 'lastUser'>;
