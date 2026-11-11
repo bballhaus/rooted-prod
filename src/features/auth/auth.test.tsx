@@ -1,7 +1,8 @@
-import { screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { act, screen, within } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { seedState } from '../../data/fixtures';
 import { STORAGE_KEY } from '../../store/store';
+import { fakeAuth, identityFor } from '../../test/fakeAuth';
 import { renderApp, signedInState } from '../../test/render';
 import type { AppState } from '../../types';
 
@@ -50,25 +51,85 @@ describe('Sign in', () => {
   it.each([
     ['google', 'Continue with Google'],
     ['slack', 'Continue with Slack'],
-  ] as const)('F-21: %s mock consent signs in with that provider and opens onboarding', async (provider, label) => {
-    const { user } = renderApp('/signin', { ...seedState(), user: null });
+  ] as const)('F-21: %s starts that provider’s real sign-in, and coming back signed in opens onboarding', async (provider, label) => {
+    const auth = fakeAuth(null);
+    const { user } = renderApp('/signin', { ...seedState(), user: null }, { auth });
     await user.click(screen.getByRole('button', { name: label }));
-    const dialog = screen.getByRole('dialog');
-    expect(within(dialog).getByText(/Prototype: no real sign-in happens/)).toBeInTheDocument();
-    expect(within(dialog).getByText(/jordan@fernwave\.example/)).toBeInTheDocument();
-    await user.click(within(dialog).getByRole('button', { name: 'Allow' }));
+    expect(auth.signInWith).toHaveBeenCalledWith(provider, expect.stringMatching(/\/signin$/));
+    await act(async () => auth.emit({ authId: 'auth-sam', email: 'sam@startup.example', name: 'Sam Rivera', provider }));
     expect(screen.getByRole('heading', { name: 'Choose what Rooted can see' })).toBeInTheDocument();
-    expect(stored().user?.signInProvider).toBe(provider);
-    expect(stored().user?.name).toBe('Jordan Lee');
+    expect(stored().user).toMatchObject({ authId: 'auth-sam', name: 'Sam Rivera', signInProvider: provider });
   });
 
-  it('F-21: cancel closes the mock consent without signing in', async () => {
-    const { user } = renderApp('/signin', { ...seedState(), user: null });
+  it('F-21: when a provider can’t start, it says so and the buttons work again', async () => {
+    const auth = fakeAuth(null, { signInWith: vi.fn(async () => ({ ok: false as const, error: 'provider_unavailable' as const })) });
+    const { user } = renderApp('/signin', { ...seedState(), user: null }, { auth });
     await user.click(screen.getByRole('button', { name: 'Continue with Slack' }));
-    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }));
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('That sign-in option isn’t available right now');
+    expect(screen.getByRole('button', { name: 'Continue with Slack' })).toBeEnabled();
+    expect(stored().user).toBeNull();
+  });
+
+  it('F-01: the email link checks the address, sends the link and can send it again', async () => {
+    const auth = fakeAuth(null);
+    const { user } = renderApp('/signin', { ...seedState(), user: null }, { auth });
+    await user.type(screen.getByLabelText('Work email'), 'sam@startup');
+    await user.click(screen.getByRole('button', { name: 'Email me a sign-in link' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('That email address doesn’t look right');
+    expect(auth.sendMagicLink).not.toHaveBeenCalled();
+
+    await user.type(screen.getByLabelText('Work email'), '.example');
+    await user.click(screen.getByRole('button', { name: 'Email me a sign-in link' }));
+    expect(auth.sendMagicLink).toHaveBeenCalledWith('sam@startup.example', expect.stringMatching(/\/signin$/));
+    expect(screen.getByRole('status')).toHaveTextContent('We sent a sign-in link to sam@startup.example');
+    await user.click(screen.getByRole('button', { name: 'Send it again' }));
+    expect(auth.sendMagicLink).toHaveBeenCalledTimes(2);
+    await user.click(screen.getByRole('button', { name: 'Use a different email' }));
+    expect(screen.getByLabelText('Work email')).toBeInTheDocument();
+  });
+
+  it('F-01: too many sign-in emails says to wait, and nothing is marked sent', async () => {
+    const auth = fakeAuth(null, { sendMagicLink: vi.fn(async () => ({ ok: false as const, error: 'rate_limited' as const })) });
+    const { user } = renderApp('/signin', { ...seedState(), user: null }, { auth });
+    await user.type(screen.getByLabelText('Work email'), 'sam@startup.example');
+    await user.click(screen.getByRole('button', { name: 'Email me a sign-in link' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Wait a few minutes');
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['?error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired', 'expired or was already used'],
+    ['#error=access_denied&error_description=The+user+denied+the+request', 'Sign-in was cancelled'],
+    ['?error=server_error&error_description=Unable+to+exchange+external+code', 'Something went wrong signing you in'],
+  ])('F-01: coming back with an error in the URL (%s) explains it', (query, message) => {
+    renderApp(`/signin${query}`, { ...seedState(), user: null }, { auth: fakeAuth(null) });
+    expect(screen.getByRole('alert')).toHaveTextContent(message);
+  });
+
+  it('F-01: without sign-in settings it says so, and nobody stays signed in from before', () => {
+    renderApp('/', signedInState(), { auth: null });
+    expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('Sign-in isn’t set up');
+    expect(screen.getByRole('button', { name: 'Continue with Google' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Email me a sign-in link' })).toBeDisabled();
+  });
+
+  it('F-01: signing out ends the real session', async () => {
+    const auth = fakeAuth(identityFor(signedInState().user));
+    const { user } = renderApp('/', signedInState(), { auth });
+    await user.click(screen.getByRole('button', { name: 'Your account' }));
+    await user.click(screen.getByRole('button', { name: 'Sign out' }));
+    expect(auth.signOut).toHaveBeenCalled();
     expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
     expect(stored().user).toBeNull();
+  });
+
+  it('F-01: when the session ends elsewhere (expired, or signed out in another tab), the app goes to sign in', async () => {
+    const auth = fakeAuth(identityFor(signedInState().user));
+    renderApp('/', signedInState(), { auth });
+    expect(screen.getByRole('heading', { level: 1, name: 'Decisions' })).toBeInTheDocument();
+    await act(async () => auth.emit(null));
+    expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
   });
 });
 

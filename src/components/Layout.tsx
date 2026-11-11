@@ -3,6 +3,7 @@
 // profile menu also holds the light/dark toggle and the demo switch (0009, 0010).
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
 import { AgentProvider, useAgent } from '../features/agent/AgentContext';
 import { AgentLauncher, AgentPanel } from '../features/agent/AgentPanel';
 import { InboxRow } from '../features/dashboard/InboxRow';
@@ -186,6 +187,7 @@ function InboxMenu() {
 function ProfileMenu() {
   const { state, dispatch } = useStore();
   const navigate = useNavigate();
+  const auth = useAuth();
   const { theme, toggle } = useTheme();
   const me = state.teammates.find((t) => t.id === state.user?.id);
   const initials = me?.initials ?? state.user?.name.slice(0, 2).toUpperCase() ?? '?';
@@ -245,7 +247,9 @@ function ProfileMenu() {
           <button
             type="button"
             className="btn btn-secondary profile-signout"
-            onClick={() => {
+            onClick={async () => {
+              // End the real session first, so a refresh can't sign back in.
+              await auth.client?.signOut();
               dispatch({ type: 'signOut' });
               navigate('/signin');
             }}

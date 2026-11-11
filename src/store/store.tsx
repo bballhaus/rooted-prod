@@ -13,14 +13,14 @@ import type {
   Gap,
   OptionNode,
   Outcome,
-  Provider,
   Source,
   SuggestedDecision,
   User,
   Workspace,
   WrongAnswerReport,
 } from '../types';
-import { demoUser } from '../data/fixtures';
+import { ME } from '../data/history';
+import type { AuthIdentity } from '../auth/client';
 import { driveCorpus, slackCorpus } from '../data/slackCorpus';
 import { descendantIds, splitForLog } from './tree';
 
@@ -28,7 +28,7 @@ import { descendantIds, splitForLog } from './tree';
 export const STORAGE_KEY = 'rooted-demo-v2';
 
 export type Action =
-  | { type: 'signIn'; provider: Provider }
+  | { type: 'signIn'; identity: AuthIdentity }
   | { type: 'signOut' }
   | { type: 'updateUser'; patch: Partial<User> }
   | { type: 'updateSource'; sourceId: string; patch: Partial<Source> }
@@ -122,6 +122,44 @@ function revokeAll(state: AppState, source: Source, channelId?: string): AppStat
   };
 }
 
+function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const letters = parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : (parts[0] ?? '?').slice(0, 2);
+  return letters.toUpperCase();
+}
+
+// F-01: a real session signs the PM in. A different person on this browser
+// starts from a fresh workspace, so nobody sees someone else's decisions.
+function signIn(state: AppState, identity: AuthIdentity): AppState {
+  const prev = state.user;
+  // Someone from before real sign-in (no authId) is the same person if the email matches.
+  const same = prev ? (prev.authId ? prev.authId === identity.authId : prev.email === identity.email) : false;
+  if (same && prev?.authId === identity.authId && prev.email === identity.email && prev.signInProvider === identity.provider)
+    return state;
+  const base = prev?.authId && !same ? seedState() : state;
+  const kept = same ? prev : undefined;
+  const name = kept?.name ?? identity.name;
+  const user: User = {
+    id: ME,
+    authId: identity.authId,
+    name,
+    email: identity.email,
+    role: kept?.role ?? '',
+    team: kept?.team ?? '',
+    company: kept?.company ?? '',
+    plan: 'beta',
+    signInProvider: identity.provider,
+    notificationChannel: kept?.notificationChannel ?? 'email',
+    defaultReviewDays: kept?.defaultReviewDays ?? 30,
+  };
+  return {
+    ...base,
+    user,
+    // The PM is a teammate on the map too; show their real name there.
+    teammates: base.teammates.map((t) => (t.id === ME ? { ...t, name, initials: initialsOf(name) } : t)),
+  };
+}
+
 function workspaceOf({ user: _user, sources: _sources, demo: _demo, beforeDemo: _before, ...w }: AppState): Workspace {
   return w;
 }
@@ -129,7 +167,7 @@ function workspaceOf({ user: _user, sources: _sources, demo: _demo, beforeDemo: 
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'signIn':
-      return { ...state, user: { ...(state.user ?? demoUser), signInProvider: action.provider } };
+      return signIn(state, action.identity);
     case 'signOut':
       return { ...state, user: null };
     case 'updateUser':

@@ -1,10 +1,12 @@
 // Core data objects, named after docs/product/features.md §6.
 // Everything in the prototype is fake data held in the client store.
 
-export type Provider = 'google' | 'slack';
+// How the PM signed in (decision 0015): an email link, Google or Slack.
+export type Provider = 'google' | 'slack' | 'email';
 
 export interface User {
-  id: string;
+  id: string; // the PM's id inside this workspace (their teammate id)
+  authId?: string; // their Supabase Auth user id, once really signed in
   name: string;
   email: string;
   role: string;

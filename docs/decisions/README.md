@@ -17,6 +17,10 @@ Rooted is a decision record, so the team keeps its own here. One file per decisi
 | [0009](0009-demo-mode-and-outcomes.md) | A planted demo workspace, causal links on the map, and recorded outcomes | Decided 2026-10-31, merged 2026-11-02 |
 | [0010](0010-interactive-canvas-and-theme.md) | A draggable, traceable graph view of the map, and a light/dark toggle | Decided 2026-10-31, merged 2026-11-02 |
 | [0011](0011-host-on-vercel.md) | Host the prototype on Vercel as a static single-page app | Decided 2026-11-02 |
+| [0012](0012-workspace-canvas-surface.md) | A clean white workspace surface for the home canvas | Decided 2026-11-02 |
+| [0013](0013-light-theme-default.md) | Light is the default theme, not the OS setting | Decided 2026-11-02 |
+| [0014](0014-wine-app-bar.md) | The top app bar is a wine surface | Decided 2026-11-02 |
+| [0015](0015-real-sign-in.md) | Real sign-in with Supabase Auth: email link, Google and Slack | Decided 2026-11-11 |
 
 ## Open decisions
 

@@ -98,7 +98,9 @@ function ProfileSection({ user }: { user: User }) {
             <label htmlFor="settings-email">Email</label>
             <input id="settings-email" className="input" value={user.email} readOnly aria-describedby="settings-email-hint" />
             <span id="settings-email-hint" className="hint">
-              Comes from your {user.signInProvider === 'google' ? 'Google' : 'Slack'} sign-in and can’t be changed here.
+              {user.signInProvider === 'email'
+                ? 'You sign in with this address, so it can’t be changed here.'
+                : `Comes from your ${user.signInProvider === 'google' ? 'Google' : 'Slack'} sign-in and can’t be changed here.`}
             </span>
           </div>
           <div className="field">

@@ -92,7 +92,7 @@ Activities → Steps, left to right:
 | ID | Step | Feature | Acceptance notes |
 |---|---|---|---|
 | F-20 | Sign up | Request beta access with work email | Waitlist/beta request form. |
-| F-21 | Sign up | Sign in with Slack or Google | SSO buttons (mocked in prototype). |
+| F-21 | Sign up | Sign in with Slack or Google | SSO buttons, real through Supabase Auth (0015), plus an email link. |
 | F-22 | Manage account | Edit profile, role and team | Profile settings page. |
 | F-23 | Manage account | Disconnect sources and delete your data | Disconnect per source; delete-all-data with confirmation. |
 | F-24 | Plan and billing | See your plan and beta status | Read-only plan/beta status card. |

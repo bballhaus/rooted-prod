@@ -168,3 +168,27 @@ describe('demo dates', () => {
     expect(later.outcomes.every((o) => o.loggedAt < '2027-03-02')).toBe(true);
   });
 });
+
+describe('sign-in', () => {
+  const identity = { authId: 'auth-a', email: 'a@startup.example', name: 'Ada Park', provider: 'google' as const };
+
+  it('F-01: a real sign-in sets the PM’s name on their teammate card too', () => {
+    const s1 = reducer(seedState(), { type: 'signIn', identity });
+    expect(s1.user).toMatchObject({ authId: 'auth-a', name: 'Ada Park', email: 'a@startup.example', signInProvider: 'google' });
+    expect(s1.teammates.find((t) => t.id === s1.user!.id)).toMatchObject({ name: 'Ada Park', initials: 'AP' });
+  });
+
+  it('F-01: signing in again as the same person changes nothing they edited', () => {
+    const s1 = reducer(reducer(seedState(), { type: 'signIn', identity }), { type: 'updateUser', patch: { name: 'Ada P.', role: 'PM' } });
+    const s2 = reducer(s1, { type: 'signIn', identity });
+    expect(s2).toBe(s1);
+  });
+
+  it('F-01: someone else signing in on this browser starts from a fresh workspace', () => {
+    const mine = { id: 'd-ada', question: 'Ada’s call?', notes: '', links: [], constraints: [], status: 'framing' as const, createdAt: '2026-11-01T00:00:00.000Z' };
+    const s1 = reducer(reducer(seedState(), { type: 'signIn', identity }), { type: 'createDecision', decision: mine });
+    const s2 = reducer(s1, { type: 'signIn', identity: { ...identity, authId: 'auth-b', email: 'b@startup.example', name: 'Ben Ito' } });
+    expect(s2.decisions.some((d) => d.id === 'd-ada')).toBe(false);
+    expect(s2.user).toMatchObject({ authId: 'auth-b', name: 'Ben Ito', role: '' });
+  });
+});

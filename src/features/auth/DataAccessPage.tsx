@@ -8,7 +8,7 @@ import type { Provider, Source } from '../../types';
 import { GlyphFolder, GlyphHash } from './icons';
 import './auth.css';
 
-const providerLabel: Record<Provider, string> = { google: 'Google', slack: 'Slack' };
+const providerLabel: Record<Provider, string> = { google: 'Google', slack: 'Slack', email: 'email link' };
 
 function sourceNouns(source: Source) {
   return source.type === 'slack'
@@ -188,7 +188,7 @@ export function DataAccessPage() {
       <div className="stack">
         {user && (
           <p className="pill auth-whoami">
-            Signed in as {user.role}, {user.team}
+            Signed in as {[user.role, user.team].filter(Boolean).join(', ') || user.email}
             <span className="visually-hidden">
               {' '}
               ({user.name}, {user.email}, via {providerLabel[user.signInProvider]})
