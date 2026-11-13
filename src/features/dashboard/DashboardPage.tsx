@@ -5,7 +5,11 @@
 // decision opens its details beside the map.
 import { useEffect, useId, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { rankDecisions } from '../../agent/chat';
+import { useAi } from '../../agent/AiContext';
+import { errorCode, type AiErrorCode } from '../../agent/client';
+import { findLinks, spotDecisions } from '../../agent/links';
+import { AiErrorNotice } from '../../components/AiErrorNotice';
+import { rankDecisions } from '../../store/search';
 import { Avatar, personColor } from '../../components/Avatar';
 import {
   IconChevronLeft,
@@ -499,9 +503,46 @@ function DecisionList({
   );
 }
 
+// F-19, F-R2: ask Rooted to look for decisions to make in Slack, or for
+// connections between decisions. What it finds is a suggestion (✦) until the
+// PM accepts or dismisses it.
+function useAgentScan() {
+  const { state, dispatch } = useStore();
+  const ai = useAi();
+  const [busy, setBusy] = useState<'spot' | 'links' | null>(null);
+  const [result, setResult] = useState<{ kind: 'spot' | 'links'; error?: AiErrorCode; found?: number } | null>(null);
+
+  async function scan(kind: 'spot' | 'links') {
+    setResult(null);
+    if (!ai) {
+      setResult({ kind, error: 'not_configured' });
+      return;
+    }
+    setBusy(kind);
+    try {
+      if (kind === 'spot') {
+        const suggestions = await spotDecisions(ai, state);
+        dispatch({ type: 'addSuggestions', suggestions });
+        setResult({ kind, found: suggestions.length });
+      } else {
+        const links = await findLinks(ai, state);
+        dispatch({ type: 'addLinks', links });
+        setResult({ kind, found: links.length });
+      }
+    } catch (e) {
+      setResult({ kind, error: errorCode(e) });
+    } finally {
+      setBusy(null);
+    }
+  }
+  return { busy, result, scan };
+}
+
 function NeedsYou({ today, onMinimize }: { today: string; onMinimize: () => void }) {
   const { state } = useStore();
   const actions = useInboxActions();
+  const { busy, result, scan } = useAgentScan();
+  const canLink = state.decisions.length >= 2;
   const due = inboxItems(state, today).filter((i) => i.due);
   const suggestions = state.suggestions.filter((s) => s.status === 'new');
   // Planted directions (demo data) aren't work the PM has under way.
@@ -540,6 +581,40 @@ function NeedsYou({ today, onMinimize }: { today: string; onMinimize: () => void
         )}
       </section>
 
+      <section aria-labelledby="needs-scan" className="needs-section">
+        <h3 id="needs-scan" className="kicker ai-mark">
+          ✦ Ask Rooted
+        </h3>
+        <div className="row needs-actions">
+          <button type="button" className="btn btn-secondary" disabled={busy !== null} onClick={() => scan('spot')}>
+            {busy === 'spot' ? 'Reading your channels…' : 'Check for decisions to make'}
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={busy !== null || !canLink}
+            onClick={() => scan('links')}
+          >
+            {busy === 'links' ? 'Looking for connections…' : 'Find connections'}
+          </button>
+        </div>
+        <div aria-live="polite">
+          {result?.error ? (
+            <AiErrorNotice code={result.error} onRetry={() => scan(result.kind)} />
+          ) : result ? (
+            <p className="muted needs-small">
+              {result.kind === 'spot'
+                ? result.found
+                  ? `Rooted spotted ${result.found} decision${result.found === 1 ? '' : 's'} to consider below.`
+                  : 'Nothing new to decide in your channels right now.'
+                : result.found
+                  ? `Rooted found ${result.found} possible connection${result.found === 1 ? '' : 's'}. They show dashed on the map until you connect or dismiss them.`
+                  : 'No new connections found.'}
+            </p>
+          ) : null}
+        </div>
+      </section>
+
       {suggestions.length > 0 && (
         <section aria-labelledby="needs-suggest" className="needs-section">
           <h3 id="needs-suggest" className="kicker ai-mark">
@@ -549,10 +624,6 @@ function NeedsYou({ today, onMinimize }: { today: string; onMinimize: () => void
             {suggestions.map((s) => (
               <li key={s.id} className="needs-suggestion">
                 <p className="needs-suggestion-q">{s.question}</p>
-                {/* Nothing scans Slack yet; these are hand-written examples (decision 0005). */}
-                <p>
-                  <span className="sample-badge">Sample</span>
-                </p>
                 <p className="muted needs-small">{s.why}</p>
                 {s.evidence[0] && (
                   <blockquote className="needs-quote">

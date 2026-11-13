@@ -9,6 +9,7 @@ import {
   seedLinks,
   seedOutcomes,
   seedSuggestions,
+  ME,
   seedTeammates,
 } from './history';
 
@@ -30,6 +31,7 @@ export const seedSources: Source[] = [
     id: 'src-slack',
     type: 'slack',
     name: 'Fernwave Slack',
+    sample: true,
     connected: true,
     connectedAt: '2026-10-01T16:00:00.000Z',
     channels: [
@@ -46,6 +48,7 @@ export const seedSources: Source[] = [
     id: 'src-drive',
     type: 'google-drive',
     name: 'Google Drive',
+    sample: true,
     connected: false,
     channels: [
       { id: 'fd-prd', name: 'PRDs', memberCount: 0, allowed: true },
@@ -219,6 +222,31 @@ export function seedState(): AppState {
     links: structuredClone(seedLinks),
     outcomes: structuredClone(seedOutcomes),
     suggestions: structuredClone(seedSuggestions),
+    messages: [],
+    demo: false,
+  };
+}
+
+// What a real person starts with (decision 0018): no sample decisions, no fake
+// teammates, a Slack workspace to connect for real, and Drive not offered yet.
+// The sample company lives on as the labelled demo workspace.
+export function emptyWorkspaceState(): AppState {
+  return {
+    user: null,
+    sources: [
+      { id: 'src-slack', type: 'slack', name: 'Slack', connected: false, channels: [] },
+      { id: 'src-drive', type: 'google-drive', name: 'Google Drive', connected: false, unavailable: true, channels: [] },
+    ],
+    decisions: [],
+    contextItems: [],
+    gaps: [],
+    options: [],
+    reports: [],
+    // The PM is a teammate on the map too; signIn fills in their name.
+    teammates: [{ id: ME, name: 'You', role: '', team: '', initials: 'Y' }],
+    links: [],
+    outcomes: [],
+    suggestions: [],
     messages: [],
     demo: false,
   };

@@ -1,6 +1,6 @@
-import { buildBrief } from '../agent/brief';
 import { demoState } from '../data/demoFixtures';
 import { demoUser, seedState } from '../data/fixtures';
+import { briefFor } from '../test/brief';
 import { reducer } from './store';
 
 describe('store', () => {
@@ -44,7 +44,7 @@ describe('store', () => {
       createdAt: '2026-10-28T00:00:00.000Z',
     };
     s0.decisions.push(decision);
-    const { items, gaps } = buildBrief(decision, s0);
+    const { items, gaps } = briefFor(decision, s0);
     return reducer(s0, { type: 'setBrief', decisionId: decision.id, items, gaps });
   }
 

@@ -32,6 +32,10 @@ export interface Source {
   connected: boolean;
   connectedAt?: string;
   channels: Channel[]; // for google-drive these are folders
+  // Sample content for the demo (0009), read from src/data/slackCorpus.ts.
+  // A live source is a real connection, read on the server (0017).
+  sample?: boolean;
+  unavailable?: boolean; // not offered yet (Google Drive for real workspaces)
 }
 
 // Fake teammates, so the map can show who made each call (decision record 0005).
@@ -177,7 +181,10 @@ export interface ChatMessage {
   role: 'user' | 'agent';
   text: string;
   citations?: Citation[];
-  sample?: boolean; // true when the scripted fallback answered, not the LLM
+  // The AI couldn't answer: `text` holds the error message and `retry` the
+  // question to ask again. Not part of the conversation sent to Claude.
+  failed?: boolean;
+  retry?: string;
   edited?: boolean;
   createdAt: string;
 }

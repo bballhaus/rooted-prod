@@ -1,6 +1,7 @@
-import { act, screen, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { seedState } from '../../data/fixtures';
+import { emptyWorkspaceState, seedState } from '../../data/fixtures';
+import { fakeAi } from '../../test/fakeAi';
 import { STORAGE_KEY } from '../../store/store';
 import { fakeAuth, identityFor } from '../../test/fakeAuth';
 import { renderApp, signedInState } from '../../test/render';
@@ -152,7 +153,7 @@ describe('Sign in', () => {
 });
 
 describe('Data access', () => {
-  it('F-03: connecting Drive through the mock shows the connected state and enables folders', async () => {
+  it('F-03: in the demo, switching on the sample Drive says it is sample data and enables folders', async () => {
     const { user } = renderApp('/onboarding');
     const drive = sourceCard('Google Drive');
     expect(within(drive).getByText(/Not connected/)).toBeInTheDocument();
@@ -161,7 +162,7 @@ describe('Data access', () => {
 
     await user.click(within(drive).getByRole('button', { name: /Connect/ }));
     const dialog = screen.getByRole('dialog');
-    expect(within(dialog).getByText(/Prototype: no real connection happens/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Demo workspace: sample data/)).toBeInTheDocument();
     await user.click(within(dialog).getByRole('button', { name: 'Allow' }));
 
     expect(within(drive).getByText(/Connected on/)).toBeInTheDocument();
@@ -170,6 +171,43 @@ describe('Data access', () => {
     const saved = stored().sources.find((s) => s.id === 'src-drive');
     expect(saved?.connected).toBe(true);
     expect(saved?.connectedAt).toBeTruthy();
+  });
+
+  it('F-03: a live Slack connects through Slack’s own permission page', async () => {
+    const ai = fakeAi();
+    const assign = vi.fn();
+    Object.defineProperty(window, 'location', { value: { ...window.location, assign }, configurable: true, writable: true });
+    const { user } = renderApp('/onboarding', { ...emptyWorkspaceState(), user: signedInState().user }, { ai });
+    const slack = sourceCard('Slack');
+    expect(within(slack).getByText(/Not connected/)).toBeInTheDocument();
+    await user.click(within(slack).getByRole('button', { name: /Connect/ }));
+    expect(ai.slackInstallUrl).toHaveBeenCalled();
+    await waitFor(() => expect(assign).toHaveBeenCalledWith('https://slack.com/oauth/v2/authorize?state=test'));
+    expect(within(sourceCard('Google Drive')).getByText(/Not available yet/)).toBeInTheDocument();
+  });
+
+  it('F-02, F-03: back from Slack, its public channels show up unchecked until the PM allows them', async () => {
+    const ai = fakeAi();
+    ai.slack = { available: true, connected: true, teamName: 'Acme', connectedAt: 1794000000, channels: [{ id: 'C1', name: '#pricing', memberCount: 4 }, { id: 'C2', name: '#eng', memberCount: 9 }] };
+    const { user } = renderApp('/onboarding?slack=connected', { ...emptyWorkspaceState(), user: signedInState().user }, { ai });
+    expect(await screen.findByText('Slack is connected. Check the channels Rooted may read.')).toBeInTheDocument();
+    const slack = await screen.findByRole('region', { name: 'Acme Slack' });
+    expect(within(slack).getByRole('checkbox', { name: /#pricing/ })).not.toBeChecked();
+    await user.click(within(slack).getByRole('checkbox', { name: /#pricing/ }));
+    expect(stored().sources.find((x) => x.id === 'src-slack')?.channels.find((c) => c.id === 'C1')?.allowed).toBe(true);
+    // Disconnecting revokes it on the server too.
+    await user.click(within(slack).getByRole('button', { name: /Disconnect/ }));
+    await waitFor(() => expect(ai.slackDisconnect).toHaveBeenCalled());
+    expect(stored().sources.find((x) => x.id === 'src-slack')?.connected).toBe(false);
+  });
+
+  it.each([
+    ['cancelled', 'the permission page was cancelled'],
+    ['expired', 'Start it again here'],
+    ['error', 'ask a Slack admin'],
+  ])('F-03: coming back from Slack with %s explains what happened', (kind, text) => {
+    renderApp(`/onboarding?slack=${kind}`, { ...emptyWorkspaceState(), user: signedInState().user });
+    expect(screen.getByRole('alert')).toHaveTextContent(text);
   });
 
   it('F-03: Slack shows its connected state and selected channels', () => {

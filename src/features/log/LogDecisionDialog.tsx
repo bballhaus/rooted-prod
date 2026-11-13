@@ -3,7 +3,10 @@
 // every option not taken; the PM edits and logs it with one button.
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAi } from '../../agent/AiContext';
+import { errorCode, type AiErrorCode } from '../../agent/client';
 import { draftRecord, type RecordDraft } from '../../agent/record';
+import { AiErrorNotice } from '../../components/AiErrorNotice';
 import { Dialog } from '../../components/Dialog';
 import { ReportWrongAnswer } from '../../components/ReportWrongAnswer';
 import { useDecision, useStore } from '../../store/store';
@@ -54,22 +57,39 @@ function LogDecisionForm({
   const [reasons, setReasons] = useState<Record<string, string>>({});
   const [draft, setDraft] = useState<RecordDraft | null>(null);
   const [logError, setLogError] = useState('');
+  const ai = useAi();
+  const [draftError, setDraftError] = useState<AiErrorCode | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (step !== 'drafting' || !decision) return;
     let cancelled = false;
-    draftRecord(decision, options, choice, summary, state.contextItems).then((d) => {
-      if (cancelled) return;
-      setDraft(d);
-      setRationale(d.rationale);
-      setReasons(Object.fromEntries(d.rejected.map((r) => [r.optionId, r.reason])));
-      setStep('review');
-    });
+    setDraftError(null);
+    const drafting = ai ? draftRecord(ai, decision, options, choice, summary, state) : Promise.reject(new Error('not_configured'));
+    drafting
+      .then((d) => {
+        if (cancelled) return;
+        setDraftError(null);
+        setDraft(d);
+        setRationale(d.rationale);
+        setReasons(Object.fromEntries(d.rejected.map((r) => [r.optionId, r.reason])));
+        setStep('review');
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        // No draft: say why, and let the PM write the record themselves,
+        // starting from any reasons they already gave when pruning.
+        setDraftError(ai ? errorCode(e) : 'not_configured');
+        const picked = options.find((o) => o.id === choice);
+        const alternatives = picked ? splitForLog(options, picked.id).alternatives : [];
+        setReasons(Object.fromEntries(alternatives.map((o) => [o.id, o.pruneReason ?? ''])));
+        setStep('review');
+      });
     return () => {
       cancelled = true;
     };
     // Draft once per entry into the drafting step; inputs are frozen meanwhile.
-  }, [step]);
+  }, [step, attempt]);
 
   if (!decision) {
     return <p>We couldn't find that decision.</p>;
@@ -227,9 +247,15 @@ function LogDecisionForm({
           </div>
         </div>
       )}
-      <p className="muted log-draft-note">
-        Rooted drafted the rest from your summary and the evidence. Edit anything that’s off.
-      </p>
+      {draftError ? (
+        <AiErrorNotice code={draftError} onRetry={() => { setStep('drafting'); setAttempt((n) => n + 1); }}>
+          <span className="muted">Or write the rationale and reasons yourself below.</span>
+        </AiErrorNotice>
+      ) : (
+        <p className="muted log-draft-note">
+          Rooted drafted the rest from your summary and the evidence. Edit anything that’s off.
+        </p>
+      )}
       <div className="field">
         <label htmlFor="log-rationale">Rationale</label>
         <textarea

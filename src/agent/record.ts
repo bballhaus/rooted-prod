@@ -1,93 +1,43 @@
-// F-15: the PM writes a 1–2 line summary and the fake agent drafts the rest of
-// the record. No LLM: the draft is stitched together from the options' pros and
-// cons and the decision's context. The PM edits every word before logging.
+// F-14, F-15: drafting the decision record. Once the PM picks an option,
+// Claude drafts the rationale and a reason for each alternative not taken.
+// The PM edits all of it before logging; nothing is logged without them.
 import { splitForLog } from '../store/tree';
-import type { ContextItem, Decision, OptionNode } from '../types';
-import { think } from './mockAgent';
+import type { AppState, Decision, OptionNode } from '../types';
+import type { AiClient } from './client';
+import { citableContext } from './options';
 
 export interface RecordDraft {
   rationale: string;
   rejected: { optionId: string; reason: string }[];
 }
 
-function lowerFirst(s: string): string {
-  // Leave acronyms and names alone ("SSO", "iOS").
-  if (s.length > 1 && s[1] === s[1].toUpperCase() && /[A-Za-z]/.test(s[1])) return s;
-  return s.charAt(0).toLowerCase() + s.slice(1);
-}
+const brief = (o: OptionNode) => ({ id: o.id, label: o.label, summary: o.summary, pros: o.pros, cons: o.cons });
 
-function sentence(s: string): string {
-  const t = s.trim();
-  if (!t) return t;
-  return /[.!?]$/.test(t) ? t : `${t}.`;
-}
-
-function joinList(items: string[]): string {
-  if (items.length <= 1) return items.join('');
-  if (items.length === 2) return `${items[0]} and ${items[1]}`;
-  return `${items.slice(0, -1).join(', ')}, and ${items[items.length - 1]}`;
-}
-
-function cite(item: ContextItem): string {
-  const who = item.author ? `${item.author} in ${item.sourceLabel}` : item.sourceLabel;
-  return `${who}: “${item.snippet.trim()}”`;
-}
-
-// Pure version, used directly in tests.
-export function draftRecordNow(
+export async function draftRecord(
+  ai: AiClient,
   decision: Decision,
   options: OptionNode[],
   chosenOptionId: string,
   summary: string,
-  contextItems: ContextItem[],
-): RecordDraft {
+  state: AppState,
+): Promise<RecordDraft> {
   const own = options.filter((o) => o.decisionId === decision.id);
   const chosen = own.find((o) => o.id === chosenOptionId);
-  const live = contextItems.filter((c) => c.decisionId === decision.id && !c.removed && !c.flaggedInaccurate);
-
-  const parts: string[] = [];
-  if (summary.trim()) parts.push(sentence(summary));
-  if (chosen) {
-    if (chosen.pros.length) {
-      parts.push(`Why ${chosen.label}: ${joinList(chosen.pros.map(lowerFirst))}.`);
-    } else {
-      parts.push(`Chose ${chosen.label} over the other options.`);
-    }
-    if (chosen.cons.length) {
-      parts.push(`Known trade-off: ${joinList(chosen.cons.map(lowerFirst))}.`);
-    }
-  }
-  if (decision.constraints.length) {
-    parts.push(`It fits the constraints: ${joinList(decision.constraints.map(lowerFirst))}.`);
-  }
-  // Cite the evidence behind the chosen option first, then other live context.
-  const linked = chosen ? live.filter((c) => chosen.contextIds.includes(c.id)) : [];
-  const cited = (linked.length ? linked : live).slice(0, 2);
-  if (cited.length) {
-    parts.push(`Context: ${cited.map(cite).join(' ')}`);
-  }
-
+  if (!chosen) throw new Error('chosen option not found');
   // Only the alternatives that branch off the chosen path need a reason;
-  // options under an alternative are pruned with it (see splitForLog).
-  const rejected = (chosen ? splitForLog(own, chosen.id).alternatives : own)
-    .map((o) => {
-      if (o.pruneReason && o.pruneReason.trim()) return { optionId: o.id, reason: o.pruneReason };
-      const reason = o.cons.length
-        ? `Not taken: ${joinList(o.cons.map(lowerFirst))}.`
-        : `Not taken: ${chosen ? `${chosen.label} fit the constraints better` : 'another option fit better'}.`;
-      return { optionId: o.id, reason };
-    });
-
-  return { rationale: parts.join(' '), rejected };
-}
-
-// What the UI calls: the same draft after the fake agent's think() delay.
-export function draftRecord(
-  decision: Decision,
-  options: OptionNode[],
-  chosenOptionId: string,
-  summary: string,
-  contextItems: ContextItem[],
-): Promise<RecordDraft> {
-  return think(draftRecordNow(decision, options, chosenOptionId, summary, contextItems));
+  // options under an alternative are pruned with it.
+  const others = splitForLog(own, chosen.id).alternatives;
+  const draft = await ai.run<RecordDraft>('draftRecord', {
+    decision: { question: decision.question, notes: decision.notes, constraints: decision.constraints },
+    summary,
+    chosen: brief(chosen),
+    others: others.map(brief),
+    evidence: citableContext(decision.id, state.contextItems).map((c) => ({ id: c.id, source: c.sourceLabel, author: c.author ?? null, text: c.snippet })),
+  });
+  // A reason the PM already wrote when pruning wins over a drafted one.
+  const rejected = others.map((o) => ({
+    optionId: o.id,
+    reason: o.pruneReason?.trim() || draft.rejected.find((r) => r.optionId === o.id)?.reason || '',
+  }));
+  return { rationale: draft.rationale, rejected };
 }

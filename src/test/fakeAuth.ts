@@ -19,6 +19,7 @@ export function fakeAuth(identity: AuthIdentity | null = null, overrides: Partia
   };
   return {
     getIdentity: vi.fn(async () => current),
+    getAccessToken: vi.fn(async () => (current ? `token-${current.authId}` : null)),
     onChange: (listener) => {
       listeners.add(listener);
       return () => listeners.delete(listener);

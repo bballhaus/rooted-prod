@@ -7,12 +7,15 @@
 // scoped to one option. A section of the decision workspace.
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchOptions, fetchSubOptions, splitFor } from '../../agent/options';
+import { useAi } from '../../agent/AiContext';
+import { errorCode, type AiErrorCode } from '../../agent/client';
+import { fetchOptions, fetchSubOptions } from '../../agent/options';
+import { AiErrorNotice } from '../../components/AiErrorNotice';
 import { Dialog } from '../../components/Dialog';
 import { ReportWrongAnswer } from '../../components/ReportWrongAnswer';
 import { chosenLabel, decisionDate } from '../../store/dashboard';
 import { newId, useStore } from '../../store/store';
-import { ancestorIds, childrenOf, depthOf, pathLabel, underPruned } from '../../store/tree';
+import { ancestorIds, childrenOf, pathLabel, underPruned } from '../../store/tree';
 import type { ContextItem, Criteria, CriterionKey, Decision, OptionNode } from '../../types';
 import { useAgent } from '../agent/AgentContext';
 import { formatDate } from '../log/format';
@@ -21,13 +24,6 @@ import { CRITERIA, DecisionTree, type LinkedDecision } from './DecisionTree';
 import './options.css';
 
 const NARRATION = ['Reading your evidence brief', 'Mapping options', 'Weighing pros and cons'];
-const SPLIT_LABEL: Record<string, string> = {
-  rollout: 'how widely to roll it out',
-  timing: 'when to start',
-  audience: 'which plans get it',
-  measure: 'how to judge it',
-};
-
 function isUserOption(o: OptionNode): boolean {
   return o.id.startsWith('o-user-');
 }
@@ -55,6 +51,9 @@ export function OptionsSection({ decision }: { decision: Decision }) {
   const [levelParent, setLevelParent] = useState<string | null>(null);
   const [focusId, setFocusId] = useState<string | undefined>(undefined);
   const [branching, setBranching] = useState<string | null>(null);
+  const [genError, setGenError] = useState<AiErrorCode | null>(null);
+  const [branchError, setBranchError] = useState<{ parent: OptionNode; code: AiErrorCode } | null>(null);
+  const ai = useAi();
   const run = useRef(0);
 
   const options = state.options.filter((o) => o.decisionId === id);
@@ -63,10 +62,23 @@ export function OptionsSection({ decision }: { decision: Decision }) {
   const generate = useCallback(() => {
     if (!decision) return;
     const ticket = ++run.current;
+    setGenError(null);
+    if (!ai) {
+      setGenError('not_configured');
+      return;
+    }
     setGenerating(true);
     setStep(0);
-    fetchOptions(decision, state.contextItems, state.gaps).then((next) => {
-      if (ticket !== run.current) return;
+    fetchOptions(ai, decision, state)
+      .catch((e) => {
+        if (ticket === run.current) {
+          setGenError(errorCode(e));
+          setGenerating(false);
+        }
+        return null;
+      })
+      .then((next) => {
+      if (!next || ticket !== run.current) return;
       dispatch({ type: 'setOptions', decisionId: decision.id, options: next });
       if (decision.status !== 'options') {
         dispatch({
@@ -81,7 +93,7 @@ export function OptionsSection({ decision }: { decision: Decision }) {
       setGenerating(false);
       setAnnounce(`${next.length} options ready. Scores are a rough guide; you make the call.`);
     });
-  }, [decision, state.contextItems, state.gaps, dispatch]);
+  }, [decision, state, dispatch, ai]);
 
   // Generate once when the decision has no options yet.
   const needsOptions = !!decision && !decided && options.length === 0;
@@ -110,15 +122,22 @@ export function OptionsSection({ decision }: { decision: Decision }) {
   // F-10: the agent splits one branch into sub-options.
   function branchOut(parent: OptionNode) {
     if (!decision) return;
+    setBranchError(null);
+    if (!ai) {
+      setBranchError({ parent, code: 'not_configured' });
+      return;
+    }
     setBranching(parent.id);
     setAnnounce('');
-    fetchSubOptions(decision, parent, options, state.contextItems).then((subs) => {
-      dispatch({ type: 'addOptions', options: subs });
-      setBranching(null);
-      setLevelParent(parent.id);
-      setFocusId(undefined);
-      setAnnounce(`${subs.length} sub-options added under ${parent.label}.`);
-    });
+    fetchSubOptions(ai, decision, parent, state)
+      .then((subs) => {
+        dispatch({ type: 'addOptions', options: subs });
+        setLevelParent(parent.id);
+        setFocusId(undefined);
+        setAnnounce(`${subs.length} sub-options added under ${parent.label}.`);
+      })
+      .catch((e) => setBranchError({ parent, code: errorCode(e) }))
+      .finally(() => setBranching(null));
   }
 
   function showInCards(o: OptionNode | null) {
@@ -173,6 +192,17 @@ export function OptionsSection({ decision }: { decision: Decision }) {
           <span className="visually-hidden">{announce}</span>
         )}
       </div>
+
+      {genError && !generating && (
+        <AiErrorNotice code={genError} onRetry={generate}>
+          <span className="muted">You can add options yourself below.</span>
+        </AiErrorNotice>
+      )}
+      {branchError && (
+        <AiErrorNotice code={branchError.code} onRetry={() => branchOut(branchError.parent)}>
+          <span className="muted">Or add a sub-option to “{branchError.parent.label}” yourself.</span>
+        </AiErrorNotice>
+      )}
 
       {decided && (
         <div className="banner row options-banner">
@@ -259,7 +289,6 @@ export function OptionsSection({ decision }: { decision: Decision }) {
                 focused={focusId === o.id}
                 blocked={underPruned(options, o.id)}
                 subCount={childrenOf(options, o.id).length}
-                splitHint={SPLIT_LABEL[splitFor(depthOf(options, o.id))]}
                 branching={branching === o.id}
                 branchBusy={branching !== null}
                 onBranchOut={() => branchOut(o)}
@@ -289,7 +318,7 @@ export function OptionsSection({ decision }: { decision: Decision }) {
         </section>
       )}
 
-      {!decided && !generating && options.length > 0 && (
+      {!decided && !generating && (options.length > 0 || genError) && (
         <>
           <AddOptionForm
             parent={levelNode}
@@ -375,7 +404,6 @@ function OptionCard({
   focused,
   blocked,
   subCount,
-  splitHint,
   branching,
   branchBusy,
   onBranchOut,
@@ -394,7 +422,6 @@ function OptionCard({
   focused: boolean;
   blocked: boolean; // under a pruned branch
   subCount: number;
-  splitHint?: string;
   branching: boolean;
   branchBusy: boolean;
   onBranchOut: () => void;
@@ -564,7 +591,6 @@ function OptionCard({
             className="btn btn-ghost"
             onClick={onBranchOut}
             disabled={branchBusy}
-            aria-describedby={`${headingId}-split`}
           >
             {branching ? 'Branching out…' : 'Branch out'}
             <span className="visually-hidden"> {option.label}</span>
@@ -582,11 +608,6 @@ function OptionCard({
             decisionId={option.decisionId}
             excerpt={`${option.label}: ${option.summary}`}
           />
-        )}
-        {splitHint && !readOnly && subCount === 0 && !pruned && !blocked && (
-          <p id={`${headingId}-split`} className="muted options-split-hint">
-            Branch out splits this by {splitHint}.
-          </p>
         )}
       </div>
     </li>

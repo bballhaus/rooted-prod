@@ -4,8 +4,10 @@
 // A section of the decision workspace.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAi } from '../../agent/AiContext';
 import { describeSourceAccess, gatherBrief, gatherSteps } from '../../agent/brief';
-import { AGENT_DELAY_MS } from '../../agent/mockAgent';
+import { errorCode, type AiErrorCode } from '../../agent/client';
+import { AiErrorNotice } from '../../components/AiErrorNotice';
 import { Dialog } from '../../components/Dialog';
 import { ReportWrongAnswer } from '../../components/ReportWrongAnswer';
 import { newId, useStore } from '../../store/store';
@@ -25,34 +27,45 @@ const ORIGIN_LABELS: Record<ContextOrigin, string> = {
   'user-note': 'Your notes',
 };
 
+// How long each narration line shows while Claude reads.
+const STEP_MS = 1500;
+
 function useGather(decision: Decision | undefined) {
   const { state, dispatch } = useStore();
+  const ai = useAi();
   const [gathering, setGathering] = useState(false);
   const [step, setStep] = useState('');
+  const [error, setError] = useState<AiErrorCode | null>(null);
   const started = useRef<string | null>(null);
 
   function run() {
     if (!decision) return;
+    if (!ai) {
+      setError('not_configured');
+      return;
+    }
     const steps = gatherSteps(state);
+    setError(null);
     setGathering(true);
     setStep(steps[0]);
     let i = 0;
-    const timer = setInterval(
-      () => {
-        i = Math.min(i + 1, steps.length - 1);
-        setStep(steps[i]);
-      },
-      Math.max(80, Math.floor(AGENT_DELAY_MS / steps.length)),
-    );
-    void gatherBrief(decision, state).then(({ items, gaps }) => {
-      clearInterval(timer);
-      dispatch({ type: 'setBrief', decisionId: decision.id, items, gaps });
-      if (decision.status === 'framing') {
-        dispatch({ type: 'updateDecision', decisionId: decision.id, patch: { status: 'brief' } });
-      }
-      setGathering(false);
-      setStep('');
-    });
+    const timer = setInterval(() => {
+      i = Math.min(i + 1, steps.length - 1);
+      setStep(steps[i]);
+    }, STEP_MS);
+    gatherBrief(ai, decision, state)
+      .then(({ items, gaps }) => {
+        dispatch({ type: 'setBrief', decisionId: decision.id, items, gaps });
+        if (decision.status === 'framing') {
+          dispatch({ type: 'updateDecision', decisionId: decision.id, patch: { status: 'brief' } });
+        }
+      })
+      .catch((e) => setError(errorCode(e)))
+      .finally(() => {
+        clearInterval(timer);
+        setGathering(false);
+        setStep('');
+      });
   }
 
   const hasItems = !!decision && state.contextItems.some((c) => c.decisionId === decision.id);
@@ -63,23 +76,25 @@ function useGather(decision: Decision | undefined) {
     // Runs once when a decision with no brief is first shown.
   }, [decision?.id, hasItems]);
 
-  return { gathering, step, regather: run };
+  return { gathering, step, error, regather: run };
 }
 
 export function BriefSection({ decision }: { decision: Decision }) {
-  const { gathering, step, regather } = useGather(decision);
-  return <Brief decision={decision} gathering={gathering} step={step} regather={regather} />;
+  const { gathering, step, error, regather } = useGather(decision);
+  return <Brief decision={decision} gathering={gathering} step={step} error={error} regather={regather} />;
 }
 
 function Brief({
   decision,
   gathering,
   step,
+  error,
   regather,
 }: {
   decision: Decision;
   gathering: boolean;
   step: string;
+  error: AiErrorCode | null;
   regather: () => void;
 }) {
   const { state, dispatch } = useStore();
@@ -145,6 +160,11 @@ function Brief({
         </div>
       ) : (
         <>
+          {error && (
+            <AiErrorNotice code={error} onRetry={regather}>
+              <span className="muted">You can add your own context below.</span>
+            </AiErrorNotice>
+          )}
           {gaps.length > 0 && <GapsCallout gaps={gaps} decisionId={decision.id} />}
 
           <section aria-labelledby="brief-items-title" className="stack">

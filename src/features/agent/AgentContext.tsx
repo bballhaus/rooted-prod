@@ -2,7 +2,8 @@
 // the header search and "Talk it through" on an option all go through here.
 // Messages live in the store, one thread per scope.
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
-import { askAgent, type ChatScope } from '../../agent';
+import { AI_ERROR_MESSAGE, askAgent, errorCode, type ChatScope } from '../../agent';
+import { useAi } from '../../agent/AiContext';
 import { newId, useStore } from '../../store/store';
 
 export function threadId(scope: ChatScope): string {
@@ -27,6 +28,7 @@ const AgentContext = createContext<AgentDock | null>(null);
 
 export function AgentProvider({ children }: { children: ReactNode }) {
   const { state, dispatch } = useStore();
+  const ai = useAi();
   const [open, setOpen] = useState(false);
   const [scope, setScope] = useState<ChatScope>({});
   const [pending, setPending] = useState(false);
@@ -56,7 +58,8 @@ export function AgentProvider({ children }: { children: ReactNode }) {
         message: { id: newId('m'), threadId: thread, role: 'user', text, createdAt: new Date().toISOString() },
       });
       setPending(true);
-      void askAgent(text, s, stateRef.current, history)
+      const answering = ai ? askAgent(ai, text, s, stateRef.current, history) : Promise.reject(new Error('not_configured'));
+      void answering
         .then((answer) => {
           dispatch({
             type: 'addMessage',
@@ -66,29 +69,30 @@ export function AgentProvider({ children }: { children: ReactNode }) {
               role: 'agent',
               text: answer.text,
               citations: answer.citations,
-              sample: answer.sample,
               createdAt: new Date().toISOString(),
             },
           });
           setHighlight(answer.citations.map((c) => c.decisionId));
         })
-        .catch(() => {
-          // Never leave the chat stuck on "Thinking…".
+        .catch((error) => {
+          // Never leave the chat stuck on "Thinking…": say what went wrong and offer the question again.
+          const code = ai ? errorCode(error) : 'not_configured';
           dispatch({
             type: 'addMessage',
             message: {
               id: newId('m'),
               threadId: thread,
               role: 'agent',
-              text: 'Something went wrong answering that. Try asking another way.',
-              sample: true,
+              text: AI_ERROR_MESSAGE[code],
+              failed: true,
+              retry: text,
               createdAt: new Date().toISOString(),
             },
           });
         })
         .finally(() => setPending(false));
     },
-    [scope, dispatch],
+    [scope, dispatch, ai],
   );
 
   const value = useMemo(

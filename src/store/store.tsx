@@ -3,7 +3,7 @@
 // rather than keeping parallel state in a feature.
 import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react';
 import { demoState } from '../data/demoFixtures';
-import { seedState } from '../data/fixtures';
+import { emptyWorkspaceState } from '../data/fixtures';
 import type {
   AppState,
   ContextItem,
@@ -24,8 +24,10 @@ import type { AuthIdentity } from '../auth/client';
 import { driveCorpus, slackCorpus } from '../data/slackCorpus';
 import { descendantIds, splitForLog } from './tree';
 
-// v2 added teammates, links, outcomes, suggestions and chat.
-export const STORAGE_KEY = 'rooted-demo-v2';
+// v2 added teammates, links, outcomes, suggestions and chat. v3 starts real
+// workspaces empty (0018), so sample data saved before real sign-in isn't
+// mistaken for a live Slack connection.
+export const STORAGE_KEY = 'rooted-demo-v3';
 
 export type Action =
   | { type: 'signIn'; identity: AuthIdentity }
@@ -56,10 +58,11 @@ export type Action =
   | { type: 'updateLink'; linkId: string; patch: Partial<DecisionLink> }
   | { type: 'logOutcome'; outcome: Outcome }
   | { type: 'updateSuggestion'; suggestionId: string; patch: Partial<SuggestedDecision> }
+  | { type: 'addSuggestions'; suggestions: SuggestedDecision[] }
+  | { type: 'addLinks'; links: DecisionLink[] }
   | { type: 'addMessage'; message: ChatMessage }
   | { type: 'updateMessage'; messageId: string; patch: Partial<ChatMessage> }
   | { type: 'deleteAllData' }
-  | { type: 'resetDemo' }
   | { type: 'loadDemo' }
   | { type: 'exitDemo' };
 
@@ -144,7 +147,7 @@ function signIn(state: AppState, identity: AuthIdentity): AppState {
   )
     return state;
   // Nobody has used this browser yet: the sample workspace is theirs.
-  const base = prev && !same ? seedState() : { ...state, lastUser: undefined };
+  const base = prev && !same ? emptyWorkspaceState() : { ...state, lastUser: undefined };
   const kept = same ? prev : undefined;
   const name = kept?.name ?? identity.name;
   const user: User = {
@@ -300,6 +303,17 @@ export function reducer(state: AppState, action: Action): AppState {
         ...state,
         outcomes: [...state.outcomes.filter((o) => o.decisionId !== action.outcome.decisionId), action.outcome],
       };
+    case 'addSuggestions': {
+      // Don't raise the same question twice.
+      const asked = new Set(state.suggestions.map((s) => s.question.toLowerCase()));
+      return { ...state, suggestions: [...state.suggestions, ...action.suggestions.filter((s) => !asked.has(s.question.toLowerCase()))] };
+    }
+    case 'addLinks': {
+      // One link per pair: a suggestion never replaces a link the PM made or dismissed.
+      const pair = (l: DecisionLink) => [l.fromId, l.toId].sort().join('|');
+      const taken = new Set(state.links.map(pair));
+      return { ...state, links: [...state.links, ...action.links.filter((l) => !taken.has(pair(l)))] };
+    }
     case 'updateSuggestion':
       return {
         ...state,
@@ -331,8 +345,6 @@ export function reducer(state: AppState, action: Action): AppState {
         demo: false,
         beforeDemo: undefined,
       };
-    case 'resetDemo':
-      return { ...seedState(), user: state.user };
     case 'loadDemo':
       // Swap in the planted demo workspace (0009), setting the PM's own work
       // aside. Keeps the signed-in user and the sources and channels they chose.
@@ -342,7 +354,7 @@ export function reducer(state: AppState, action: Action): AppState {
       // Bring the PM's own workspace back as they left it.
       if (!state.demo) return state;
       return {
-        ...seedState(),
+        ...emptyWorkspaceState(),
         ...(state.beforeDemo ?? {}),
         user: state.user,
         sources: state.sources,
@@ -356,11 +368,11 @@ function load(): AppState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     // Fill in anything an older save is missing, so new fields never crash the demo.
-    if (raw) return { ...seedState(), ...(JSON.parse(raw) as Partial<AppState>) };
+    if (raw) return { ...emptyWorkspaceState(), ...(JSON.parse(raw) as Partial<AppState>) };
   } catch {
     // fall through to the seed
   }
-  return seedState();
+  return emptyWorkspaceState();
 }
 
 interface StoreValue {

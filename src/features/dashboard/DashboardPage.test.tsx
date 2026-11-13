@@ -2,6 +2,7 @@ import { cleanup, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { demoState } from '../../data/demoFixtures';
 import { STORAGE_KEY } from '../../store/store';
+import { fakeAi } from '../../test/fakeAi';
 import { renderApp, signedInState } from '../../test/render';
 import type { AppState } from '../../types';
 
@@ -140,7 +141,7 @@ describe('Home dashboard', () => {
     });
   });
 
-  it('F-28: suggested tags and suggested decisions can be reported as wrong, and seeded suggestions say they are samples', async () => {
+  it('F-28: suggested tags and suggested decisions can be reported as wrong', async () => {
     const { user } = await openList();
     await user.click(screen.getByRole('button', { name: /checklist or a guided tour/ }));
     const panel = screen.getByRole('complementary', { name: /checklist or a guided tour/ });
@@ -151,7 +152,36 @@ describe('Home dashboard', () => {
     expect(stored().reports[0]).toMatchObject({ surface: 'tag', decisionId: 'd-onboarding-checklist' });
     await openRail(user);
     const rail = screen.getByRole('complementary', { name: 'Needs you' });
-    expect(within(rail).getAllByText('Sample')).toHaveLength(3);
+    expect(within(rail).getAllByRole('button', { name: 'Report wrong answer' }).length).toBe(3);
+    expect(within(rail).queryByText('Sample')).not.toBeInTheDocument();
+  });
+
+  it('F-R2, F-19: Rooted can be asked to spot decisions in Slack and to find connections, as suggestions', async () => {
+    const ai = fakeAi();
+    const { user } = renderApp('/', signedInState(), { ai });
+    await openRail(user);
+    const rail = screen.getByRole('complementary', { name: 'Needs you' });
+    await user.click(within(rail).getByRole('button', { name: 'Check for decisions to make' }));
+    expect(await within(rail).findByText(/Rooted spotted 1 decision to consider/)).toBeInTheDocument();
+    expect(within(rail).getByText('Should we change how we onboard new teams?')).toBeInTheDocument();
+    expect(stored().suggestions.find((x) => x.question === 'Should we change how we onboard new teams?')?.status).toBe('new');
+    // The demo's sample channels are sent; only allowed ones.
+    const sent = ai.run.mock.calls.find(([task]) => task === 'spotDecisions')![1];
+    expect(sent.messages.every((m: { source: string }) => !['#sales', '#leadership', '#random'].includes(m.source))).toBe(true);
+
+    await user.click(within(rail).getByRole('button', { name: 'Find connections' }));
+    expect(await within(rail).findByText(/possible connection/)).toBeInTheDocument();
+    const added = stored().links.filter((l) => l.id.startsWith('l-ai-'));
+    expect(added.length).toBeGreaterThan(0);
+    expect(added.every((l) => l.origin === 'ai' && l.status === 'suggested')).toBe(true);
+  });
+
+  it('F-R2: when Rooted can’t check Slack, it says why', async () => {
+    const { user } = renderApp('/', signedInState(), { ai: fakeAi({ spotDecisions: 'slack_token_revoked' }) });
+    await openRail(user);
+    const rail = screen.getByRole('complementary', { name: 'Needs you' });
+    await user.click(within(rail).getByRole('button', { name: 'Check for decisions to make' }));
+    expect(await within(rail).findByRole('alert')).toHaveTextContent('Connect Slack again');
   });
 
   it('F-04: "Add a follow-up decision" starts one that builds on the picked decision', async () => {

@@ -27,6 +27,8 @@ export type AuthResult = { ok: true } | { ok: false; error: AuthErrorCode };
 
 export interface AuthClient {
   getIdentity(): Promise<AuthIdentity | null>;
+  /** The current session's access token, for calling Rooted's AI service (0016). */
+  getAccessToken(): Promise<string | null>;
   onChange(listener: (identity: AuthIdentity | null) => void): () => void;
   sendMagicLink(email: string, redirectTo: string): Promise<AuthResult>;
   signInWith(provider: OAuthProvider, redirectTo: string): Promise<AuthResult>;
@@ -109,6 +111,11 @@ export function createAuthClient(): AuthClient | null {
     async getIdentity() {
       const { data } = await supabase.auth.getSession();
       return data.session ? identityOf(data.session.user) : null;
+    },
+    async getAccessToken() {
+      // getSession refreshes an expired token before handing it back.
+      const { data } = await supabase.auth.getSession();
+      return data.session?.access_token ?? null;
     },
     onChange(listener) {
       const { data } = supabase.auth.onAuthStateChange((_event, session) => {

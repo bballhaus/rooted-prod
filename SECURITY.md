@@ -25,7 +25,9 @@ The secret scan (`.github/workflows/secrets.yml`) runs on every PR and push, but
 - The agent sees only the sources and channels the user allowed (F-02), and only that user's own data.
 - Disconnecting a source or deleting data removes it, including from caches and logs (F-23).
 - Slack content is untrusted input to the LLM: it's never allowed to act as instructions.
-- The LLM key lives only in Supabase Edge Function secrets (`LLM_API_KEY`), never in a `VITE_*` variable. When it's set, decision summaries, rationale and the gathered context for the decision in scope are sent to the provider (decision 0007).
+- The Anthropic key lives only in the Modal secret `rooted-anthropic`, never in a `VITE_*` variable or the repo. Decision summaries, rationale, the PM's notes and the gathered context for the decision in scope are sent to Claude (decision 0016).
+- Slack bot tokens live only in the AI service's Modal Dict, never in the browser. The bot has public-channel read scopes only, and disconnecting revokes the token (decision 0017).
+- The AI service checks every call against Supabase Auth, limits each person's calls and caps daily spend (0016).
 - Logs and analytics never contain message text, decision text or email addresses.
 
 ## Reporting a problem

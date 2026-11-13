@@ -1,109 +1,97 @@
-import { buildBrief, describeSourceAccess } from '../../agent/brief';
-import { slackCorpus, driveCorpus } from '../../data/slackCorpus';
-import { signedInState } from '../../test/render';
+import { describe, expect, it } from 'vitest';
+import { briefSource, describeSourceAccess, gatherBrief, sampleMessages } from '../../agent/brief';
+import { emptyWorkspaceState, seedState } from '../../data/fixtures';
+import { fakeAi } from '../../test/fakeAi';
 import type { AppState, Decision } from '../../types';
 
-function trialDecision(patch: Partial<Decision> = {}): Decision {
-  return {
-    id: 'd-trial',
-    question: 'Should we extend the free trial from 14 to 30 days?',
-    notes: 'Trial-to-paid conversion is flat and sales keeps asking for longer trials.',
-    links: ['https://example.com/trial-dashboard'],
-    constraints: ['Billing changes need two weeks notice'],
-    status: 'brief',
-    createdAt: '2026-10-27T17:00:00.000Z',
-    ...patch,
-  };
-}
+const decision: Decision = {
+  id: 'd-new',
+  question: 'Should onboarding add a setup checklist?',
+  notes: 'Admins drop off after inviting teammates.',
+  links: [],
+  constraints: [],
+  status: 'framing',
+  createdAt: '2026-10-28T00:00:00.000Z',
+};
 
-function withDriveConnected(state: AppState): AppState {
-  return {
-    ...state,
-    sources: state.sources.map((s) => (s.type === 'google-drive' ? { ...s, connected: true } : s)),
-  };
-}
+const withDecision = (s: AppState): AppState => ({ ...s, decisions: [decision, ...s.decisions] });
+const sources = (s: AppState) => new Set(sampleMessages(s).map((m) => m.source));
 
 describe('brief agent', () => {
-  it('F-06: pulls matching messages only from allowed channels of connected sources', () => {
-    const state = signedInState();
-    const { items } = buildBrief(trialDecision(), state);
-    const slackItems = items.filter((i) => i.origin === 'slack');
-    expect(slackItems.length).toBeGreaterThan(0);
-    const blockedTexts = slackCorpus
-      .filter((m) => ['ch-sales', 'ch-leadership', 'ch-random'].includes(m.channelId))
-      .map((m) => m.text);
-    for (const item of items) {
-      expect(blockedTexts).not.toContain(item.snippet);
-      expect(['#sales', '#leadership', '#random']).not.toContain(item.sourceLabel);
+  it('F-06: sends sample messages only from allowed channels of connected sources', () => {
+    const s = seedState();
+    const read = sources(s);
+    for (const c of s.sources.find((x) => x.type === 'slack')!.channels) {
+      expect(read.has(c.name)).toBe(c.allowed);
     }
-    // Drive is disconnected in the seed, so nothing from it.
-    expect(items.some((i) => i.origin === 'drive')).toBe(false);
+    // Drive is disconnected in the sample workspace, so none of it is sent.
+    expect([...read].some((label) => label.startsWith('Drive:'))).toBe(false);
   });
 
   it('F-06: reads allowed Drive folders once connected, never a blocked folder', () => {
-    const state = withDriveConnected(signedInState());
-    const decision = trialDecision({ question: 'Should we raise Team pricing or add a paused plan to cut churn?' });
-    const { items } = buildBrief(decision, state);
-    const drive = items.filter((i) => i.origin === 'drive');
-    expect(drive.length).toBeGreaterThan(0);
-    const finance = driveCorpus.filter((d) => d.folderId === 'fd-finance').map((d) => d.text);
-    for (const item of items) expect(finance).not.toContain(item.snippet);
+    const s = seedState();
+    s.sources = s.sources.map((x) => (x.type === 'google-drive' ? { ...x, connected: true } : x));
+    const refs = sampleMessages(s).filter((m) => m.ref.startsWith('drive:'));
+    expect(refs.length).toBeGreaterThan(0);
+    const blocked = s.sources.find((x) => x.type === 'google-drive')!.channels.filter((c) => !c.allowed).map((c) => c.id);
+    expect(refs.every((m) => !blocked.some((id) => m.ref.includes(id)))).toBe(true);
   });
 
-  it('F-06: a channel the PM blocks later is dropped', () => {
-    const state = signedInState();
-    state.sources[0].channels = state.sources[0].channels.map((c) =>
-      c.id === 'ch-growth' ? { ...c, allowed: false } : c,
+  it('F-06: a channel the PM blocks later is no longer sent', () => {
+    const s = seedState();
+    const slack = s.sources.find((x) => x.type === 'slack')!;
+    const channel = slack.channels.find((c) => c.allowed)!;
+    channel.allowed = false;
+    expect(sources(s).has(channel.name)).toBe(false);
+  });
+
+  it('F-06: a live Slack is read on the server: only the allowed channel ids go, never message text', async () => {
+    const s = withDecision(emptyWorkspaceState());
+    s.sources = s.sources.map((x) =>
+      x.type === 'slack'
+        ? { ...x, connected: true, channels: [{ id: 'C1', name: '#pricing', memberCount: 4, allowed: true }, { id: 'C2', name: '#random', memberCount: 9, allowed: false }] }
+        : x,
     );
-    const { items } = buildBrief(trialDecision(), state);
-    expect(items.some((i) => i.sourceLabel === '#growth')).toBe(false);
+    expect(briefSource(s)).toEqual({ kind: 'slack', channelIds: ['C1'] });
+    const ai = fakeAi();
+    await gatherBrief(ai, decision, s);
+    const payload = ai.run.mock.calls[0][1];
+    expect(payload.source).toEqual({ kind: 'slack', channelIds: ['C1'] });
+    expect(payload.messages).toEqual([]);
   });
 
-  it('F-06: adds related past decisions and the PM notes and links', () => {
-    const decision = trialDecision({ question: 'Should the onboarding checklist add a step for sharing a board?' });
-    const { items } = buildBrief(decision, signedInState());
-    const past = items.find((i) => i.origin === 'past-decision');
-    expect(past?.sourceLabel).toBe('Past decision: Should onboarding use a checklist or a guided tour?');
-    expect(past?.snippet).toContain('Ship a 5-step checklist');
-    const notes = items.filter((i) => i.origin === 'user-note');
-    expect(notes.map((n) => n.snippet)).toContain(decision.notes);
-    expect(notes.some((n) => n.link === 'https://example.com/trial-dashboard')).toBe(true);
+  it('F-06, F-07: maps what Claude picked to grouped context items, and its gaps to gaps', async () => {
+    const s = withDecision(seedState());
+    const ai = fakeAi({
+      brief: {
+        items: [
+          { kind: 'message', ref: 'C1:1.0', group: 'Customer signal', source: '#pricing', author: 'Sam', date: '2026-11-01', text: 'Seats confuse buyers', link: 'https://acme.slack.com/archives/C1/p10' },
+          { kind: 'message', ref: 'drive:dr-1', group: 'Research', source: 'Drive: Interview notes', author: null, date: '2026-10-01', text: 'Setup takes days' },
+          { kind: 'past-decision', ref: 'd-pricing-seats', group: 'History', source: 'Past decision: Charge per seat?', date: '2026-09-18', text: 'Per workspace' },
+        ],
+        gaps: ['What completion rate would make this worth it?'],
+      },
+    });
+    const { items, gaps } = await gatherBrief(ai, decision, s);
+    expect(items.map((i) => [i.origin, i.group, i.sourceLabel])).toEqual([
+      ['slack', 'Customer signal', '#pricing'],
+      ['drive', 'Research', 'Drive: Interview notes'],
+      ['past-decision', 'History', 'Past decision: Charge per seat?'],
+      // The PM's own notes come along as theirs, not as Claude's pick.
+      ['user-note', 'Your notes', 'Your framing notes'],
+    ]);
+    expect(items[0]).toMatchObject({ id: 'd-new-C1:1.0', decisionId: 'd-new', link: 'https://acme.slack.com/archives/C1/p10', removed: false });
+    expect(gaps).toEqual([{ id: 'd-new-gap-1', decisionId: 'd-new', question: 'What completion rate would make this worth it?' }]);
+    // Past decisions are sent, but never the decision being framed.
+    expect(ai.run.mock.calls[0][1].pastDecisions.every((d: { id: string }) => d.id !== 'd-new')).toBe(true);
   });
 
-  it('F-07: groups items by theme', () => {
-    const { items } = buildBrief(trialDecision(), signedInState());
-    expect(items.every((i) => i.group.length > 0)).toBe(true);
-    expect(new Set(items.map((i) => i.group)).size).toBeGreaterThan(1);
-  });
-
-  it('F-06: falls back to recent allowed messages when nothing matches', () => {
-    const decision = trialDecision({ question: 'Zebra?', notes: '', links: [], constraints: [] });
-    const { items } = buildBrief(decision, signedInState());
-    expect(items.length).toBeGreaterThan(0);
-    expect(items.every((i) => i.group === 'Recent activity')).toBe(true);
-  });
-
-  it('F-06: never returns an empty brief, even with Slack disconnected', () => {
-    const state = signedInState();
-    state.sources = state.sources.map((s) => ({ ...s, connected: false }));
-    const { items, gaps } = buildBrief(trialDecision({ notes: '', links: [] }), state);
-    expect(items.length).toBeGreaterThan(0);
-    expect(gaps.length).toBeGreaterThanOrEqual(2);
-  });
-
-  it('F-09: returns 2 to 4 specific gaps, naming a relevant blocked channel and disconnected Drive', () => {
-    const { gaps } = buildBrief(trialDecision(), signedInState());
-    expect(gaps.length).toBeGreaterThanOrEqual(2);
-    expect(gaps.length).toBeLessThanOrEqual(4);
-    const text = gaps.map((g) => g.question).join(' ');
-    expect(text).toMatch(/#sales isn't in your allowed channels/);
-    expect(text).toMatch(/Google Drive isn't connected/);
-  });
-
-  it('F-06: describes which sources were read and which were excluded', () => {
-    const access = describeSourceAccess(signedInState());
-    expect(access.read).toContain('#growth');
+  it('F-06: describes which sources were read and which were excluded, and why', () => {
+    const access = describeSourceAccess(seedState());
+    expect(access.read).toContain('#product');
+    expect(access.read).toContain('Your past decisions');
     expect(access.excluded).toContainEqual({ label: '#sales', reason: 'not allowed' });
     expect(access.excluded).toContainEqual({ label: 'Google Drive', reason: 'not connected' });
+    expect(describeSourceAccess(emptyWorkspaceState()).excluded).toContainEqual({ label: 'Google Drive', reason: 'not available yet' });
   });
 });

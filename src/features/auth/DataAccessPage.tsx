@@ -1,11 +1,14 @@
 // F-02, F-03: choose what Rooted can see. Used for onboarding and reused as
-// the source-management page from Settings. Connecting a source is mocked.
+// the source-management page from Settings. Slack connects for real (0017);
+// the demo's sample sources stand in for connections, labelled as samples.
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { AI_ERROR_MESSAGE } from '../../agent/client';
 import { Dialog } from '../../components/Dialog';
 import { useStore } from '../../store/store';
 import type { Provider, Source } from '../../types';
 import { GlyphFolder, GlyphHash } from './icons';
+import { SLACK_RETURN_MESSAGE, useLiveSlack } from './useSlack';
 import './auth.css';
 
 const providerLabel: Record<Provider, string> = { google: 'Google', slack: 'Slack', email: 'email link' };
@@ -40,13 +43,25 @@ function formatDate(iso: string) {
 
 function summaryText(source: Source) {
   const n = sourceNouns(source);
+  if (source.unavailable) return `Rooted can’t read ${source.name} yet.`;
   if (!source.connected) return `${source.name} is not connected. Rooted reads nothing from it.`;
+  if (source.channels.length === 0) return `Rooted found no public ${n.many} to read yet.`;
   const allowed = source.channels.filter((c) => c.allowed).length;
   const total = source.channels.length;
   return `Rooted can read ${allowed} of ${total} ${n.label} ${total === 1 ? n.one : n.many}.`;
 }
 
-function SourceCard({ source, onConnect }: { source: Source; onConnect: () => void }) {
+function SourceCard({
+  source,
+  onConnect,
+  onDisconnect,
+  busy = false,
+}: {
+  source: Source;
+  onConnect: () => void;
+  onDisconnect: () => void;
+  busy?: boolean;
+}) {
   const { dispatch } = useStore();
   const n = sourceNouns(source);
   const headingId = `source-${source.id}-title`;
@@ -65,10 +80,15 @@ function SourceCard({ source, onConnect }: { source: Source; onConnect: () => vo
             {source.name}
           </h2>
           <p className="muted auth-small">
-            {source.connected ? (
+            {source.unavailable ? (
+              <>
+                <span className="dot auth-dot-off" aria-hidden="true" /> Not available yet
+              </>
+            ) : source.connected ? (
               <>
                 <span className="dot dot-alive" aria-hidden="true" /> Connected
                 {source.connectedAt && <> on {formatDate(source.connectedAt)}</>}
+                {source.sample && <> · sample data</>}
               </>
             ) : (
               <>
@@ -77,17 +97,14 @@ function SourceCard({ source, onConnect }: { source: Source; onConnect: () => vo
             )}
           </p>
         </div>
-        {source.connected ? (
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={() => dispatch({ type: 'updateSource', sourceId: source.id, patch: { connected: false } })}
-          >
+        {source.unavailable ? null : source.connected ? (
+          <button type="button" className="btn btn-ghost" onClick={onDisconnect} disabled={busy}>
             Disconnect<span className="visually-hidden"> {source.name}</span>
           </button>
         ) : (
-          <button type="button" className="btn" onClick={onConnect}>
-            Connect<span className="visually-hidden"> {source.name}</span>
+          <button type="button" className="btn" onClick={onConnect} disabled={busy} aria-busy={busy}>
+            {busy ? 'Opening Slack…' : 'Connect'}
+            <span className="visually-hidden"> {source.name}</span>
           </button>
         )}
       </div>
@@ -150,8 +167,22 @@ function SourceCard({ source, onConnect }: { source: Source; onConnect: () => vo
 export function DataAccessPage() {
   const { state, dispatch } = useStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const slack = useLiveSlack();
   const [connecting, setConnecting] = useState<Source | null>(null);
   const user = state.user;
+  const returned = new URLSearchParams(location.search).get('slack');
+  const returnMessage = returned ? SLACK_RETURN_MESSAGE[returned] : undefined;
+
+  // A live Slack goes through Slack's own permission page; a sample source (the demo) is switched on here.
+  function connect(source: Source) {
+    if (source.id === slack.source?.id) void slack.connect();
+    else setConnecting(source);
+  }
+  function disconnect(source: Source) {
+    if (source.id === slack.source?.id) void slack.disconnect();
+    else dispatch({ type: 'updateSource', sourceId: source.id, patch: { connected: false } });
+  }
 
   const confirmConnect = () => {
     if (!connecting) return;
@@ -202,9 +233,31 @@ export function DataAccessPage() {
         </p>
       </div>
 
+      {returnMessage && (
+        <p role={returned === 'connected' ? 'status' : 'alert'} className="banner">
+          {returnMessage}
+        </p>
+      )}
+      {slack.revoked && (
+        <p role="alert" className="banner">
+          {AI_ERROR_MESSAGE.slack_token_revoked}
+        </p>
+      )}
+      {slack.error && (
+        <p role="alert" className="error">
+          {AI_ERROR_MESSAGE[slack.error]}
+        </p>
+      )}
+
       <div className="grid-2 auth-sources">
         {state.sources.map((s) => (
-          <SourceCard key={s.id} source={s} onConnect={() => setConnecting(s)} />
+          <SourceCard
+            key={s.id}
+            source={s}
+            onConnect={() => connect(s)}
+            onDisconnect={() => disconnect(s)}
+            busy={s.id === slack.source?.id && slack.busy}
+          />
         ))}
       </div>
 
@@ -236,10 +289,10 @@ export function DataAccessPage() {
         {connecting && (
           <>
             <p className="banner auth-mock-note">
-              <strong>Prototype: no real connection happens.</strong> This screen stands in for the{' '}
-              {connecting.type === 'slack' ? 'Slack' : 'Google'} permission page, and Rooted uses sample data.
+              <strong>Demo workspace: sample data.</strong> This switches on the demo’s sample{' '}
+              {connecting.type === 'slack' ? 'Slack channels' : 'Drive folders'}. Nothing is connected for real.
             </p>
-            <p>Rooted would ask to:</p>
+            <p>A real connection asks to:</p>
             <ul className="auth-list">
               {connectRequests[connecting.type].map((r) => (
                 <li key={r}>{r}</li>

@@ -12,7 +12,7 @@ Rooted is a decision record, so the team keeps its own here. One file per decisi
 | [0004](0004-option-tree-graph.md) | Show options as a tree graph with sub-options, rough ratings and linked decisions | Decided 2026-10-28 |
 | [0005](0005-working-mvp-scope.md) | Build a working MVP that includes teammates and AI suggestions, on mock data | Decided 2026-10-31 |
 | [0006](0006-home-map-and-workspace.md) | Decision map as home; think decisions through in one workspace beside the agent | Decided 2026-10-31 |
-| [0007](0007-llm-behind-edge-function.md) | Call the LLM from a Supabase Edge Function, with sample answers as the fallback | Decided 2026-10-31 (provider open) |
+| [0007](0007-llm-behind-edge-function.md) | Call the LLM from a Supabase Edge Function, with sample answers as the fallback | Superseded by 0016 |
 | [0008](0008-accents-threads-sign-in.md) | Two restrained accents, thread lanes on the map, a split sign-in page | Decided 2026-10-31 |
 | [0009](0009-demo-mode-and-outcomes.md) | A planted demo workspace, causal links on the map, and recorded outcomes | Decided 2026-10-31, merged 2026-11-02 |
 | [0010](0010-interactive-canvas-and-theme.md) | A draggable, traceable graph view of the map, and a light/dark toggle | Decided 2026-10-31, merged 2026-11-02 |
@@ -21,6 +21,9 @@ Rooted is a decision record, so the team keeps its own here. One file per decisi
 | [0013](0013-light-theme-default.md) | Light is the default theme, not the OS setting | Decided 2026-11-02 |
 | [0014](0014-wine-app-bar.md) | The top app bar is a wine surface | Decided 2026-11-02 |
 | [0015](0015-real-sign-in.md) | Real sign-in with Supabase Auth: email link, Google and Slack | Decided 2026-11-11 |
+| [0016](0016-ai-on-modal-with-claude.md) | Run the agent on Modal, calling Claude, with no scripted answers | Decided 2026-11-13 (supersedes 0007) |
+| [0017](0017-real-slack-connection.md) | Connect Slack for real, reading public channels on the server | Decided 2026-11-13 |
+| [0018](0018-empty-workspace-for-real-users.md) | Real people start with an empty workspace; the sample company is the demo | Decided 2026-11-13 |
 
 ## Open decisions
 
@@ -28,7 +31,7 @@ Raise these with the team. Agents don't settle them.
 
 | Decision | Where it stands |
 |---|---|
-| LLM provider | Not chosen. The path to it is built (0007): set three Edge Function secrets to switch it on. Hosting is Vercel (0011). |
+| Which Claude model per task | Every task runs on Claude Opus 5.5 at low or medium effort (0016). Revisit with cost and quality numbers. |
 | MVP context source: Slack or meeting transcripts | Story map picks Slack; the parking lot still asks. |
 | What counts as a decision, and the minimum decision record | Parking lot: "answer first." The prototype's AI-suggested decisions are hand-written examples (0005) and don't settle it. |
 | Lead story: context gathering or option mapping and scoring | Value proposition and landing page disagree. The prototype shows rough ratings (0004) without settling it. |

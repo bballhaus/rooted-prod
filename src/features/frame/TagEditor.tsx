@@ -2,7 +2,8 @@
 // some (sage outlined chips with a ✦) that the PM keeps or removes. A kept
 // suggestion becomes the PM's tag.
 import { useId, useRef, useState, type KeyboardEvent } from 'react';
-import { suggestTags } from '../../agent';
+import { AI_ERROR_MESSAGE, errorCode, suggestTags, type AiErrorCode } from '../../agent';
+import { useAi } from '../../agent/AiContext';
 import { ReportWrongAnswer } from '../../components/ReportWrongAnswer';
 import { workspaceTags } from '../../store/dashboard';
 import { useStore } from '../../store/store';
@@ -24,9 +25,10 @@ export function TagEditor({
   notes: string;
 }) {
   const { state } = useStore();
+  const ai = useAi();
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
-  const [sample, setSample] = useState(false);
+  const [error, setError] = useState<AiErrorCode | null>(null);
   const [none, setNone] = useState(false);
   const id = useId();
   const listId = useId();
@@ -44,18 +46,30 @@ export function TagEditor({
   }
 
   async function suggest() {
-    setBusy(true);
     setNone(false);
-    const result = await suggestTags(
-      question,
-      notes,
-      tags.map((t) => t.label),
-      known,
-    );
-    setBusy(false);
-    setSample(result.sample);
+    setError(null);
+    if (!ai) {
+      setError('not_configured');
+      return;
+    }
+    setBusy(true);
+    let suggested: string[];
+    try {
+      suggested = await suggestTags(
+        ai,
+        question,
+        notes,
+        tags.map((t) => t.label),
+        known,
+      );
+    } catch (e) {
+      setError(errorCode(e));
+      return;
+    } finally {
+      setBusy(false);
+    }
     const current = latest.current;
-    const fresh = result.tags.filter((label) => !current.some((t) => t.label === label));
+    const fresh = suggested.filter((label) => !current.some((t) => t.label === label));
     if (fresh.length === 0) setNone(true);
     onChange([...current, ...fresh.map((label) => ({ label, origin: 'ai' as const }))]);
   }
@@ -134,9 +148,13 @@ export function TagEditor({
       </div>
       <span className="hint row">
         Your tags are filled; Rooted’s suggestions are outlined until you keep them.
-        {sample && <span className="sample-badge">Sample answer</span>}
         {none && <span>No new tags to suggest.</span>}
       </span>
+      {error && (
+        <p role="alert" className="error">
+          {AI_ERROR_MESSAGE[error]}
+        </p>
+      )}
     </div>
   );
 }

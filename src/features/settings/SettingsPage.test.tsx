@@ -1,8 +1,8 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { seedState } from '../../data/fixtures';
 import { STORAGE_KEY } from '../../store/store';
-import { renderApp } from '../../test/render';
+import { fakeAi } from '../../test/fakeAi';
+import { renderApp, signedInState } from '../../test/render';
 import type { AppState } from '../../types';
 
 // The store persists every change to localStorage, so tests read it back from there.
@@ -99,16 +99,18 @@ describe('Settings', () => {
     expect(screen.getByText(/all your data was deleted/i)).toBeInTheDocument();
   });
 
-  it('F-23: reset sample data asks to confirm and restores the sample decisions', async () => {
-    const { user } = renderApp('/settings');
+  it('F-23: deleting all data also removes Rooted’s access to a live Slack', async () => {
+    const ai = fakeAi();
+    ai.slack = { available: true, connected: true, teamName: 'Acme', channels: [{ id: 'C1', name: '#pricing', memberCount: 4 }] };
+    const base = signedInState();
+    const state = { ...base, sources: [{ id: 'src-slack', type: 'slack' as const, name: 'Slack', connected: true, channels: [] }] };
+    const { user } = renderApp('/settings', state, { ai });
     await user.click(screen.getByRole('button', { name: 'Delete all data' }));
     await user.type(screen.getByLabelText('Type DELETE to confirm'), 'DELETE');
     await user.click(screen.getByRole('button', { name: 'Delete everything' }));
-    expect(stored().decisions).toEqual([]);
-    await user.click(screen.getByRole('button', { name: 'Reset sample data' }));
-    const dialog = screen.getByRole('dialog', { name: 'Reset sample data?' });
-    await user.click(within(dialog).getByRole('button', { name: 'Reset sample data' }));
-    expect(stored().decisions.map((d) => d.id)).toEqual(seedState().decisions.map((d) => d.id));
-    expect(stored().user?.name).toBe('Jordan Lee');
+    await waitFor(() => expect(ai.slackDisconnect).toHaveBeenCalled());
+    expect(stored().sources.every((x) => !x.connected)).toBe(true);
+    // Real workspaces start empty, so there's no sample data to reset to; the demo is in the profile menu.
+    expect(screen.queryByRole('button', { name: 'Reset sample data' })).not.toBeInTheDocument();
   });
 });

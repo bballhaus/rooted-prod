@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Dialog } from '../../components/Dialog';
+import { useLiveSlack } from '../auth/useSlack';
 import { useStore } from '../../store/store';
 import type { Source, User } from '../../types';
 import './settings.css';
@@ -246,12 +247,15 @@ function formatDate(iso: string) {
 
 function SourcesSection({ sources }: { sources: Source[] }) {
   const { dispatch } = useStore();
+  const slack = useLiveSlack();
   const [confirming, setConfirming] = useState<Source | null>(null);
   const [status, setStatus] = useState('');
 
   function disconnect() {
     if (!confirming) return;
-    dispatch({ type: 'updateSource', sourceId: confirming.id, patch: { connected: false, connectedAt: undefined } });
+    // A live Slack is revoked on the server too, so the bot token is gone.
+    if (confirming.id === slack.source?.id) void slack.disconnect();
+    else dispatch({ type: 'updateSource', sourceId: confirming.id, patch: { connected: false, connectedAt: undefined } });
     setStatus(`${confirming.name} is disconnected. Context Rooted gathered from it was removed, and it won’t be read again unless you reconnect.`);
     setConfirming(null);
   }
@@ -263,8 +267,8 @@ function SourcesSection({ sources }: { sources: Source[] }) {
           Sources
         </h2>
         <p className="muted">
-          Rooted only reads the channels and folders you allow. It never reads private channels or DMs. In this
-          prototype, connections use sample data.
+          Rooted only reads the channels and folders you allow. It never reads private channels or DMs. The demo
+          workspace uses sample sources.
         </p>
       </div>
       <ul className="settings-source-list">
@@ -335,8 +339,9 @@ function SourcesSection({ sources }: { sources: Source[] }) {
 }
 
 function DataSection() {
-  const { dispatch } = useStore();
-  const [dialog, setDialog] = useState<'delete' | 'reset' | null>(null);
+  const { state, dispatch } = useStore();
+  const slack = useLiveSlack();
+  const [dialog, setDialog] = useState<'delete' | null>(null);
   const [typed, setTyped] = useState('');
   const [status, setStatus] = useState('');
 
@@ -348,14 +353,10 @@ function DataSection() {
   function deleteAll(e: React.FormEvent) {
     e.preventDefault();
     if (typed !== 'DELETE') return;
+    // Deleting everything includes Rooted's access to Slack.
+    if (slack.source?.connected && !state.demo) void slack.disconnect();
     dispatch({ type: 'deleteAllData' });
     setStatus('All your data was deleted: decisions, evidence, options and reports. Every source is disconnected.');
-    close();
-  }
-
-  function reset() {
-    dispatch({ type: 'resetDemo' });
-    setStatus('Sample data restored. Your profile and settings are unchanged.');
     close();
   }
 
@@ -376,15 +377,6 @@ function DataSection() {
         </div>
         <button type="button" className="btn btn-secondary" onClick={() => setDialog('delete')}>
           Delete all data
-        </button>
-      </div>
-      <div className="card-section settings-data-row">
-        <div className="stack settings-data-text">
-          <h3 className="settings-source-name">Reset sample data</h3>
-          <p className="muted">Puts back the prototype’s sample decisions and sources. Your profile stays as it is.</p>
-        </div>
-        <button type="button" className="btn btn-secondary" onClick={() => setDialog('reset')}>
-          Reset sample data
         </button>
       </div>
       <div className="card-section">
@@ -415,17 +407,6 @@ function DataSection() {
             </button>
           </div>
         </form>
-      </Dialog>
-      <Dialog open={dialog === 'reset'} onClose={close} title="Reset sample data?">
-        <p>This replaces your current decisions, evidence and sources with the prototype’s sample data.</p>
-        <div className="row">
-          <button type="button" className="btn" onClick={reset}>
-            Reset sample data
-          </button>
-          <button type="button" className="btn btn-secondary" onClick={close}>
-            Cancel
-          </button>
-        </div>
       </Dialog>
     </section>
   );
