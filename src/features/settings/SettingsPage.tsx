@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Dialog } from '../../components/Dialog';
+import { useAi } from '../../agent/AiContext';
+import { AI_ERROR_MESSAGE, errorCode } from '../../agent/client';
 import { useLiveSlack } from '../auth/useSlack';
 import { useStore } from '../../store/store';
 import type { Source, User } from '../../types';
@@ -253,9 +255,20 @@ function SourcesSection({ sources }: { sources: Source[] }) {
 
   function disconnect() {
     if (!confirming) return;
-    // A live Slack is revoked on the server too, so the bot token is gone.
-    if (confirming.id === slack.source?.id) void slack.disconnect();
-    else dispatch({ type: 'updateSource', sourceId: confirming.id, patch: { connected: false, connectedAt: undefined } });
+    // A live Slack is revoked on the server too; say so only once it is.
+    if (confirming.id === slack.source?.id) {
+      const name = confirming.name;
+      setConfirming(null);
+      void slack.disconnect().then((error) =>
+        setStatus(
+          error
+            ? `${name} couldn’t be disconnected: ${AI_ERROR_MESSAGE[error]} Rooted can still read it until this works.`
+            : `${name} is disconnected. Rooted’s access was revoked and context gathered from it was removed.`,
+        ),
+      );
+      return;
+    }
+    dispatch({ type: 'updateSource', sourceId: confirming.id, patch: { connected: false, connectedAt: undefined } });
     setStatus(`${confirming.name} is disconnected. Context Rooted gathered from it was removed, and it won’t be read again unless you reconnect.`);
     setConfirming(null);
   }
@@ -339,8 +352,8 @@ function SourcesSection({ sources }: { sources: Source[] }) {
 }
 
 function DataSection() {
-  const { state, dispatch } = useStore();
-  const slack = useLiveSlack();
+  const { dispatch } = useStore();
+  const ai = useAi();
   const [dialog, setDialog] = useState<'delete' | null>(null);
   const [typed, setTyped] = useState('');
   const [status, setStatus] = useState('');
@@ -353,10 +366,17 @@ function DataSection() {
   function deleteAll(e: React.FormEvent) {
     e.preventDefault();
     if (typed !== 'DELETE') return;
-    // Deleting everything includes Rooted's access to Slack.
-    if (slack.source?.connected && !state.demo) void slack.disconnect();
+    // Deleting everything includes Rooted's access to a real Slack, even from
+    // inside the demo, where the PM's own sources are set aside.
     dispatch({ type: 'deleteAllData' });
     setStatus('All your data was deleted: decisions, evidence, options and reports. Every source is disconnected.');
+    if (ai) {
+      ai.slackDisconnect().catch((e) =>
+        setStatus(
+          `Your data was deleted, but Rooted’s access to Slack couldn’t be revoked: ${AI_ERROR_MESSAGE[errorCode(e)]} Try again, or remove the Rooted app in Slack.`,
+        ),
+      );
+    }
     close();
   }
 

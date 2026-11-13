@@ -31,8 +31,9 @@ Raise these with the team. Agents don't settle them.
 
 | Decision | Where it stands |
 |---|---|
-| Which Claude model per task | Every task runs on Claude Opus 5.5 at low or medium effort (0016). Revisit with cost and quality numbers. |
+| Revisit the one-model choice | 0016 runs every task on Claude Opus 5.5 (low or medium effort). Revisit with cost and quality numbers before trying a cheaper model for light tasks. |
 | MVP context source: Slack or meeting transcripts | Story map picks Slack; the parking lot still asks. |
-| What counts as a decision, and the minimum decision record | Parking lot: "answer first." The prototype's AI-suggested decisions are hand-written examples (0005) and don't settle it. |
+| What counts as a decision, and the minimum decision record | Parking lot: "answer first." Spotting decisions in Slack (0016) uses a provisional, neutral prompt ("choices the team seems to be facing", up to 3) that doesn't settle it. |
+| Consent from teammates whose Slack messages Rooted reads | Rooted reads only public channels the installing PM allows, and a workspace admin may have to approve the app (0017). Colleagues aren't asked or told yet. Decide before outside testers. |
 | Lead story: context gathering or option mapping and scoring | Value proposition and landing page disagree. The prototype shows rough ratings (0004) without settling it. |
 | Activation target: 2 decisions by day 7, or 3+ in 2 weeks | Opportunity tree and funnel disagree. |

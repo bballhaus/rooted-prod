@@ -32,6 +32,8 @@ state = modal.Dict.from_name("rooted-ai-state", create_if_missing=True)
         modal.Secret.from_name("rooted-slack"),
     ],
     timeout=180,
+    # A ceiling on how far a burst can scale out; the daily cap bounds spend.
+    max_containers=3,
 )
 @modal.concurrent(max_inputs=20)
 @modal.asgi_app()

@@ -86,6 +86,7 @@ export function AgentProvider({ children }: { children: ReactNode }) {
               text: AI_ERROR_MESSAGE[code],
               failed: true,
               retry: text,
+              failedCode: code,
               createdAt: new Date().toISOString(),
             },
           });

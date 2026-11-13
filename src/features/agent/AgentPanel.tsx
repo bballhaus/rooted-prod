@@ -6,6 +6,7 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { suggestedPrompts } from '../../agent/chat';
+import { isRetryable, type AiErrorCode } from '../../agent/client';
 import { CloseIcon, SparkIcon } from '../../components/icons';
 import { ReportWrongAnswer } from '../../components/ReportWrongAnswer';
 import { localToday } from '../../store/dashboard';
@@ -177,7 +178,7 @@ function Message({ message }: { message: ChatMessage }) {
     return (
       <div className="agent-msg agent-msg-agent agent-msg-failed" role="alert">
         <p className="agent-msg-text">{message.text}</p>
-        {message.retry && (
+        {message.retry && isRetryable((message.failedCode ?? 'unknown') as AiErrorCode) && (
           <div className="row agent-msg-actions">
             <button type="button" className="btn btn-secondary" disabled={pending} onClick={() => ask(message.retry!)}>
               Ask again

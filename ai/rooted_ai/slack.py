@@ -133,10 +133,17 @@ def gather(api: SlackApi, token: str, channel_ids: list[str], clock: Callable[[]
     oldest = str(clock() - DAYS_BACK * 86400)
     names: dict[str, str] = {}
     out: list[dict[str, Any]] = []
-    for channel in allowed:
-        if not channel["isMember"]:
-            api.call("conversations.join", token, channel=channel["id"])
-        body = api.call("conversations.history", token, channel=channel["id"], oldest=oldest, limit=PER_CHANNEL)
+    for i, channel in enumerate(allowed):
+        try:
+            if not channel["isMember"]:
+                api.call("conversations.join", token, channel=channel["id"])
+            body = api.call("conversations.history", token, channel=channel["id"], oldest=oldest, limit=PER_CHANNEL)
+        except SlackError as e:
+            # Slack rate-limits history reads, hard for apps distributed outside
+            # its Marketplace. Keep what was read rather than fail the whole task.
+            if e.code == "slack_rate_limited" and i > 0:
+                break
+            raise
         for m in body.get("messages", []):
             # Skip joins, bot posts and other system messages; keep what people wrote.
             if m.get("subtype") or not str(m.get("text", "")).strip() or m.get("bot_id"):

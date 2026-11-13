@@ -1,7 +1,7 @@
 // F-02, F-03: choose what Rooted can see. Used for onboarding and reused as
 // the source-management page from Settings. Slack connects for real (0017);
 // the demo's sample sources stand in for connections, labelled as samples.
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AI_ERROR_MESSAGE } from '../../agent/client';
 import { Dialog } from '../../components/Dialog';
@@ -171,8 +171,24 @@ export function DataAccessPage() {
   const slack = useLiveSlack();
   const [connecting, setConnecting] = useState<Source | null>(null);
   const user = state.user;
-  const returned = new URLSearchParams(location.search).get('slack');
+  // What Slack's permission page sent back. Read once, then cleared from the
+  // address so a refresh doesn't repeat it.
+  const [returned, setReturned] = useState(() => new URLSearchParams(location.search).get('slack'));
   const returnMessage = returned ? SLACK_RETURN_MESSAGE[returned] : undefined;
+  const finishing = useRef(false);
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const code = params.get('slack_code');
+    const state = params.get('slack_state');
+    if (!params.has('slack') && !code) return;
+    navigate('/onboarding', { replace: true });
+    if (code && state && !finishing.current) {
+      finishing.current = true;
+      void slack.complete(code, state).then((ok) => ok && setReturned('connected'));
+    }
+    // Runs once on arrival.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // A live Slack goes through Slack's own permission page; a sample source (the demo) is switched on here.
   function connect(source: Source) {

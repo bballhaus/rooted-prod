@@ -7,10 +7,12 @@ from __future__ import annotations
 
 import json
 import time
+from urllib.parse import urlencode
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
 from fastapi import FastAPI, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 
@@ -18,10 +20,11 @@ from . import slack
 from .auth import AuthUnavailable
 from .claude import ModelError, ask
 from .config import Settings
-from .limits import Limits, Store, cost_usd
+from .limits import Limits, Store, cost_usd, worst_case_usd
 from .tasks import SLACK_TASKS, TASKS, BadAnswer, BadPayload
 
 MAX_BODY_BYTES = 512_000
+REVOKED = ("invalid_auth", "token_revoked", "account_inactive")
 
 
 @dataclass
@@ -61,8 +64,30 @@ def create_app(deps: Deps) -> FastAPI:
             return fail(503, "auth_unavailable")
         return user_id or fail(401, "sign_in_required")
 
+    # Slack gives an app one bot token per workspace, so it's stored once per
+    # workspace (slack-team:<id>) with the Rooted people using it, and each
+    # person's record (slack:<user>) points at their workspace.
     def slack_token(user_id: str) -> str | None:
-        return (deps.store.get(f"slack:{user_id}") or {}).get("token")
+        mine = deps.store.get(f"slack:{user_id}") or {}
+        team = deps.store.get(f"slack-team:{mine.get('teamId')}") or {}
+        return team.get("token") if user_id in team.get("users", []) else None
+
+    def forget_slack(user_id: str, revoke: bool) -> None:
+        mine = deps.store.pop(f"slack:{user_id}") or {}
+        key = f"slack-team:{mine.get('teamId')}"
+        team = deps.store.get(key)
+        if not team:
+            return
+        users = [u for u in team.get("users", []) if u != user_id]
+        if users and revoke:
+            deps.store.put(key, {**team, "users": users})  # others still use it; keep the token
+            return
+        deps.store.pop(key)
+        if revoke:
+            try:
+                deps.slack_api.call("auth.revoke", team["token"])
+            except slack.SlackError:
+                pass  # the token is gone from Rooted either way
 
     @app.get("/health")
     def health() -> dict[str, Any]:
@@ -70,10 +95,15 @@ def create_app(deps: Deps) -> FastAPI:
 
     @app.post("/agent")
     async def agent(request: Request) -> JSONResponse:
+        raw = await request.body()
+        # Sign-in checks, Slack reads and Claude calls block; run them off the
+        # event loop so one slow call doesn't hold up everyone on this container.
+        return await run_in_threadpool(handle_agent, request, raw)
+
+    def handle_agent(request: Request, raw: bytes) -> JSONResponse:
         user_id = signed_in(request)
         if isinstance(user_id, JSONResponse):
             return user_id
-        raw = await request.body()
         if len(raw) > MAX_BODY_BYTES:
             return fail(413, "too_large")
         try:
@@ -99,21 +129,29 @@ def create_app(deps: Deps) -> FastAPI:
                 payload = {**payload, "messages": slack.gather(deps.slack_api, token, list(payload["source"].get("channelIds", [])), deps.clock)}
             except slack.SlackError as e:
                 log("slack_failed", task=name, code=e.code)
-                return fail(502, "slack_token_revoked" if e.code in ("invalid_auth", "token_revoked", "account_inactive") else "slack_error")
+                if e.code in REVOKED:
+                    forget_slack(user_id, revoke=False)
+                    return fail(502, "slack_token_revoked")
+                return fail(502, "slack_error")
 
         try:
             user_message = task.build(payload)
         except BadPayload:
             return fail(400, "bad_payload")
+        # Set aside the worst case first, so calls at the same moment can't all
+        # slip under the daily cap; then settle what the call really cost.
+        reserved = worst_case_usd(len(task.system) + len(user_message), task.max_tokens)
+        if not limits.reserve(reserved):
+            log("budget_reached", task=name)
+            return fail(503, "budget_reached")
         try:
-            answer = ask(deps.claude, system=task.system, user=user_message, schema=task.schema, effort=task.effort)
+            answer = ask(deps.claude, system=task.system, user=user_message, schema=task.schema, effort=task.effort, max_tokens=task.max_tokens)
         except ModelError as e:
-            if e.usage is not None:
-                limits.record_spend(cost_usd(e.usage))
+            limits.settle(reserved, cost_usd(e.usage) if e.usage is not None else 0.0)
             log("task_failed", task=name, code=e.code)
             return fail(503 if e.code == "not_configured" else 502, e.code)
         spent = cost_usd(answer.usage)
-        limits.record_spend(spent)
+        limits.settle(reserved, spent)
         try:
             result = task.check(answer.data, payload)
         except BadAnswer:
@@ -136,13 +174,14 @@ def create_app(deps: Deps) -> FastAPI:
         if not deps.settings.slack_configured:
             return JSONResponse({"ok": True, "result": {"available": False, "connected": False}})
         saved = deps.store.get(f"slack:{user_id}")
-        if not saved:
+        token = slack_token(user_id)
+        if not saved or not token:
             return JSONResponse({"ok": True, "result": {"available": True, "connected": False}})
         try:
-            channels = slack.list_channels(deps.slack_api, saved["token"])
+            channels = slack.list_channels(deps.slack_api, token)
         except slack.SlackError as e:
-            if e.code in ("invalid_auth", "token_revoked", "account_inactive"):
-                deps.store.pop(f"slack:{user_id}")
+            if e.code in REVOKED:
+                forget_slack(user_id, revoke=False)
                 return JSONResponse({"ok": True, "result": {"available": True, "connected": False, "revoked": True}})
             return fail(502, "slack_error")
         return JSONResponse(
@@ -169,32 +208,54 @@ def create_app(deps: Deps) -> FastAPI:
 
     @app.get("/slack/callback")
     def slack_callback(code: str = "", state: str = "", error: str = "") -> RedirectResponse:
+        # Stores nothing: whoever's browser lands here isn't proven to be the
+        # person who started the install. The app finishes it, signed in, at
+        # /slack/complete.
         back = f"{deps.settings.app_origins[0] if deps.settings.app_origins else ''}/onboarding"
         if error:
             return RedirectResponse(f"{back}?slack=cancelled", status_code=302)
-        user_id = slack.read_state(deps.settings, state, deps.clock())
-        if not user_id or not code:
+        if not code or not state:
             return RedirectResponse(f"{back}?slack=expired", status_code=302)
+        return RedirectResponse(f"{back}?{urlencode({'slack_code': code, 'slack_state': state})}", status_code=302)
+
+    @app.post("/slack/complete")
+    async def slack_complete(request: Request) -> JSONResponse:
+        try:
+            body = await request.json()
+        except json.JSONDecodeError:
+            return fail(400, "bad_json")
+        return await run_in_threadpool(finish_install, request, str(body.get("code", "")), str(body.get("state", "")))
+
+    def finish_install(request: Request, code: str, state: str) -> JSONResponse:
+        user_id = signed_in(request)
+        if isinstance(user_id, JSONResponse):
+            return user_id
+        started_by = slack.read_state(deps.settings, state, deps.clock())
+        if started_by is None:
+            return fail(400, "slack_state_expired")
+        if started_by != user_id:
+            log("slack_state_mismatch")
+            return fail(403, "slack_state_mismatch")
         try:
             install = slack.exchange_code(deps.slack_api, deps.settings, code)
         except slack.SlackError as e:
             log("slack_install_failed", code=e.code)
-            return RedirectResponse(f"{back}?slack=error", status_code=302)
-        deps.store.put(f"slack:{user_id}", {**install, "connectedAt": int(deps.clock())})
+            return fail(502, "slack_error")
+        key = f"slack-team:{install['teamId']}"
+        team = deps.store.get(key) or {}
+        users = [u for u in team.get("users", []) if u != user_id] + [user_id]
+        deps.store.put(key, {"token": install["token"], "users": users})
+        deps.store.put(f"slack:{user_id}", {"teamId": install["teamId"], "teamName": install["teamName"], "connectedAt": int(deps.clock())})
         log("slack_connected")
-        return RedirectResponse(f"{back}?slack=connected", status_code=302)
+        return JSONResponse({"ok": True, "result": {"connected": True, "teamName": install["teamName"]}})
 
     @app.post("/slack/disconnect")
     def slack_disconnect(request: Request) -> JSONResponse:
         user_id = signed_in(request)
         if isinstance(user_id, JSONResponse):
             return user_id
-        saved = deps.store.pop(f"slack:{user_id}")
-        if saved:
-            try:
-                deps.slack_api.call("auth.revoke", saved["token"])
-            except slack.SlackError:
-                pass  # the token is gone from Rooted either way
+        # Revokes the workspace's token only when nobody else in Rooted uses it.
+        forget_slack(user_id, revoke=True)
         return JSONResponse({"ok": True, "result": {"connected": False}})
 
     return app

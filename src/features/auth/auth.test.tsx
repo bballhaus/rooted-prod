@@ -1,6 +1,7 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { emptyWorkspaceState, seedState } from '../../data/fixtures';
+import { AiError } from '../../agent/client';
 import { fakeAi } from '../../test/fakeAi';
 import { STORAGE_KEY } from '../../store/store';
 import { fakeAuth, identityFor } from '../../test/fakeAuth';
@@ -199,6 +200,34 @@ describe('Data access', () => {
     await user.click(within(slack).getByRole('button', { name: /Disconnect/ }));
     await waitFor(() => expect(ai.slackDisconnect).toHaveBeenCalled());
     expect(stored().sources.find((x) => x.id === 'src-slack')?.connected).toBe(false);
+  });
+
+  it('F-03, 0017: back from Slack, the app finishes the install as the signed-in PM and clears the address', async () => {
+    const ai = fakeAi();
+    ai.slack = { available: true, connected: true, teamName: 'Acme', channels: [{ id: 'C1', name: '#pricing', memberCount: 4 }] };
+    renderApp('/onboarding?slack_code=abc&slack_state=s1', { ...emptyWorkspaceState(), user: signedInState().user }, { ai });
+    expect(await screen.findByText('Slack is connected. Check the channels Rooted may read.')).toBeInTheDocument();
+    expect(ai.slackComplete).toHaveBeenCalledWith('abc', 's1');
+    expect(await screen.findByRole('region', { name: 'Acme Slack' })).toBeInTheDocument();
+  });
+
+  it('F-03, 0017: an install started from another Rooted account is refused and says so', async () => {
+    const ai = fakeAi();
+    ai.slackComplete.mockRejectedValue(new AiError('slack_state_mismatch'));
+    renderApp('/onboarding?slack_code=abc&slack_state=theirs', { ...emptyWorkspaceState(), user: signedInState().user }, { ai });
+    expect(await screen.findByText(/started from a different Rooted account/)).toBeInTheDocument();
+    expect(stored().sources.find((x) => x.id === 'src-slack')?.connected).toBe(false);
+  });
+
+  it('F-23: a failed disconnect leaves Slack connected and says why', async () => {
+    const ai = fakeAi();
+    ai.slack = { available: true, connected: true, teamName: 'Acme', channels: [] };
+    ai.slackDisconnect.mockRejectedValue(new AiError('network'));
+    const { user } = renderApp('/onboarding', { ...emptyWorkspaceState(), user: signedInState().user }, { ai });
+    const slack = await screen.findByRole('region', { name: 'Acme Slack' });
+    await user.click(within(slack).getByRole('button', { name: /Disconnect/ }));
+    expect(await screen.findByText(/couldn’t reach its AI service/)).toBeInTheDocument();
+    expect(stored().sources.find((x) => x.id === 'src-slack')?.connected).toBe(true);
   });
 
   it.each([

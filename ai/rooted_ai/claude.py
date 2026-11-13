@@ -30,15 +30,16 @@ class ModelAnswer:
 
 
 def make_client() -> anthropic.Anthropic:
-    # A minute per attempt; the SDK retries connection errors, 429 and 5xx twice.
-    return anthropic.Anthropic(timeout=60.0, max_retries=2)
+    # 50 seconds per attempt and one retry, so a call ends before the app's
+    # two-and-a-half-minute wait does and a "Try again" never pays twice.
+    return anthropic.Anthropic(timeout=50.0, max_retries=1)
 
 
-def ask(client: anthropic.Anthropic, *, system: str, user: str, schema: dict[str, Any], effort: str) -> ModelAnswer:
+def ask(client: anthropic.Anthropic, *, system: str, user: str, schema: dict[str, Any], effort: str, max_tokens: int) -> ModelAnswer:
     try:
         response = client.beta.messages.create(
             model=MODEL,
-            max_tokens=16000,
+            max_tokens=max_tokens,
             betas=[FALLBACK_BETA],
             fallbacks="default",
             system=system,

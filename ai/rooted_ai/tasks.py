@@ -109,6 +109,7 @@ class GapIn(Strict):
 @dataclass(frozen=True)
 class Task:
     effort: str
+    max_tokens: int  # output cap, thinking included; also bounds the worst-case cost
     schema: dict[str, Any]
     system: str
     build: Callable[[dict[str, Any]], str]  # payload -> the user message
@@ -444,6 +445,8 @@ class SpotIn(Strict):
     existingDecisions: list[str] = Field(default_factory=list, max_length=300)
 
 
+# Provisional wording: "what counts as a decision" is an open team question
+# (docs/decisions/README.md). Keep this neutral until the team settles it.
 def build_spot(p: dict[str, Any]) -> str:
     s = parse(SpotIn, p)
     return "\n\n".join(
@@ -477,19 +480,21 @@ def check_spot(a: dict[str, Any], p: dict[str, Any]) -> dict[str, Any]:
 
 
 TASKS: dict[str, Task] = {
-    "chat": Task("low", obj({"text": STR, "citations": STRS}), f"{ROLE}\n\n{UNTRUSTED}", build_chat, check_chat),
-    "suggestTags": Task("low", obj({"tags": STRS}), f"{ROLE}\n\n{UNTRUSTED}", build_tags, check_tags),
+    "chat": Task("low", 4000, obj({"text": STR, "citations": STRS}), f"{ROLE}\n\n{UNTRUSTED}", build_chat, check_chat),
+    "suggestTags": Task("low", 2000, obj({"tags": STRS}), f"{ROLE}\n\n{UNTRUSTED}", build_tags, check_tags),
     "brief": Task(
         "medium",
+        8000,
         obj({"items": {"type": "array", "items": obj({"ref": STR, "group": STR})}, "gaps": {"type": "array", "items": obj({"question": STR})}}),
         f"{ROLE}\n\n{UNTRUSTED}",
         build_brief,
         check_brief,
     ),
-    "options": Task("medium", obj({"options": {"type": "array", "items": OPTION_SCHEMA}}), f"{ROLE}\n\n{UNTRUSTED}", build_options, check_options),
-    "subOptions": Task("medium", obj({"options": {"type": "array", "items": OPTION_SCHEMA}}), f"{ROLE}\n\n{UNTRUSTED}", build_sub_options, check_sub_options),
+    "options": Task("medium", 8000, obj({"options": {"type": "array", "items": OPTION_SCHEMA}}), f"{ROLE}\n\n{UNTRUSTED}", build_options, check_options),
+    "subOptions": Task("medium", 6000, obj({"options": {"type": "array", "items": OPTION_SCHEMA}}), f"{ROLE}\n\n{UNTRUSTED}", build_sub_options, check_sub_options),
     "draftRecord": Task(
         "medium",
+        6000,
         obj({"rationale": STR, "rejected": {"type": "array", "items": obj({"optionId": STR, "reason": STR})}}),
         f"{ROLE}\n\n{UNTRUSTED}",
         build_record,
@@ -497,6 +502,7 @@ TASKS: dict[str, Task] = {
     ),
     "findLinks": Task(
         "medium",
+        6000,
         obj({"links": {"type": "array", "items": obj({"fromId": STR, "toId": STR, "kind": {"type": "string", "enum": ["builds-on", "related"]}, "reason": STR})}}),
         f"{ROLE}\n\n{UNTRUSTED}",
         build_links,
@@ -504,6 +510,7 @@ TASKS: dict[str, Task] = {
     ),
     "spotDecisions": Task(
         "medium",
+        6000,
         obj({"suggestions": {"type": "array", "items": obj({"question": STR, "why": STR, "evidenceRefs": STRS})}}),
         f"{ROLE}\n\n{UNTRUSTED}",
         build_spot,

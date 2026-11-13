@@ -1,21 +1,9 @@
 // What every AI feature shows when Claude couldn't answer (decision 0016):
 // what happened, a retry, and the manual path where there is one. No
 // scripted stand-in answer is ever shown in its place.
-import { AI_ERROR_MESSAGE, type AiErrorCode } from '../agent/client';
+import { Link } from 'react-router-dom';
+import { AI_ERROR_MESSAGE, isRetryable, type AiErrorCode } from '../agent/client';
 
-const RETRYABLE = new Set<AiErrorCode>([
-  'auth_unavailable',
-  'provider_busy',
-  'provider_timeout',
-  'provider_unreachable',
-  'provider_error',
-  'refused',
-  'too_long',
-  'bad_output',
-  'slack_error',
-  'network',
-  'unknown',
-]);
 
 export function AiErrorNotice({
   code,
@@ -29,9 +17,14 @@ export function AiErrorNotice({
   return (
     <div className="banner ai-error stack" role="alert">
       <p>{AI_ERROR_MESSAGE[code]}</p>
-      {(onRetry || children) && (
+      {(onRetry || children || code === 'sign_in_required') && (
         <div className="row">
-          {onRetry && RETRYABLE.has(code) && (
+          {code === 'sign_in_required' && (
+            <Link to="/signin" className="btn btn-secondary">
+              Sign in again
+            </Link>
+          )}
+          {onRetry && isRetryable(code) && (
             <button type="button" className="btn btn-secondary" onClick={onRetry}>
               Try again
             </button>

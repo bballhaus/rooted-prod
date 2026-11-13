@@ -65,16 +65,22 @@ describe('Agent panel', () => {
     const ai = fakeAi({ chat: 'rate_limited' });
     const { user } = renderApp('/', signedInState(), { ai });
     await user.click(screen.getByRole('button', { name: 'Ask Rooted' }));
-    await user.type(within(panel()).getByLabelText('Ask Rooted'), 'What is still open?{Enter}');
+    await user.type(within(panel()).getByLabelText('Ask Rooted'), 'Anything due?{Enter}');
     const log = within(panel()).getByRole('log');
     expect(await within(log).findByText(/That’s a lot of requests in a few minutes/, {}, WAIT)).toBeInTheDocument();
+    // Asking again right away wouldn't help, so it isn't offered.
+    expect(within(log).queryByRole('button', { name: 'Ask again' })).not.toBeInTheDocument();
+
+    ai.answers.chat = 'provider_busy';
+    await user.type(within(panel()).getByLabelText('Ask Rooted'), 'What is still open?{Enter}');
+    expect(await within(log).findByText(/The AI is busy right now/, {}, WAIT)).toBeInTheDocument();
     // A failed answer isn't an answer: nothing to edit or report, and it isn't sent back as history.
     expect(within(log).queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
     delete ai.answers.chat;
     await user.click(within(log).getByRole('button', { name: 'Ask again' }));
     expect(await within(log).findByText(/Here’s what I found about “What is still open\?”/, {}, WAIT)).toBeInTheDocument();
-    const retried = ai.run.mock.calls[1][1];
-    expect(retried.history.some((m: { text: string }) => /lot of requests/.test(m.text))).toBe(false);
+    const retried = ai.run.mock.calls[ai.run.mock.calls.length - 1][1];
+    expect(retried.history.some((m: { text: string }) => /lot of requests|busy right now/.test(m.text))).toBe(false);
   });
 
   it('starting a new decision from the chat opens the new decision page beside it', async () => {

@@ -3,7 +3,7 @@
 // them, and both can be reported as wrong (F-28).
 import type { AppState, DecisionLink, SuggestedDecision } from '../types';
 import { briefSource, decisionSummary, sampleMessages, type BriefMessage } from './brief';
-import type { AiClient } from './client';
+import { AiError, type AiClient } from './client';
 
 export async function findLinks(ai: AiClient, state: AppState, now = new Date()): Promise<DecisionLink[]> {
   const decisions = state.decisions.map((d) => decisionSummary(d, state));
@@ -32,9 +32,12 @@ interface Spotted {
 
 export async function spotDecisions(ai: AiClient, state: AppState, now = new Date()): Promise<SuggestedDecision[]> {
   const source = briefSource(state);
+  const messages = source.kind === 'sample' ? sampleMessages(state) : [];
+  // Nothing to read means nothing to spot; don't pay for an empty call.
+  if (source.kind === 'slack' ? source.channelIds.length === 0 : messages.length === 0) throw new AiError('nothing_to_read');
   const result = await ai.run<{ suggestions: Spotted[] }>('spotDecisions', {
     source,
-    messages: source.kind === 'sample' ? sampleMessages(state) : [],
+    messages,
     existingDecisions: state.decisions.map((d) => d.question),
   });
   const stamp = now.getTime().toString(36);
@@ -42,7 +45,7 @@ export async function spotDecisions(ai: AiClient, state: AppState, now = new Dat
     id: `sg-ai-${stamp}-${i}`,
     question: s.question,
     why: s.why,
-    evidence: s.evidence.map((e) => ({ sourceLabel: e.source, author: e.author, snippet: e.text })),
+    evidence: s.evidence.map((e) => ({ sourceLabel: e.source, author: e.author, snippet: e.text, ...(e.link ? { link: e.link } : {}) })),
     suggestedAt: now.toISOString(),
     status: 'new',
   }));

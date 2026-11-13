@@ -7,7 +7,8 @@ A Python service on [Modal](https://modal.com) that answers every agent task by 
 | `POST /agent` | `{ task, payload }`. The tasks are `chat`, `suggestTags`, `brief`, `options`, `subOptions`, `draftRecord`, `findLinks` and `spotDecisions`. Returns `{ ok: true, result }` or `{ ok: false, error }`. |
 | `GET /slack/status` | Whether this person's Slack is connected, and its public channels. |
 | `POST /slack/install` | The URL of Slack's permission page. |
-| `GET /slack/callback` | Where Slack sends the person back; stores the bot token. |
+| `GET /slack/callback` | Where Slack sends the person back. It stores nothing and hands the code back to the app. |
+| `POST /slack/complete` | `{ code, state }`, signed in. Saves the install only for the person who started it. |
 | `POST /slack/disconnect` | Revokes the bot token and forgets it. |
 
 Every call needs the PM's Supabase access token as `Authorization: Bearer …`.
@@ -49,5 +50,7 @@ Every task runs on Claude Opus 5.5:
 
 - **Per person:** 30 calls per 10 minutes.
 - **Whole app:** the daily cap `DAILY_BUDGET_USD` (UTC day). Once it's reached, AI features say so until midnight UTC.
+
+**Set a spend limit on the Anthropic key** in the Anthropic Console. It's the hard backstop. The daily cap reserves each call's worst case before it runs, but its counters are best effort across Modal's containers (at most 3).
 
 Logs record the task, the error code and the cost, never what anyone wrote.

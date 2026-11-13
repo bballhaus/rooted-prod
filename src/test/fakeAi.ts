@@ -67,6 +67,7 @@ export type FakeAi = AiClient & {
   slack: SlackStatus;
   slackStatus: ReturnType<typeof vi.fn>;
   slackInstallUrl: ReturnType<typeof vi.fn>;
+  slackComplete: ReturnType<typeof vi.fn>;
   slackDisconnect: ReturnType<typeof vi.fn>;
 };
 
@@ -84,6 +85,10 @@ export function fakeAi(answers: Partial<Record<AiTask, Answer>> = {}): FakeAi {
   ai.run = run as unknown as FakeAi['run'];
   ai.slackStatus = vi.fn(async () => ai.slack);
   ai.slackInstallUrl = vi.fn(async () => 'https://slack.com/oauth/v2/authorize?state=test');
+  ai.slackComplete = vi.fn(async () => {
+    ai.slack = { ...ai.slack, available: true, connected: true };
+    return { connected: true, teamName: ai.slack.teamName ?? 'Acme' };
+  });
   ai.slackDisconnect = vi.fn(async () => {
     ai.slack = { available: true, connected: false };
   });

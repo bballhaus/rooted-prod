@@ -33,6 +33,9 @@ export type AiErrorCode =
   | 'slack_not_configured'
   | 'slack_token_revoked'
   | 'slack_error'
+  | 'slack_state_mismatch'
+  | 'slack_state_expired'
+  | 'nothing_to_read'
   | 'network'
   | 'unknown';
 
@@ -68,9 +71,31 @@ export const AI_ERROR_MESSAGE: Record<AiErrorCode, string> = {
   slack_not_configured: 'Slack isn’t set up for this copy of Rooted yet.',
   slack_token_revoked: 'Rooted’s access to Slack was removed. Connect Slack again to read your channels.',
   slack_error: 'Slack didn’t answer just now. Try again in a minute.',
+  slack_state_mismatch: 'That Slack connection was started from a different Rooted account, so it wasn’t saved. Connect Slack again from here.',
+  slack_state_expired: 'That Slack connection took too long or was already used. Connect Slack again from here.',
+  nothing_to_read: 'There’s nothing to read yet. Connect Slack and allow at least one channel first.',
   network: 'Rooted couldn’t reach its AI service. Check your connection and try again.',
   unknown: 'Something went wrong. Try again, and report a problem from Help if it keeps happening.',
 };
+
+// Errors a second try can fix. The rest need the PM to change something first.
+const RETRYABLE = new Set<AiErrorCode>([
+  'auth_unavailable',
+  'provider_busy',
+  'provider_timeout',
+  'provider_unreachable',
+  'provider_error',
+  'refused',
+  'too_long',
+  'bad_output',
+  'slack_error',
+  'network',
+  'unknown',
+]);
+
+export function isRetryable(code: AiErrorCode): boolean {
+  return RETRYABLE.has(code);
+}
 
 export interface SlackStatus {
   available: boolean; // Slack is set up on the service
@@ -85,10 +110,14 @@ export interface AiClient {
   run<T>(task: AiTask, payload: unknown): Promise<T>;
   slackStatus(): Promise<SlackStatus>;
   slackInstallUrl(): Promise<string>;
+  /** Finishes an install Slack sent back, as the signed-in PM (0017). */
+  slackComplete(code: string, state: string): Promise<{ connected: boolean; teamName: string }>;
   slackDisconnect(): Promise<void>;
 }
 
-const TIMEOUT_MS = 120_000;
+// Longer than the service's worst case (sign-in check, Slack reads, Claude at
+// 50 seconds with one retry), so a slow answer isn't abandoned and paid twice.
+const TIMEOUT_MS = 150_000;
 const KNOWN = new Set<string>(Object.keys(AI_ERROR_MESSAGE));
 
 /** The real client, or null when the app has no AI service URL (see .env.example). */
@@ -128,8 +157,29 @@ export function createAiClient(baseUrl: string | undefined, getToken: () => Prom
     run: (task, payload) => call('POST', '/agent', { task, payload }),
     slackStatus: () => call('GET', '/slack/status'),
     slackInstallUrl: async () => (await call<{ url: string }>('POST', '/slack/install', {})).url,
+    slackComplete: (code, state) => call('POST', '/slack/complete', { code, state }),
     slackDisconnect: async () => {
       await call('POST', '/slack/disconnect', {});
     },
+  };
+}
+
+/**
+ * Fits text to the service's limits (question 500, notes 4,000, any piece of
+ * context 6,000 characters), marking the cut so Claude knows it's partial.
+ * Better than refusing the whole request over one long paste.
+ */
+export function fit(text: string | undefined, max: number): string {
+  const t = text ?? '';
+  return t.length <= max ? t : `${t.slice(0, max - 13)} [shortened]`;
+}
+
+export const LIMITS = { question: 500, notes: 4000, constraint: 300, constraints: 20, context: 6000, chat: 2000, summary: 2000 } as const;
+
+export function framingOf(decision: { question: string; notes: string; constraints: string[] }) {
+  return {
+    question: fit(decision.question, LIMITS.question),
+    notes: fit(decision.notes, LIMITS.notes),
+    constraints: decision.constraints.slice(0, LIMITS.constraints).map((c) => fit(c, LIMITS.constraint)),
   };
 }

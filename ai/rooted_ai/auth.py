@@ -16,6 +16,7 @@ class AuthUnavailable(Exception):
 
 
 CACHE_SECONDS = 60
+MAX_CACHED = 2000
 
 
 def make_verifier(settings: Settings, http: httpx.Client, clock: Callable[[], float] = time.time) -> Callable[[str], str | None]:
@@ -49,6 +50,12 @@ def make_verifier(settings: Settings, http: httpx.Client, clock: Callable[[], fl
             user_id = res.json().get("id") or None
         else:
             raise AuthUnavailable()
+        if len(cache) >= MAX_CACHED:
+            # Drop expired answers; if junk tokens still fill it, start over.
+            for k in [k for k, (_, until) in cache.items() if until <= now]:
+                del cache[k]
+            if len(cache) >= MAX_CACHED:
+                cache.clear()
         cache[key] = (user_id, now + CACHE_SECONDS)
         return user_id
 

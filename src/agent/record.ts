@@ -3,7 +3,7 @@
 // The PM edits all of it before logging; nothing is logged without them.
 import { splitForLog } from '../store/tree';
 import type { AppState, Decision, OptionNode } from '../types';
-import type { AiClient } from './client';
+import { fit, framingOf, LIMITS, type AiClient } from './client';
 import { citableContext } from './options';
 
 export interface RecordDraft {
@@ -28,11 +28,11 @@ export async function draftRecord(
   // options under an alternative are pruned with it.
   const others = splitForLog(own, chosen.id).alternatives;
   const draft = await ai.run<RecordDraft>('draftRecord', {
-    decision: { question: decision.question, notes: decision.notes, constraints: decision.constraints },
-    summary,
+    decision: framingOf(decision),
+    summary: fit(summary, LIMITS.summary),
     chosen: brief(chosen),
     others: others.map(brief),
-    evidence: citableContext(decision.id, state.contextItems).map((c) => ({ id: c.id, source: c.sourceLabel, author: c.author ?? null, text: c.snippet })),
+    evidence: citableContext(decision.id, state.contextItems).map((c) => ({ id: c.id, source: c.sourceLabel, author: c.author ?? null, text: fit(c.snippet, LIMITS.context) })),
   });
   // A reason the PM already wrote when pruning wins over a drafted one.
   const rejected = others.map((o) => ({

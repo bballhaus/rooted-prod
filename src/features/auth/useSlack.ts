@@ -74,20 +74,49 @@ export function useLiveSlack() {
     }
   }
 
-  async function disconnect() {
-    if (!source) return;
+  /** Finishes an install Slack sent back here. The service saves it only for the PM who started it. */
+  async function complete(code: string, state: string): Promise<boolean> {
+    if (!ai) {
+      setError('not_configured');
+      return false;
+    }
     setBusy(true);
+    setError(null);
     try {
-      if (ai) await ai.slackDisconnect();
-    } catch {
-      // Rooted forgets the connection either way; Slack drops the bot when its token is revoked.
+      await ai.slackComplete(code, state);
+      await refresh();
+      return true;
+    } catch (e) {
+      setError(errorCode(e));
+      return false;
     } finally {
-      dispatch({ type: 'updateSource', sourceId: source.id, patch: { connected: false, connectedAt: undefined } });
       setBusy(false);
     }
   }
 
-  return { source, busy, error, revoked, connect, disconnect, refresh };
+  /** Null once the service has revoked Rooted's access; otherwise the error, and Slack stays connected. */
+  async function disconnect(): Promise<AiErrorCode | null> {
+    if (!source) return 'unknown';
+    if (!ai) {
+      setError('not_configured');
+      return 'not_configured';
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await ai.slackDisconnect();
+      dispatch({ type: 'updateSource', sourceId: source.id, patch: { connected: false, connectedAt: undefined } });
+      return null;
+    } catch (e) {
+      const code = errorCode(e);
+      setError(code);
+      return code;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return { source, busy, error, revoked, connect, complete, disconnect, refresh };
 }
 
 // What Slack's permission page sent back, as a message for the PM.

@@ -68,7 +68,11 @@ function useGather(decision: Decision | undefined) {
       });
   }
 
-  const hasItems = !!decision && state.contextItems.some((c) => c.decisionId === decision.id);
+  // A brief can come back with gaps and no items; that's still a brief, so
+  // don't pay for another one on every visit.
+  const hasItems =
+    !!decision &&
+    (state.contextItems.some((c) => c.decisionId === decision.id) || state.gaps.some((g) => g.decisionId === decision.id));
   useEffect(() => {
     if (!decision || hasItems || started.current === decision.id) return;
     started.current = decision.id;

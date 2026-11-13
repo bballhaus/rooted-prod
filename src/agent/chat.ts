@@ -3,7 +3,7 @@
 // wrong or removed is left out (F-08).
 import { chosenLabel, decisionDate, inboxItems, ownerOf } from '../store/dashboard';
 import type { AppState, ChatMessage, Citation } from '../types';
-import type { AiClient } from './client';
+import { fit, LIMITS, type AiClient } from './client';
 
 export interface ChatScope {
   decisionId?: string;
@@ -19,7 +19,7 @@ export function chatPayload(question: string, scope: ChatScope, state: AppState,
   const decision = state.decisions.find((d) => d.id === scope.decisionId);
   const option = state.options.find((o) => o.id === scope.optionId);
   return {
-    question,
+    question: fit(question, LIMITS.chat),
     scope: { decisionQuestion: decision?.question, optionLabel: option?.label },
     decisions: state.decisions.map((d) => ({
       id: d.id,
@@ -42,7 +42,7 @@ export function chatPayload(question: string, scope: ChatScope, state: AppState,
       ? state.contextItems
           .filter((c) => c.decisionId === decision.id && !c.removed && !c.flaggedInaccurate)
           .slice(0, 40)
-          .map((c) => ({ source: c.sourceLabel, author: c.author, date: c.date, text: c.snippet }))
+          .map((c) => ({ source: c.sourceLabel, author: c.author, date: c.date, text: fit(c.snippet, LIMITS.context) }))
       : [],
     // Failed turns aren't conversation; leave them out.
     history: history.filter((m) => !m.failed).slice(-10).map((m) => ({ role: m.role, text: m.text })),

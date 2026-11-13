@@ -593,11 +593,17 @@ function NeedsYou({ today, onMinimize }: { today: string; onMinimize: () => void
             type="button"
             className="btn btn-secondary"
             disabled={busy !== null || !canLink}
+            aria-describedby={canLink ? undefined : 'needs-links-hint'}
             onClick={() => scan('links')}
           >
             {busy === 'links' ? 'Looking for connections…' : 'Find connections'}
           </button>
         </div>
+        {!canLink && (
+          <p id="needs-links-hint" className="muted needs-small">
+            Finding connections needs at least two decisions.
+          </p>
+        )}
         <div aria-live="polite">
           {result?.error ? (
             <AiErrorNotice code={result.error} onRetry={() => scan(result.kind)} />
@@ -631,7 +637,12 @@ function NeedsYou({ today, onMinimize }: { today: string; onMinimize: () => void
                     <span className="muted">
                       — {s.evidence[0].author ? `${s.evidence[0].author}, ` : ''}
                       {s.evidence[0].sourceLabel}
-                    </span>
+                    </span>{' '}
+                    {s.evidence[0].link && (
+                      <a href={s.evidence[0].link} target="_blank" rel="noreferrer">
+                        Open in Slack
+                      </a>
+                    )}
                   </blockquote>
                 )}
                 <div className="row needs-actions">

@@ -26,7 +26,11 @@ Every agent feature was faked: chat, tags, the evidence brief, options and sub-o
   - **Effort.** Chat and tags run at `low` effort, the rest at `medium`.
   - **Fallback.** Server-side fallback (`fallbacks: "default"`) re-runs a request a safety classifier declined on Anthropic's recommended model.
 - **Prompt injection.** People's text (Slack, notes, past decisions) goes into JSON data blocks the prompt says never to follow, with `</` escaped so it can't close its block.
-- **Limits.** Each person gets 30 calls per 10 minutes. All users share one daily spend cap (`DAILY_BUDGET_USD`, default $5), counted from each response's token usage at list prices. Both are kept in a Modal Dict, best effort across containers.
+- **Limits.** Each person gets 30 calls per 10 minutes. All users share one daily spend cap (`DAILY_BUDGET_USD`, default $5).
+  - **Reserve, then settle.** Each call reserves its worst case before it runs: its prompt size, plus a per-task output cap from 2,000 to 8,000 tokens. Once the response arrives, the reservation is swapped for the real cost at list prices, so a burst of calls can't all slip under the cap.
+  - **Bursts.** The service runs on at most 3 containers.
+  - **Timeouts.** A Claude call gives up after 50 seconds and retries once, inside the app's 150-second wait.
+  - **Storage.** Counters live in a Modal Dict and are best effort across containers. Set a spend limit on the Anthropic key too, as the hard backstop.
 - **No scripted fallback.** When a call fails, the feature shows what happened (rate limited, budget reached, AI busy, timed out, declined, answer didn't hold up, not switched on), offers "Try again", and keeps the manual path open (add context, add an option, write the rationale, type tags). "Sample answer" labels are gone.
 - **Removed.** The scripted agent (`mockAgent.ts`, `llm.ts` and the scripted halves of `chat.ts`, `brief.ts`, `options.ts`, `record.ts` and `tags.ts`) and the Supabase Edge Function from 0007. Header search keeps its plain keyword ranking (`src/store/search.ts`), which isn't AI.
 - **Tests.** `ai/tests` (pytest) fakes Claude and Slack. The app's tests use `src/test/fakeAi.ts`. No test calls Claude.
@@ -56,7 +60,8 @@ Considered for tags and chat. Kept on one model, with lower effort for the light
   - The site needs `VITE_AI_URL`. Without it, every AI feature says it isn't switched on.
 - **What Claude is sent.** Decision summaries, rationale, the PM's notes and the gathered context for the decision in scope go to Anthropic. Anthropic's data retention terms apply.
 - **Cost.** Every call costs money. The daily cap bounds it; when it's reached, AI features pause until midnight UTC.
-- **Python joins the repo** (`ai/`), with its own pinned requirements and a CI job.
+- **Python joins the repo** (`ai/`), with its own pinned requirements and a CI job. The runtime packages are `anthropic==1.17.0`, `fastapi==0.162.5`, `pydantic==2.14.3` and `httpx==0.28.1`. Modal itself is the person-run CLI, and `pytest` is for development only.
+- **Scope change.** This amends 0005's "synthetic data" scope for AI output: the agent's answers, tags, links and spotted decisions are now real Claude output, still on the demo's sample data or the PM's own Slack (0017).
 - **Spotting decisions in Slack** (F-R2 preview) uses a neutral prompt: "choices the team seems to be facing". What counts as a decision stays an open question.
 
 ## Outcome

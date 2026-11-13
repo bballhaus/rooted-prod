@@ -1,5 +1,5 @@
 import { demoState } from '../data/demoFixtures';
-import { demoUser, seedState } from '../data/fixtures';
+import { demoUser, emptyWorkspaceState, seedState } from '../data/fixtures';
 import { briefFor } from '../test/brief';
 import { reducer } from './store';
 
@@ -114,13 +114,21 @@ describe('demo mode and outcomes', () => {
     expect(s1.beforeDemo).toBeUndefined();
   });
 
-  it('F-02: the demo keeps the sources and channels the PM chose', () => {
-    const s0 = reducer(
-      { ...seedState(), user: structuredClone(demoUser) },
-      { type: 'setChannelAllowed', sourceId: 'src-slack', channelId: 'ch-product', allowed: false },
-    );
+  it('F-02, 0017: the demo reads its own sample sources, never the PM’s live Slack, and leaving restores theirs', () => {
+    const live = { id: 'src-slack', type: 'slack' as const, name: 'Acme Slack', connected: true, channels: [{ id: 'C1', name: '#pricing', memberCount: 4, allowed: true }] };
+    const s0 = { ...emptyWorkspaceState(), user: structuredClone(demoUser), sources: [live] };
     const demo = reducer(s0, { type: 'loadDemo' });
-    expect(demo.sources).toEqual(s0.sources);
+    expect(demo.sources.every((x) => x.sample)).toBe(true);
+    const back = reducer(demo, { type: 'exitDemo' });
+    expect(back.sources).toEqual([live]);
+  });
+
+  it('F-23: deleting everything from inside the demo disconnects the PM’s own sources, not the demo’s', () => {
+    const live = { id: 'src-slack', type: 'slack' as const, name: 'Acme Slack', connected: true, channels: [] };
+    const demo = reducer({ ...emptyWorkspaceState(), user: structuredClone(demoUser), sources: [live] }, { type: 'loadDemo' });
+    const s1 = reducer(demo, { type: 'deleteAllData' });
+    expect(s1.sources).toEqual([{ ...live, connected: false, connectedAt: undefined }]);
+    expect(s1.sources.some((x) => x.sample)).toBe(false);
   });
 
   it('F-23: deleting all data in the demo deletes the saved workspace too and leaves the demo', () => {

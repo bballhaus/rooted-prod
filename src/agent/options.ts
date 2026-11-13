@@ -3,7 +3,7 @@
 // rests on. Scores are a rough guide; the PM prunes and chooses.
 import type { AppState, ContextItem, Criteria, Decision, OptionNode } from '../types';
 import { pastDecisionsFor } from './brief';
-import type { AiClient } from './client';
+import { fit, framingOf, LIMITS, type AiClient } from './client';
 
 interface DraftOption {
   label: string;
@@ -26,13 +26,11 @@ function evidenceFor(decision: Decision, state: AppState) {
     id: c.id,
     source: c.sourceLabel,
     author: c.author ?? null,
-    text: c.snippet,
+    text: fit(c.snippet, LIMITS.context),
   }));
 }
 
-function framing(decision: Decision) {
-  return { question: decision.question, notes: decision.notes, constraints: decision.constraints };
-}
+const framing = framingOf;
 
 function toNode(o: DraftOption, id: string, decisionId: string, parentId: string | null): OptionNode {
   return {

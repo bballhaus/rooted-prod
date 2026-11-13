@@ -162,7 +162,7 @@ export interface SuggestedDecision {
   id: string;
   question: string;
   why: string;
-  evidence: { sourceLabel: string; author?: string; snippet: string }[];
+  evidence: { sourceLabel: string; author?: string; snippet: string; link?: string }[];
   suggestedAt: string;
   status: 'new' | 'started' | 'dismissed';
   decisionId?: string; // set once the PM starts it
@@ -185,6 +185,7 @@ export interface ChatMessage {
   // question to ask again. Not part of the conversation sent to Claude.
   failed?: boolean;
   retry?: string;
+  failedCode?: string; // which error, so the chat only offers a retry that can work
   edited?: boolean;
   createdAt: string;
 }
@@ -223,5 +224,6 @@ export interface AppState {
   lastUser?: User;
 }
 
-// Everything the PM owns in a workspace: what the demo swaps out and back in.
-export type Workspace = Omit<AppState, 'user' | 'sources' | 'demo' | 'beforeDemo' | 'lastUser'>;
+// Everything the PM owns in a workspace, sources included: what the demo
+// swaps out and back in.
+export type Workspace = Omit<AppState, 'user' | 'demo' | 'beforeDemo' | 'lastUser'>;

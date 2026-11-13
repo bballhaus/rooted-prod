@@ -173,7 +173,6 @@ function signIn(state: AppState, identity: AuthIdentity): AppState {
 
 function workspaceOf({
   user: _user,
-  sources: _sources,
   demo: _demo,
   beforeDemo: _before,
   lastUser: _last,
@@ -340,16 +339,22 @@ export function reducer(state: AppState, action: Action): AppState {
         outcomes: [],
         suggestions: [],
         messages: [],
-        sources: state.sources.map((s) => ({ ...s, connected: false, connectedAt: undefined })),
+        // From inside the demo, it's the PM's own sources (set aside) that are disconnected.
+        sources: (state.demo && state.beforeDemo ? state.beforeDemo.sources : state.sources).map((s) => ({
+          ...s,
+          connected: false,
+          connectedAt: undefined,
+        })),
         // Deleting everything includes the workspace saved aside during the demo.
         demo: false,
         beforeDemo: undefined,
       };
     case 'loadDemo':
       // Swap in the planted demo workspace (0009), setting the PM's own work
-      // aside. Keeps the signed-in user and the sources and channels they chose.
+      // and sources aside. The demo reads only its own sample sources, never
+      // the PM's live Slack (0017).
       if (state.demo) return state;
-      return { ...demoState(), user: state.user, sources: state.sources, beforeDemo: workspaceOf(state) };
+      return { ...demoState(), user: state.user, beforeDemo: workspaceOf(state) };
     case 'exitDemo':
       // Bring the PM's own workspace back as they left it.
       if (!state.demo) return state;
@@ -357,7 +362,6 @@ export function reducer(state: AppState, action: Action): AppState {
         ...emptyWorkspaceState(),
         ...(state.beforeDemo ?? {}),
         user: state.user,
-        sources: state.sources,
         demo: false,
         beforeDemo: undefined,
       };

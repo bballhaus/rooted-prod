@@ -66,7 +66,7 @@ describe('AI client', () => {
     expect(error.code).toBe('network');
   });
 
-  it('gives up after two minutes and says the AI took too long', async () => {
+  it('gives up after two and a half minutes and says the AI took too long', async () => {
     vi.useFakeTimers();
     vi.stubGlobal(
       'fetch',
@@ -75,7 +75,7 @@ describe('AI client', () => {
     const pending = createAiClient('https://ai.example', token)!
       .run('options', {})
       .catch((e: unknown) => e as AiError);
-    await vi.advanceTimersByTimeAsync(120_000);
+    await vi.advanceTimersByTimeAsync(150_000);
     expect(((await pending) as AiError).code).toBe('provider_timeout');
   });
 

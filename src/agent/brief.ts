@@ -5,7 +5,7 @@
 import { slackCorpus, driveCorpus } from '../data/slackCorpus';
 import { chosenLabel, decisionDate } from '../store/dashboard';
 import type { AppState, Channel, ContextItem, ContextOrigin, Decision, Gap, Source } from '../types';
-import type { AiClient } from './client';
+import { fit, framingOf, LIMITS, type AiClient } from './client';
 
 export interface SourceAccess {
   read: string[]; // labels the agent read, e.g. "#growth"
@@ -64,11 +64,11 @@ export function sampleMessages(state: AppState): BriefMessage[] {
     const allowed = new Map(allowedChannels(source).map((c) => [c.id, c.name]));
     if (source.type === 'slack') {
       for (const m of slackCorpus) {
-        if (allowed.has(m.channelId)) out.push({ ref: `slack:${m.id}`, source: allowed.get(m.channelId)!, author: m.author, date: m.date, text: m.text });
+        if (allowed.has(m.channelId)) out.push({ ref: `slack:${m.id}`, source: allowed.get(m.channelId)!, author: m.author, date: m.date, text: fit(m.text, LIMITS.context) });
       }
     } else {
       for (const d of driveCorpus) {
-        if (allowed.has(d.folderId)) out.push({ ref: `drive:${d.id}`, source: `Drive: ${d.title}`, author: d.author, date: d.date, text: d.text });
+        if (allowed.has(d.folderId)) out.push({ ref: `drive:${d.id}`, source: `Drive: ${d.title}`, author: d.author, date: d.date, text: fit(d.text, LIMITS.context) });
       }
     }
   }
@@ -86,10 +86,10 @@ export function briefSource(state: AppState): { kind: 'slack'; channelIds: strin
 export function decisionSummary(d: Decision, state: AppState) {
   return {
     id: d.id,
-    question: d.question,
+    question: fit(d.question, LIMITS.question),
     date: decisionDate(d),
     chosen: chosenLabel(d, state) ?? null,
-    rationale: d.rationale ?? null,
+    rationale: d.rationale ? fit(d.rationale, LIMITS.context) : null,
     tags: (d.tags ?? []).map((t) => t.label),
   };
 }
@@ -117,7 +117,7 @@ function originOf(item: BriefItem): ContextOrigin {
 export async function gatherBrief(ai: AiClient, decision: Decision, state: AppState): Promise<{ items: ContextItem[]; gaps: Gap[] }> {
   const source = briefSource(state);
   const result = await ai.run<{ items: BriefItem[]; gaps: string[] }>('brief', {
-    decision: { question: decision.question, notes: decision.notes, constraints: decision.constraints },
+    decision: framingOf(decision),
     pastDecisions: pastDecisionsFor(state, decision.id),
     source,
     messages: source.kind === 'sample' ? sampleMessages(state) : [],

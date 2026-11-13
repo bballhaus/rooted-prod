@@ -6,6 +6,7 @@ from urllib.parse import parse_qs, urlparse
 
 import anthropic
 import httpx
+import pytest
 
 from rooted_ai import slack
 from tests.conftest import AUTH, NOW, SETTINGS, reply
@@ -43,7 +44,7 @@ def test_answers_through_claude_opus_with_fallbacks_and_a_schema(env):
     assert call["output_config"]["format"]["type"] == "json_schema"
     assert call["output_config"]["effort"] == "low"
     # 1,000 input and 200 output tokens at Opus 5.5 prices.
-    assert env.store.get(DAY) == (1000 * 4 + 200 * 20) / 1_000_000
+    assert env.store.get(DAY) == pytest.approx((1000 * 4 + 200 * 20) / 1_000_000)
 
 
 def test_unknown_tasks_bad_json_and_huge_bodies_are_refused(env):
@@ -69,6 +70,19 @@ def test_each_person_has_a_rate_limit(env):
     # Someone else isn't held back by it.
     env.claude.answers.append(reply({"text": "ok", "citations": []}))
     assert env.client.post("/agent", json=CHAT, headers={"Authorization": "Bearer other-token"}).status_code == 200
+
+
+def test_each_call_reserves_its_worst_case_so_a_burst_cant_overrun_the_cap(env):
+    # The test budget is $1; a chat call's worst case is about $0.08 (4,000 output tokens).
+    env.store.put(DAY, 0.95)
+    res = env.client.post("/agent", json=CHAT, headers=AUTH)
+    assert res.status_code == 503 and res.json()["error"] == "budget_reached"
+    assert env.claude.calls == []
+    env.store.put(DAY, 0.5)
+    env.claude.answers.append(reply({"text": "ok", "citations": []}))
+    assert env.client.post("/agent", json=CHAT, headers=AUTH).status_code == 200
+    # Once settled, only what the call really cost stays counted.
+    assert env.store.get(DAY) == pytest.approx(0.5 + (1000 * 4 + 200 * 20) / 1_000_000)
 
 
 def test_the_daily_budget_stops_every_call_once_spent(env):
@@ -128,8 +142,10 @@ def test_a_slack_brief_needs_slack_connected(env):
     assert res.status_code == 409 and res.json()["error"] == "slack_not_connected"
 
 
-def connect_slack(env):
-    env.store.put("slack:user-a", {"token": "xoxb-1", "teamId": "T1", "teamName": "Acme", "connectedAt": 1})
+def connect_slack(env, *users):
+    for user in users or ("user-a",):
+        env.store.put(f"slack:{user}", {"teamId": "T1", "teamName": "Acme", "connectedAt": 1})
+    env.store.put("slack-team:T1", {"token": "xoxb-1", "users": list(users or ("user-a",))})
     env.slack_api.handlers.update(
         {
             "conversations.list": lambda **_: {
@@ -174,9 +190,10 @@ def test_a_revoked_slack_token_says_so(env):
     env.slack_api.handlers["conversations.list"] = lambda **_: slack.SlackError("token_revoked")
     payload = {"decision": {"question": "Per seat?"}, "source": {"kind": "slack", "channelIds": ["C1"]}}
     assert env.client.post("/agent", json={"task": "brief", "payload": payload}, headers=AUTH).json()["error"] == "slack_token_revoked"
+    # Rooted forgets a revoked token as soon as it sees one.
     status = env.client.get("/slack/status", headers=AUTH).json()["result"]
-    assert status == {"available": True, "connected": False, "revoked": True}
-    assert env.store.get("slack:user-a") is None
+    assert status == {"available": True, "connected": False}
+    assert env.store.get("slack:user-a") is None and env.store.get("slack-team:T1") is None
 
 
 def test_slack_install_round_trip(env):
@@ -184,20 +201,46 @@ def test_slack_install_round_trip(env):
     query = parse_qs(urlparse(url).query)
     assert query["scope"] == ["channels:read,channels:history,channels:join,users:read"]
     assert query["redirect_uri"] == [SETTINGS.slack_redirect_uri]
+    state = query["state"][0]
+    # Slack's callback stores nothing: it hands the code back to the app.
+    res = env.client.get("/slack/callback", params={"code": "abc", "state": state}, follow_redirects=False)
+    assert res.status_code == 302
+    back = urlparse(res.headers["location"])
+    assert back.path == "/onboarding" and parse_qs(back.query) == {"slack_code": ["abc"], "slack_state": [state]}
+    assert env.store.get("slack:user-a") is None
+    # The signed-in person who started it finishes it.
     env.slack_api.handlers["oauth.v2.access"] = lambda **_: {"ok": True, "access_token": "xoxb-new", "team": {"id": "T9", "name": "Acme"}}
-    res = env.client.get("/slack/callback", params={"code": "abc", "state": query["state"][0]}, follow_redirects=False)
-    assert res.status_code == 302 and res.headers["location"] == "https://rooted.example/onboarding?slack=connected"
-    assert env.store.get("slack:user-a")["token"] == "xoxb-new"
+    done = env.client.post("/slack/complete", json={"code": "abc", "state": state}, headers=AUTH).json()
+    assert done == {"ok": True, "result": {"connected": True, "teamName": "Acme"}}
+    assert env.store.get("slack-team:T9")["token"] == "xoxb-new"
+    assert env.client.get("/slack/status", headers=AUTH).json()["result"]["connected"] is True
 
 
-def test_slack_callback_refuses_forged_or_expired_state_and_handles_cancel(env):
-    forged = env.client.get("/slack/callback", params={"code": "abc", "state": "eyJ1IjoidXNlci1iIn0.bad"}, follow_redirects=False)
-    assert forged.headers["location"].endswith("?slack=expired")
-    expired_state = slack.make_state(SETTINGS, "user-a", NOW - 3600)
-    expired = env.client.get("/slack/callback", params={"code": "abc", "state": expired_state}, follow_redirects=False)
-    assert expired.headers["location"].endswith("?slack=expired")
+def test_someone_else_cant_finish_an_install_they_didnt_start(env):
+    # The attacker starts an install and gets a victim to approve it on Slack.
+    attacker = {"Authorization": "Bearer other-token"}
+    state = parse_qs(urlparse(env.client.post("/slack/install", headers=attacker).json()["result"]["url"]).query)["state"][0]
+    env.slack_api.handlers["oauth.v2.access"] = lambda **_: {"ok": True, "access_token": "xoxb-victim", "team": {"id": "TV", "name": "Victim"}}
+    # The victim's browser lands back in Rooted, signed in as the victim.
+    res = env.client.post("/slack/complete", json={"code": "abc", "state": state}, headers=AUTH)
+    assert res.status_code == 403 and res.json()["error"] == "slack_state_mismatch"
+    assert not any(m == "oauth.v2.access" for m, _, _ in env.slack_api.calls)  # the code is never exchanged
+    assert env.store.get("slack:user-b") is None and env.store.get("slack:user-a") is None
+
+
+def test_completing_an_install_needs_sign_in(env):
+    state = slack.make_state(SETTINGS, "user-a", NOW)
+    res = env.client.post("/slack/complete", json={"code": "abc", "state": state})
+    assert res.status_code == 401
+
+
+def test_forged_or_expired_install_state_is_refused_and_cancel_is_handled(env):
+    for state in ("eyJ1IjoidXNlci1hIn0.bad", slack.make_state(SETTINGS, "user-a", NOW - 3600)):
+        res = env.client.post("/slack/complete", json={"code": "abc", "state": state}, headers=AUTH)
+        assert res.status_code == 400 and res.json()["error"] == "slack_state_expired"
     cancelled = env.client.get("/slack/callback", params={"error": "access_denied"}, follow_redirects=False)
     assert cancelled.headers["location"].endswith("?slack=cancelled")
+    assert not any(m == "oauth.v2.access" for m, _, _ in env.slack_api.calls)
     assert env.store.get("slack:user-a") is None
 
 
@@ -205,7 +248,29 @@ def test_disconnect_revokes_the_token_and_forgets_it(env):
     connect_slack(env)
     assert env.client.post("/slack/disconnect", headers=AUTH).json()["result"] == {"connected": False}
     assert ("auth.revoke", "xoxb-1") in [(m, t) for m, t, _ in env.slack_api.calls]
-    assert env.store.get("slack:user-a") is None
+    assert env.store.get("slack:user-a") is None and env.store.get("slack-team:T1") is None
+
+
+def test_one_person_disconnecting_doesnt_cut_off_a_colleague_in_the_same_workspace(env):
+    connect_slack(env, "user-a", "user-b")
+    env.client.post("/slack/disconnect", headers=AUTH)
+    assert "auth.revoke" not in [m for m, _, _ in env.slack_api.calls]
+    assert env.store.get("slack-team:T1") == {"token": "xoxb-1", "users": ["user-b"]}
+    other = {"Authorization": "Bearer other-token"}
+    assert env.client.get("/slack/status", headers=other).json()["result"]["connected"] is True
+    # The last one out revokes it.
+    env.client.post("/slack/disconnect", headers=other)
+    assert ("auth.revoke", "xoxb-1") in [(m, t) for m, t, _ in env.slack_api.calls]
+
+
+def test_a_rate_limited_slack_keeps_what_was_read(env):
+    connect_slack(env)
+    history = env.slack_api.handlers["conversations.history"]
+    env.slack_api.handlers["conversations.history"] = lambda channel, **kw: slack.SlackError("slack_rate_limited") if channel == "C2" else history(channel=channel, **kw)
+    env.claude.answers.append(reply({"items": [], "gaps": [{"question": "q"}]}))
+    payload = {"decision": {"question": "Per seat?"}, "source": {"kind": "slack", "channelIds": ["C1", "C2"]}}
+    assert env.client.post("/agent", json={"task": "brief", "payload": payload}, headers=AUTH).json()["ok"] is True
+    assert "Seats confuse buyers" in env.claude.calls[0]["messages"][0]["content"]
 
 
 def test_status_lists_public_channels_when_connected(env):
@@ -221,3 +286,9 @@ def test_one_persons_slack_is_not_anothers(env):
     assert env.client.get("/slack/status", headers=other).json()["result"]["connected"] is False
     payload = {"decision": {"question": "Per seat?"}, "source": {"kind": "slack", "channelIds": ["C1"]}}
     assert env.client.post("/agent", json={"task": "brief", "payload": payload}, headers=other).json()["error"] == "slack_not_connected"
+
+
+def test_status_says_revoked_when_slack_revoked_it_since_the_last_visit(env):
+    connect_slack(env)
+    env.slack_api.handlers["conversations.list"] = lambda **_: slack.SlackError("token_revoked")
+    assert env.client.get("/slack/status", headers=AUTH).json()["result"] == {"available": True, "connected": False, "revoked": True}

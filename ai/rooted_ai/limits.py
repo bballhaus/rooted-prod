@@ -82,3 +82,21 @@ class Limits:
     def record_spend(self, usd: float) -> None:
         key = f"spend:{self._day()}"
         self.store.put(key, float(self.store.get(key, 0.0)) + usd)
+
+    def reserve(self, usd: float) -> bool:
+        """Sets aside a call's worst-case cost before it runs, so calls made at
+        the same moment can't all slip under the cap. False if it won't fit."""
+        if self.spent_today() + usd > self.settings.daily_budget_usd:
+            return False
+        self.record_spend(usd)
+        return True
+
+    def settle(self, reserved: float, actual: float) -> None:
+        """Swaps a reservation for what the call really cost."""
+        self.record_spend(actual - reserved)
+
+
+def worst_case_usd(prompt_chars: int, max_tokens: int) -> float:
+    """An upper bound on one call's cost: about three characters per input
+    token (generous for English) and every output token used."""
+    return (prompt_chars / 3 * PRICE_PER_MTOK["input"] + max_tokens * PRICE_PER_MTOK["output"]) / 1_000_000
