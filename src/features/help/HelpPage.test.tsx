@@ -35,7 +35,7 @@ describe('Help', () => {
   });
 
   it('F-28: a wrong-answer report needs a note, is saved to the store and appears in "Your reports"', async () => {
-    const { user } = renderApp('/help');
+    const { user } = renderApp('/help/report');
     const form = screen.getByRole('region', { name: 'Report a wrong answer' });
     await user.click(within(form).getByRole('button', { name: 'Send report' }));
     expect(within(form).getByRole('alert')).toHaveTextContent(/what rooted got wrong/i);
@@ -55,7 +55,7 @@ describe('Help', () => {
       decisionId: 'd-mobile-push',
       note: 'Mobile share is 9%, not 19%.',
     });
-    expect(within(form).getByText(/report saved/i)).toBeInTheDocument();
+    expect(within(form).getByText(/your report is saved/i)).toBeInTheDocument();
     const list = screen.getByRole('region', { name: 'Your reports' });
     expect(within(list).getByText('Mobile share is 9%, not 19%.')).toBeInTheDocument();
     expect(within(list).getByRole('link', { name: 'Build mobile push notifications this quarter?' })).toBeInTheDocument();
@@ -74,7 +74,7 @@ describe('Help', () => {
         },
       ],
     });
-    renderApp('/help', state);
+    renderApp('/help/report', state);
     const list = screen.getByRole('region', { name: 'Your reports' });
     expect(within(list).getByText('It was 31%.')).toBeInTheDocument();
     expect(within(list).getByText('Oct 20, 2026')).toBeInTheDocument();
@@ -82,14 +82,29 @@ describe('Help', () => {
   });
 
   it('F-28: the support form requires a message and confirms nothing was sent', async () => {
-    const { user } = renderApp('/help');
+    const { user } = renderApp('/help/contact');
     const form = screen.getByRole('region', { name: 'Contact support' });
     await user.click(within(form).getByRole('button', { name: 'Send message' }));
     expect(within(form).getByRole('alert')).toBeInTheDocument();
     await user.selectOptions(within(form).getByLabelText('Topic'), 'Account');
     await user.type(within(form).getByLabelText('Message'), 'How do I export my decision records?');
     await user.click(within(form).getByRole('button', { name: 'Send message' }));
-    expect(within(form).getByRole('status')).toHaveTextContent('Prototype: nothing was sent');
+    expect(within(form).getByRole('status')).toHaveTextContent('this message wasn’t sent anywhere');
     expect(stored().reports).toEqual([]);
+  });
+
+  it('F-27, F-28: contact support and reporting a problem each have their own page, linked from Help and the footer', async () => {
+    const { user } = renderApp('/help');
+    const routes = screen.getByRole('navigation', { name: 'Get in touch' });
+    expect(within(routes).getByRole('link', { name: /Contact support/ })).toHaveAttribute('href', '/help/contact');
+    expect(within(routes).getByRole('link', { name: /Report a problem/ })).toHaveAttribute('href', '/help/report');
+    const footer = screen.getByRole('navigation', { name: 'Help and support' });
+    expect(within(footer).getByRole('link', { name: 'Contact support' })).toHaveAttribute('href', '/help/contact');
+    expect(within(footer).getByRole('link', { name: 'Report a problem' })).toHaveAttribute('href', '/help/report');
+    await user.click(within(routes).getByRole('link', { name: /Report a problem/ }));
+    expect(screen.getByRole('heading', { level: 1, name: 'Report a problem' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Contact support' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('link', { name: /^← Help$|^Help$/ }));
+    expect(screen.getByRole('heading', { level: 1, name: 'Help' })).toBeInTheDocument();
   });
 });

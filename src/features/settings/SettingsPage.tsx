@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Dialog } from '../../components/Dialog';
+import { useAi } from '../../agent/AiContext';
+import { AI_ERROR_MESSAGE, errorCode } from '../../agent/client';
+import { useLiveSlack } from '../auth/useSlack';
 import { useStore } from '../../store/store';
 import type { Source, User } from '../../types';
 import './settings.css';
@@ -12,7 +15,7 @@ const SECTIONS = [
   { id: 'settings-profile', label: 'Profile' },
   { id: 'settings-plan', label: 'Plan' },
   { id: 'settings-notifications', label: 'Notifications' },
-  { id: 'settings-sources', label: 'Sources' },
+  { id: 'settings-sources', label: 'Sources and access' },
   { id: 'settings-data', label: 'Your data' },
 ] as const;
 
@@ -23,25 +26,29 @@ export function SettingsPage() {
 
   return (
     <div className="page settings-page">
-      <header className="stack">
+      <header className="stack settings-head">
         <h1 className="page-title">Settings</h1>
-        <p className="lead">Your profile, plan, nudges, connected sources and data.</p>
+        <p className="lead">
+          Your profile, nudges, what Rooted can read, and your data. <Link to="/privacy">How Rooted handles your data</Link>
+        </p>
       </header>
-      <nav aria-label="Settings sections" className="settings-nav">
-        <ul>
-          {SECTIONS.map((s) => (
-            <li key={s.id}>
-              <a href={`#${s.id}`}>{s.label}</a>
-            </li>
-          ))}
-        </ul>
-      </nav>
-      <div className="settings-sections">
-        <ProfileSection user={user} />
-        <PlanSection />
-        <NotificationsSection user={user} />
-        <SourcesSection sources={state.sources} />
-        <DataSection />
+      <div className="settings-layout">
+        <nav aria-label="Settings sections" className="settings-nav">
+          <ul>
+            {SECTIONS.map((s) => (
+              <li key={s.id}>
+                <a href={`#${s.id}`}>{s.label}</a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        <div className="settings-sections">
+          <ProfileSection user={user} />
+          <PlanSection />
+          <NotificationsSection user={user} />
+          <SourcesSection sources={state.sources} />
+          <DataSection />
+        </div>
       </div>
     </div>
   );
@@ -76,12 +83,10 @@ function ProfileSection({ user }: { user: User }) {
 
   return (
     <section id="settings-profile" className="card settings-section" aria-labelledby="settings-profile-title">
-      <div className="card-section">
-        <h2 id="settings-profile-title" className="section-title">
+      <form className="settings-body" onSubmit={save} noValidate>
+        <h2 id="settings-profile-title" className="settings-h2">
           Profile
         </h2>
-      </div>
-      <form className="card-section stack" onSubmit={save} noValidate>
         <div className="grid-2">
           <div className="field">
             <label htmlFor="settings-name">Name</label>
@@ -95,10 +100,16 @@ function ProfileSection({ user }: { user: User }) {
             />
           </div>
           <div className="field">
-            <label htmlFor="settings-email">Email</label>
-            <input id="settings-email" className="input" value={user.email} readOnly aria-describedby="settings-email-hint" />
-            <span id="settings-email-hint" className="hint">
-              Comes from your {user.signInProvider === 'google' ? 'Google' : 'Slack'} sign-in and can’t be changed here.
+            <span className="label" id="settings-email-label">
+              Email
+            </span>
+            <p className="settings-readonly" aria-labelledby="settings-email-label">
+              {user.email}
+            </p>
+            <span className="settings-help">
+              {user.signInProvider === 'email'
+                ? 'You sign in with this address.'
+                : `From your ${user.signInProvider === 'google' ? 'Google' : 'Slack'} sign-in.`}
             </span>
           </div>
           <div className="field">
@@ -125,7 +136,7 @@ function ProfileSection({ user }: { user: User }) {
           <button type="submit" className="btn">
             Save profile
           </button>
-          <span role="status" className="settings-status">
+          <span role="status" className="settings-saved">
             {saved ? 'Saved' : ''}
           </span>
         </div>
@@ -137,20 +148,18 @@ function ProfileSection({ user }: { user: User }) {
 function PlanSection() {
   return (
     <section id="settings-plan" className="card settings-section" aria-labelledby="settings-plan-title">
-      <div className="card-section row settings-plan-head">
-        <h2 id="settings-plan-title" className="section-title">
-          Plan
-        </h2>
-        <span className="pill">Beta</span>
-      </div>
-      <div className="card-section stack">
-        <p>
-          <strong>Free during the beta.</strong> You’re using an early prototype of Rooted. There’s nothing to pay and
-          no card on file.
+      <div className="settings-body">
+        <div className="row settings-plan-head">
+          <h2 id="settings-plan-title" className="settings-h2">
+            Plan
+          </h2>
+          <span className="pill">Beta</span>
+        </div>
+        <p className="settings-prose">
+          <strong>Free during the beta.</strong> There’s nothing to pay and no card on file.
         </p>
-        <p className="muted">
-          Paid plans and billing aren’t decided yet. We’ll tell you before anything changes, and nothing will be
-          charged without your say.
+        <p className="settings-help">
+          Paid plans aren’t decided yet. We’ll tell you before anything changes, and nothing is charged without your say.
         </p>
       </div>
     </section>
@@ -177,17 +186,15 @@ function NotificationsSection({ user }: { user: User }) {
       className="card settings-section"
       aria-labelledby="settings-notifications-title"
     >
-      <div className="card-section">
-        <h2 id="settings-notifications-title" className="section-title">
+      <div className="settings-body">
+        <h2 id="settings-notifications-title" className="settings-h2">
           Notifications
         </h2>
-      </div>
-      <div className="card-section stack">
         <fieldset className="settings-fieldset">
           <legend className="settings-legend">Where nudges arrive</legend>
-          <p className="hint muted">
-            When a decision reaches its review date, Rooted asks what happened. In this prototype nudges are mocked:
-            nothing is sent yet.
+          <p className="settings-help">
+            When a decision reaches its review date, Rooted asks what happened. Nudges aren’t sent yet; this sets where
+            they’ll go.
           </p>
           <div className="row">
             {(
@@ -211,9 +218,8 @@ function NotificationsSection({ user }: { user: User }) {
         </fieldset>
         <fieldset className="settings-fieldset">
           <legend className="settings-legend">Default review date</legend>
-          <p className="hint muted">
-            How long after you log a decision Rooted sets its review date. Applies to new decisions; ones you’ve already
-            logged keep their date.
+          <p className="settings-help">
+            How long after you log a decision Rooted asks what happened. Decisions you’ve already logged keep their date.
           </p>
           <div className="row">
             {([30, 60, 90] as const).map((days) => (
@@ -230,11 +236,18 @@ function NotificationsSection({ user }: { user: User }) {
             ))}
           </div>
         </fieldset>
-        <p role="status" className="settings-status">
-          {status}
-        </p>
+        <Status text={status} />
       </div>
     </section>
+  );
+}
+
+// A confirmation, shown only when there is one, so sections don't carry empty rows.
+function Status({ text }: { text: string }) {
+  return (
+    <p role="status" className={text ? 'settings-status' : 'visually-hidden'}>
+      {text}
+    </p>
   );
 }
 
@@ -244,11 +257,25 @@ function formatDate(iso: string) {
 
 function SourcesSection({ sources }: { sources: Source[] }) {
   const { dispatch } = useStore();
+  const slack = useLiveSlack();
   const [confirming, setConfirming] = useState<Source | null>(null);
   const [status, setStatus] = useState('');
 
   function disconnect() {
     if (!confirming) return;
+    // A live Slack is revoked on the server too; say so only once it is.
+    if (confirming.id === slack.source?.id) {
+      const name = confirming.name;
+      setConfirming(null);
+      void slack.disconnect().then((error) =>
+        setStatus(
+          error
+            ? `${name} couldn’t be disconnected: ${AI_ERROR_MESSAGE[error]} Rooted can still read it until this works.`
+            : `${name} is disconnected. Rooted’s access was revoked and context gathered from it was removed.`,
+        ),
+      );
+      return;
+    }
     dispatch({ type: 'updateSource', sourceId: confirming.id, patch: { connected: false, connectedAt: undefined } });
     setStatus(`${confirming.name} is disconnected. Context Rooted gathered from it was removed, and it won’t be read again unless you reconnect.`);
     setConfirming(null);
@@ -256,68 +283,74 @@ function SourcesSection({ sources }: { sources: Source[] }) {
 
   return (
     <section id="settings-sources" className="card settings-section" aria-labelledby="settings-sources-title">
-      <div className="card-section stack">
-        <h2 id="settings-sources-title" className="section-title">
-          Sources
+      <div className="settings-body">
+        <h2 id="settings-sources-title" className="settings-h2">
+          Sources and access
         </h2>
-        <p className="muted">
-          Rooted only reads the channels and folders you allow. It never reads private channels or DMs. In this
-          prototype, connections use sample data.
+        <p className="settings-help">
+          Rooted reads only the public channels you allow, when you gather evidence or ask it to look for decisions. It
+          never reads private channels or direct messages. What it reads is sent to Claude to answer.{' '}
+          <Link to="/privacy#privacy-reads">More about what Rooted reads</Link>
         </p>
-      </div>
-      <ul className="settings-source-list">
-        {sources.map((s) => {
-          const unit = s.type === 'slack' ? 'channels' : 'folders';
-          const allowed = s.channels.filter((c) => c.allowed).length;
-          return (
-            <li key={s.id} className="card-section settings-source">
-              <div className="stack settings-source-info">
-                <h3 className="settings-source-name">{s.name}</h3>
-                <p className="row settings-source-meta">
-                  <span className={s.connected ? 'dot dot-alive' : 'dot settings-dot-off'} aria-hidden="true" />
-                  <span>
-                    {s.connected
-                      ? `Connected${s.connectedAt ? ` ${formatDate(s.connectedAt)}` : ''}`
-                      : 'Not connected'}
-                  </span>
-                  <span className="muted tabular">
-                    {allowed} of {s.channels.length} {unit} allowed
-                  </span>
-                </p>
-              </div>
-              <div className="row">
-                <Link to="/onboarding" className="btn btn-secondary">
-                  {s.connected ? `Manage ${unit}` : 'Connect'}
-                  <span className="visually-hidden"> for {s.name}</span>
-                </Link>
-                {s.connected && (
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => setConfirming(s)}
-                    aria-label={`Disconnect ${s.name}`}
-                  >
-                    Disconnect
-                  </button>
+        <ul className="settings-source-list">
+          {sources.map((s) => {
+            const unit = s.type === 'slack' ? 'channels' : 'folders';
+            const allowed = s.channels.filter((c) => c.allowed).length;
+            return (
+              <li key={s.id} className="settings-source">
+                <div className="settings-source-info">
+                  <h3 className="settings-item-title">
+                    {s.name}
+                    {s.sample && <span className="pill settings-sample">Sample</span>}
+                  </h3>
+                  <p className="row settings-source-meta">
+                    <span className={s.connected ? 'dot dot-alive' : 'dot settings-dot-off'} aria-hidden="true" />
+                    <span>
+                      {s.unavailable
+                        ? 'Not available yet'
+                        : s.connected
+                          ? `Connected${s.connectedAt ? ` ${formatDate(s.connectedAt)}` : ''}`
+                          : 'Not connected'}
+                    </span>
+                    {s.connected && (
+                      <span className="tabular">
+                        · {allowed} of {s.channels.length} {unit} allowed
+                      </span>
+                    )}
+                  </p>
+                </div>
+                {!s.unavailable && (
+                  <div className="row">
+                    <Link to="/onboarding" className="btn btn-secondary">
+                      {s.connected ? `Manage ${unit}` : 'Connect'}
+                      <span className="visually-hidden"> for {s.name}</span>
+                    </Link>
+                    {s.connected && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => setConfirming(s)}
+                        aria-label={`Disconnect ${s.name}`}
+                      >
+                        Disconnect
+                      </button>
+                    )}
+                  </div>
                 )}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-      <div className="card-section">
-        <p role="status" className="settings-status">
-          {status}
-        </p>
+              </li>
+            );
+          })}
+        </ul>
+        <Status text={status} />
       </div>
       <Dialog
         open={confirming !== null}
         onClose={() => setConfirming(null)}
         title={`Disconnect ${confirming?.name ?? 'source'}?`}
       >
-        <p>
-          Rooted will stop reading {confirming?.name}. Evidence already in your decision records stays there, so you can
-          still trace past calls. You can reconnect from onboarding.
+        <p className="settings-prose">
+          Rooted will stop reading {confirming?.name} and give up its access. Evidence it gathered from {confirming?.name}{' '}
+          is removed from your decisions, including ones you’ve logged. You can connect again any time.
         </p>
         <div className="row">
           <button type="button" className="btn" onClick={disconnect}>
@@ -334,7 +367,8 @@ function SourcesSection({ sources }: { sources: Source[] }) {
 
 function DataSection() {
   const { dispatch } = useStore();
-  const [dialog, setDialog] = useState<'delete' | 'reset' | null>(null);
+  const ai = useAi();
+  const [dialog, setDialog] = useState<'delete' | null>(null);
   const [typed, setTyped] = useState('');
   const [status, setStatus] = useState('');
 
@@ -346,49 +380,39 @@ function DataSection() {
   function deleteAll(e: React.FormEvent) {
     e.preventDefault();
     if (typed !== 'DELETE') return;
+    // Deleting everything includes Rooted's access to a real Slack, even from
+    // inside the demo, where the PM's own sources are set aside.
     dispatch({ type: 'deleteAllData' });
     setStatus('All your data was deleted: decisions, evidence, options and reports. Every source is disconnected.');
-    close();
-  }
-
-  function reset() {
-    dispatch({ type: 'resetDemo' });
-    setStatus('Sample data restored. Your profile and settings are unchanged.');
+    if (ai) {
+      ai.slackDisconnect().catch((e) =>
+        setStatus(
+          `Your data was deleted, but Rooted’s access to Slack couldn’t be revoked: ${AI_ERROR_MESSAGE[errorCode(e)]} Try again, or remove the Rooted app in Slack.`,
+        ),
+      );
+    }
     close();
   }
 
   return (
     <section id="settings-data" className="card settings-section" aria-labelledby="settings-data-title">
-      <div className="card-section">
-        <h2 id="settings-data-title" className="section-title">
+      <div className="settings-body">
+        <h2 id="settings-data-title" className="settings-h2">
           Your data
         </h2>
-      </div>
-      <div className="card-section settings-data-row">
-        <div className="stack settings-data-text">
-          <h3 className="settings-source-name">Delete all data</h3>
-          <p className="muted">
-            Permanently removes every decision, its evidence, options, pruned branches and your reports, and disconnects
-            every source. Your account stays.
-          </p>
+        <div className="settings-data-row">
+          <div className="stack settings-data-text">
+            <h3 className="settings-item-title">Delete all data</h3>
+            <p className="settings-help">
+              Removes every decision and everything attached to it from this browser, and disconnects Slack. Your sign-in
+              account stays. <Link to="/privacy#privacy-controls">What gets deleted</Link>
+            </p>
+          </div>
+          <button type="button" className="btn btn-secondary" onClick={() => setDialog('delete')}>
+            Delete all data
+          </button>
         </div>
-        <button type="button" className="btn btn-secondary" onClick={() => setDialog('delete')}>
-          Delete all data
-        </button>
-      </div>
-      <div className="card-section settings-data-row">
-        <div className="stack settings-data-text">
-          <h3 className="settings-source-name">Reset sample data</h3>
-          <p className="muted">Puts back the prototype’s sample decisions and sources. Your profile stays as it is.</p>
-        </div>
-        <button type="button" className="btn btn-secondary" onClick={() => setDialog('reset')}>
-          Reset sample data
-        </button>
-      </div>
-      <div className="card-section">
-        <p role="status" className="settings-status">
-          {status}
-        </p>
+        <Status text={status} />
       </div>
       <Dialog open={dialog === 'delete'} onClose={close} title="Delete all your data?">
         <form className="stack" onSubmit={deleteAll}>
@@ -413,17 +437,6 @@ function DataSection() {
             </button>
           </div>
         </form>
-      </Dialog>
-      <Dialog open={dialog === 'reset'} onClose={close} title="Reset sample data?">
-        <p>This replaces your current decisions, evidence and sources with the prototype’s sample data.</p>
-        <div className="row">
-          <button type="button" className="btn" onClick={reset}>
-            Reset sample data
-          </button>
-          <button type="button" className="btn btn-secondary" onClick={close}>
-            Cancel
-          </button>
-        </div>
       </Dialog>
     </section>
   );

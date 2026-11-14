@@ -1,6 +1,6 @@
-import { buildBrief } from '../agent/brief';
 import { demoState } from '../data/demoFixtures';
-import { demoUser, seedState } from '../data/fixtures';
+import { demoUser, emptyWorkspaceState, seedState } from '../data/fixtures';
+import { briefFor } from '../test/brief';
 import { reducer } from './store';
 
 describe('store', () => {
@@ -44,7 +44,7 @@ describe('store', () => {
       createdAt: '2026-10-28T00:00:00.000Z',
     };
     s0.decisions.push(decision);
-    const { items, gaps } = buildBrief(decision, s0);
+    const { items, gaps } = briefFor(decision, s0);
     return reducer(s0, { type: 'setBrief', decisionId: decision.id, items, gaps });
   }
 
@@ -114,13 +114,21 @@ describe('demo mode and outcomes', () => {
     expect(s1.beforeDemo).toBeUndefined();
   });
 
-  it('F-02: the demo keeps the sources and channels the PM chose', () => {
-    const s0 = reducer(
-      { ...seedState(), user: structuredClone(demoUser) },
-      { type: 'setChannelAllowed', sourceId: 'src-slack', channelId: 'ch-product', allowed: false },
-    );
+  it('F-02, 0017: the demo reads its own sample sources, never the PM’s live Slack, and leaving restores theirs', () => {
+    const live = { id: 'src-slack', type: 'slack' as const, name: 'Acme Slack', connected: true, channels: [{ id: 'C1', name: '#pricing', memberCount: 4, allowed: true }] };
+    const s0 = { ...emptyWorkspaceState(), user: structuredClone(demoUser), sources: [live] };
     const demo = reducer(s0, { type: 'loadDemo' });
-    expect(demo.sources).toEqual(s0.sources);
+    expect(demo.sources.every((x) => x.sample)).toBe(true);
+    const back = reducer(demo, { type: 'exitDemo' });
+    expect(back.sources).toEqual([live]);
+  });
+
+  it('F-23: deleting everything from inside the demo disconnects the PM’s own sources, not the demo’s', () => {
+    const live = { id: 'src-slack', type: 'slack' as const, name: 'Acme Slack', connected: true, channels: [] };
+    const demo = reducer({ ...emptyWorkspaceState(), user: structuredClone(demoUser), sources: [live] }, { type: 'loadDemo' });
+    const s1 = reducer(demo, { type: 'deleteAllData' });
+    expect(s1.sources).toEqual([{ ...live, connected: false, connectedAt: undefined }]);
+    expect(s1.sources.some((x) => x.sample)).toBe(false);
   });
 
   it('F-23: deleting all data in the demo deletes the saved workspace too and leaves the demo', () => {
@@ -166,5 +174,79 @@ describe('demo dates', () => {
         .slice(0, 10),
     );
     expect(later.outcomes.every((o) => o.loggedAt < '2027-03-02')).toBe(true);
+  });
+});
+
+describe('sign-in', () => {
+  const identity = { authId: 'auth-a', email: 'a@startup.example', name: 'Ada Park', provider: 'google' as const };
+
+  it('F-01: a real sign-in sets the PM’s name on their teammate card too', () => {
+    const s1 = reducer(seedState(), { type: 'signIn', identity });
+    expect(s1.user).toMatchObject({ authId: 'auth-a', name: 'Ada Park', email: 'a@startup.example', signInProvider: 'google' });
+    expect(s1.teammates.find((t) => t.id === s1.user!.id)).toMatchObject({ name: 'Ada Park', initials: 'AP' });
+  });
+
+  it('F-01: signing in again as the same person changes nothing they edited', () => {
+    const s1 = reducer(reducer(seedState(), { type: 'signIn', identity }), { type: 'updateUser', patch: { name: 'Ada P.', role: 'PM' } });
+    const s2 = reducer(s1, { type: 'signIn', identity });
+    expect(s2).toBe(s1);
+  });
+
+  it('F-01: after a sign-out, someone else signing in on this browser starts from a fresh workspace', () => {
+    const mine = { id: 'd-ada', question: 'Ada’s call?', notes: '', links: [], constraints: [], status: 'framing' as const, createdAt: '2026-11-01T00:00:00.000Z' };
+    const ada = reducer(reducer(seedState(), { type: 'signIn', identity }), { type: 'createDecision', decision: mine });
+    const out = reducer(ada, { type: 'signOut' });
+    const ben = reducer(out, { type: 'signIn', identity: { ...identity, authId: 'auth-b', email: 'b@startup.example', name: 'Ben Ito' } });
+    expect(ben.decisions.some((d) => d.id === 'd-ada')).toBe(false);
+    expect(ben.messages).toEqual([]);
+    expect(ben.user).toMatchObject({ authId: 'auth-b', name: 'Ben Ito' });
+  });
+
+  it('F-01: signing out and back in as the same person keeps their workspace and profile', () => {
+    const mine = { id: 'd-ada', question: 'Ada’s call?', notes: '', links: [], constraints: [], status: 'framing' as const, createdAt: '2026-11-01T00:00:00.000Z' };
+    const ada = reducer(
+      reducer(reducer(seedState(), { type: 'signIn', identity }), { type: 'createDecision', decision: mine }),
+      { type: 'updateUser', patch: { name: 'Ada P.', role: 'PM', defaultReviewDays: 60 } },
+    );
+    const back = reducer(reducer(ada, { type: 'signOut' }), { type: 'signIn', identity });
+    expect(back.decisions.some((d) => d.id === 'd-ada')).toBe(true);
+    expect(back.user).toMatchObject({ name: 'Ada P.', role: 'PM', defaultReviewDays: 60 });
+  });
+
+  it('F-01: someone else signing in on this browser starts from a fresh workspace', () => {
+    const mine = { id: 'd-ada', question: 'Ada’s call?', notes: '', links: [], constraints: [], status: 'framing' as const, createdAt: '2026-11-01T00:00:00.000Z' };
+    const s1 = reducer(reducer(seedState(), { type: 'signIn', identity }), { type: 'createDecision', decision: mine });
+    const s2 = reducer(s1, { type: 'signIn', identity: { ...identity, authId: 'auth-b', email: 'b@startup.example', name: 'Ben Ito' } });
+    expect(s2.decisions.some((d) => d.id === 'd-ada')).toBe(false);
+    expect(s2.user).toMatchObject({ authId: 'auth-b', name: 'Ben Ito', role: '' });
+  });
+});
+
+describe('Rooted’s insights (F-R3-05)', () => {
+  const at = '2026-11-13T12:00:00.000Z';
+  const base = { ...seedState(), user: { ...demoUser, authId: 'auth-a' } };
+  const [a, b] = base.decisions;
+  const insight = (id: string, decisionIds = [a.id, b.id]) => ({
+    id,
+    kind: 'pattern' as const,
+    title: id,
+    detail: '',
+    decisionIds,
+    foundAt: at,
+    userEdited: false,
+    dismissed: false,
+  });
+
+  it('F-R3-05: are saved for the person and workspace that asked', () => {
+    const s = reducer(base, { type: 'setInsights', insights: [insight('i1')], forUser: 'auth-a', demo: false });
+    expect(s.insights.map((i) => i.id)).toEqual(['i1']);
+  });
+
+  it('F-01, F-23: are dropped if someone else is signed in, the demo was swapped, or the decisions they cite are gone', () => {
+    expect(reducer(base, { type: 'setInsights', insights: [insight('i1')], forUser: 'auth-b', demo: false }).insights).toEqual([]);
+    expect(reducer(base, { type: 'setInsights', insights: [insight('i1')], forUser: 'auth-a', demo: true }).insights).toEqual([]);
+    const wiped = reducer(base, { type: 'deleteAllData' });
+    expect(reducer(wiped, { type: 'setInsights', insights: [insight('i1')], forUser: 'auth-a', demo: false }).insights).toEqual([]);
+    expect(reducer(base, { type: 'setInsights', insights: [insight('i2', [a.id, 'd-gone'])], forUser: 'auth-a', demo: false }).insights).toEqual([]);
   });
 });

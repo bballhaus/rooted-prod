@@ -1,50 +1,61 @@
-// F-01, F-21: sign in with Google or Slack. Both flows are mocked in the
-// prototype: the consent dialog says so, and Allow signs in as the demo PM.
+// F-01, F-21: real sign-in (decision 0015) with Google, Slack or an emailed
+// link, through Supabase Auth. Signing in only proves who you are: it doesn't
+// connect Slack or Drive data, which you choose on the next page.
 // F-20: request beta access with a work email (mocked; nothing is stored or sent).
-import { useId, useState, type FormEvent } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
-import { Dialog } from '../../components/Dialog';
-import { demoUser } from '../../data/fixtures';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { Link, Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../auth/AuthContext';
+import { AUTH_ERROR_MESSAGE, callbackError, type AuthErrorCode, type OAuthProvider } from '../../auth/client';
 import { useStore } from '../../store/store';
-import type { Provider } from '../../types';
 import { GlyphG, GlyphHash, SproutMark } from './icons';
 import './auth.css';
 
-const providerCopy: Record<Provider, { label: string; requests: string[] }> = {
-  google: {
-    label: 'Google',
-    requests: [
-      'Your name and email address',
-      'Your profile picture',
-      'Nothing from Gmail, Calendar or Drive. You choose Drive folders later, one by one.',
-    ],
-  },
-  slack: {
-    label: 'Slack',
-    requests: [
-      'Your name, email address and workspace',
-      'A list of public channels, so you can choose which ones Rooted reads',
-      'Never private channels or direct messages',
-    ],
-  },
-};
+// Set before leaving for a provider or an email link, so the first arrival
+// back goes on to choosing sources rather than straight home.
+const ARRIVING_KEY = 'rooted-signing-in';
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function markArriving() {
+  try {
+    localStorage.setItem(ARRIVING_KEY, '1');
+  } catch {
+    // without storage the PM just lands on home
+  }
+}
+
+// Read during render, cleared in an effect: render can run twice.
+function isArriving(): boolean {
+  try {
+    return localStorage.getItem(ARRIVING_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function clearArriving() {
+  try {
+    localStorage.removeItem(ARRIVING_KEY);
+  } catch {
+    // nothing to clear
+  }
+}
+
+const redirectTo = () => `${window.location.origin}/signin`;
 
 export function SignInPage() {
-  const { state, dispatch } = useStore();
-  const navigate = useNavigate();
-  const [provider, setProvider] = useState<Provider | null>(null);
+  const { state } = useStore();
+  const location = useLocation();
   const [tab, setTab] = useState<'signin' | 'request'>('signin');
+  const signedIn = !!state.user;
 
-  if (state.user) return <Navigate to="/" replace />;
+  useEffect(() => {
+    if (signedIn) clearArriving();
+  }, [signedIn]);
 
-  const allow = () => {
-    if (!provider) return;
-    dispatch({ type: 'signIn', provider });
-    setProvider(null);
-    navigate('/onboarding');
-  };
-
-  const copy = provider ? providerCopy[provider] : null;
+  if (signedIn) {
+    const from = (location.state as { from?: string } | null)?.from;
+    return <Navigate to={isArriving() ? '/onboarding' : (from ?? '/')} replace />;
+  }
 
   return (
     <div className="auth-split">
@@ -80,7 +91,7 @@ export function SignInPage() {
 
       <main id="main" className="auth-panel">
         <div className="auth-panel-inner">
-          <span className="pill auth-proto">Prototype · sample data</span>
+          <span className="pill auth-proto">Beta</span>
           <div className="auth-tabs" role="tablist" aria-label="Sign in or request access">
             <button
               type="button"
@@ -104,76 +115,188 @@ export function SignInPage() {
             </button>
           </div>
 
-          {tab === 'signin' ? (
-            <section id="auth-panel-signin" role="tabpanel" aria-labelledby="signin-title" className="stack">
-              <div className="stack auth-tight">
-                <h2 id="signin-title" className="auth-title">
-                  Sign in
-                </h2>
-                <p className="muted">Welcome back. Use the account your team already works in.</p>
-              </div>
-              <div className="auth-providers">
-                <button type="button" className="btn btn-secondary btn-lg" onClick={() => setProvider('google')}>
-                  <GlyphG />
-                  Continue with Google
-                </button>
-                <button type="button" className="btn btn-secondary btn-lg" onClick={() => setProvider('slack')}>
-                  <GlyphHash />
-                  Continue with Slack
-                </button>
-              </div>
-              <p className="muted auth-small">
-                New to Rooted?{' '}
-                <button type="button" className="auth-link" onClick={() => setTab('request')}>
-                  Request beta access
-                </button>
-              </p>
-            </section>
-          ) : (
-            <RequestAccess onSignIn={() => setTab('signin')} />
-          )}
+          {tab === 'signin' ? <SignIn onRequest={() => setTab('request')} /> : <RequestAccess onSignIn={() => setTab('signin')} />}
 
           <p className="muted auth-small auth-fineprint">
-            This is a prototype with sample data. No real sign-in happens, and nothing leaves your browser.
+            Your decisions stay in this browser. <Link to="/privacy">How Rooted handles your data</Link>
           </p>
         </div>
       </main>
-
-      <Dialog
-        open={provider !== null}
-        onClose={() => setProvider(null)}
-        title={copy ? `Sign in with ${copy.label}` : 'Sign in'}
-      >
-        {copy && (
-          <>
-            <p className="banner auth-mock-note">
-              <strong>Prototype: no real sign-in happens.</strong> This screen stands in for the{' '}
-              {copy.label} consent page.
-            </p>
-            <p>
-              Rooted would sign you in as{' '}
-              <strong>
-                {demoUser.name} ({demoUser.email})
-              </strong>{' '}
-              and request:
-            </p>
-            <ul className="auth-list">
-              {copy.requests.map((r) => (
-                <li key={r}>{r}</li>
-              ))}
-            </ul>
-            <div className="row">
-              <button type="button" className="btn" onClick={allow}>
-                Allow
-              </button>
-              <button type="button" className="btn btn-secondary" onClick={() => setProvider(null)}>
-                Cancel
-              </button>
-            </div>
-          </>
-        )}
-      </Dialog>
     </div>
+  );
+}
+
+function SignIn({ onRequest }: { onRequest: () => void }) {
+  const { client, checked } = useAuth();
+  const location = useLocation();
+  const id = useId();
+  const sentRef = useRef<HTMLParagraphElement>(null);
+  const [email, setEmail] = useState('');
+  const [busy, setBusy] = useState<OAuthProvider | 'email' | null>(null);
+  const [sentTo, setSentTo] = useState('');
+  const [error, setError] = useState<AuthErrorCode | null>(() => callbackError(location.search, location.hash));
+
+  // A provider can send the person back here with an error after a redirect.
+  useEffect(() => {
+    const fromUrl = callbackError(location.search, location.hash);
+    if (fromUrl) setError(fromUrl);
+  }, [location.search, location.hash]);
+
+  // A link carries a one-time code that only the browser that asked for it
+  // can use. If the code is still here once the session is checked and nobody
+  // is signed in, the link was opened somewhere else.
+  useEffect(() => {
+    if (checked && new URLSearchParams(location.search).has('code')) setError('other_browser');
+  }, [checked, location.search]);
+
+  // Coming back with the browser's Back button can restore this page as it
+  // was left, mid-redirect; make the buttons usable again.
+  useEffect(() => {
+    const reset = (e: PageTransitionEvent) => e.persisted && setBusy(null);
+    window.addEventListener('pageshow', reset);
+    return () => window.removeEventListener('pageshow', reset);
+  }, []);
+
+  // Move focus to the confirmation when the form it replaces goes away.
+  useEffect(() => {
+    if (sentTo) sentRef.current?.focus();
+  }, [sentTo]);
+
+  useEffect(() => {
+    if (!client) console.warn('Rooted: sign-in needs VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (see .env.example).');
+  }, [client]);
+
+  async function withProvider(provider: OAuthProvider) {
+    if (!client) return;
+    setError(null);
+    setBusy(provider);
+    markArriving();
+    const result = await client.signInWith(provider, redirectTo());
+    // On success the browser is already leaving for the provider.
+    if (!result.ok) {
+      setError(result.error);
+      setBusy(null);
+    }
+  }
+
+  async function sendLink(e: FormEvent) {
+    e.preventDefault();
+    if (!client) return;
+    const address = email.trim();
+    if (!EMAIL_RE.test(address)) {
+      setError('invalid_email');
+      return;
+    }
+    setError(null);
+    setBusy('email');
+    markArriving();
+    const result = await client.sendMagicLink(address, redirectTo());
+    setBusy(null);
+    if (result.ok) setSentTo(address);
+    else setError(result.error);
+  }
+
+  return (
+    <section id="auth-panel-signin" role="tabpanel" aria-labelledby="signin-title" className="stack">
+      <div className="stack auth-tight">
+        <h2 id="signin-title" className="auth-title">
+          Sign in
+        </h2>
+        <p className="muted">Use the account your team already works in.</p>
+      </div>
+
+      {!client && (
+        <p role="status" className="banner">
+          Sign-in isn’t available right now. Try again later.
+        </p>
+      )}
+      {error && (
+        <p id={`${id}-error`} role="alert" className="error">
+          {AUTH_ERROR_MESSAGE[error]}
+        </p>
+      )}
+
+      {sentTo ? (
+        <div className="banner stack auth-tight" role="status">
+          {/* Focus lands here, so keyboard and screen reader users hear it. */}
+          <p ref={sentRef} tabIndex={-1}>
+            <strong>Check your inbox.</strong> We sent a sign-in link to {sentTo}. Open it in this browser to sign in.
+          </p>
+          <p className="muted auth-small">Nothing there after a minute? Check spam, or send it again.</p>
+          <div className="row">
+            <button type="button" className="btn btn-secondary" disabled={busy !== null} onClick={sendLink}>
+              {busy === 'email' ? 'Sending…' : 'Send it again'}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                setSentTo('');
+                setError(null);
+              }}
+            >
+              Use a different email
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="auth-providers">
+            <button
+              type="button"
+              className="btn btn-secondary btn-lg"
+              disabled={!client || busy !== null}
+              aria-busy={busy === 'google'}
+              onClick={() => withProvider('google')}
+            >
+              <GlyphG />
+              {busy === 'google' ? 'Opening Google…' : 'Continue with Google'}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-lg"
+              disabled={!client || busy !== null}
+              aria-busy={busy === 'slack'}
+              onClick={() => withProvider('slack')}
+            >
+              <GlyphHash />
+              {busy === 'slack' ? 'Opening Slack…' : 'Continue with Slack'}
+            </button>
+          </div>
+          <p className="muted auth-small">
+            Signing in with Slack only shares your name and email. It doesn’t give Rooted your messages.
+          </p>
+          <p className="auth-or" aria-hidden="true">
+            or
+          </p>
+          <form className="stack" onSubmit={sendLink} noValidate>
+            <div className="field">
+              <label htmlFor={id}>Work email</label>
+              <input
+                id={id}
+                type="email"
+                className="input"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                aria-invalid={error === 'invalid_email' ? 'true' : undefined}
+                aria-describedby={error === 'invalid_email' ? `${id}-error` : undefined}
+              />
+            </div>
+            <button type="submit" className="btn btn-lg" disabled={!client || busy !== null} aria-busy={busy === 'email'}>
+              {busy === 'email' ? 'Sending…' : 'Email me a sign-in link'}
+            </button>
+          </form>
+        </>
+      )}
+
+      <p className="muted auth-small">
+        New to Rooted?{' '}
+        <button type="button" className="auth-link" onClick={onRequest}>
+          Request beta access
+        </button>
+      </p>
+    </section>
   );
 }
 

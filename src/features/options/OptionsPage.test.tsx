@@ -1,6 +1,6 @@
 import { act, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { generateOptions } from '../../agent/options';
+import { sampleOptions } from '../../test/options';
 import { renderApp, signedInState } from '../../test/render';
 import type { AppState, ContextItem, Decision } from '../../types';
 
@@ -60,7 +60,7 @@ function stateWithOptions(): AppState {
   const s = state();
   return {
     ...s,
-    options: [...s.options, ...generateOptions(trial, s.contextItems, [])],
+    options: [...s.options, ...sampleOptions(trial, s.contextItems)],
   };
 }
 

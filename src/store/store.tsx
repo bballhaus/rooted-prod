@@ -3,7 +3,7 @@
 // rather than keeping parallel state in a feature.
 import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react';
 import { demoState } from '../data/demoFixtures';
-import { seedState } from '../data/fixtures';
+import { emptyWorkspaceState } from '../data/fixtures';
 import type {
   AppState,
   ContextItem,
@@ -11,24 +11,27 @@ import type {
   Decision,
   DecisionLink,
   Gap,
+  Insight,
   OptionNode,
   Outcome,
-  Provider,
   Source,
   SuggestedDecision,
   User,
   Workspace,
   WrongAnswerReport,
 } from '../types';
-import { demoUser } from '../data/fixtures';
+import { ME } from '../data/history';
+import type { AuthIdentity } from '../auth/client';
 import { driveCorpus, slackCorpus } from '../data/slackCorpus';
 import { descendantIds, splitForLog } from './tree';
 
-// v2 added teammates, links, outcomes, suggestions and chat.
-export const STORAGE_KEY = 'rooted-demo-v2';
+// v2 added teammates, links, outcomes, suggestions and chat. v3 starts real
+// workspaces empty (0018), so sample data saved before real sign-in isn't
+// mistaken for a live Slack connection.
+export const STORAGE_KEY = 'rooted-demo-v3';
 
 export type Action =
-  | { type: 'signIn'; provider: Provider }
+  | { type: 'signIn'; identity: AuthIdentity }
   | { type: 'signOut' }
   | { type: 'updateUser'; patch: Partial<User> }
   | { type: 'updateSource'; sourceId: string; patch: Partial<Source> }
@@ -56,10 +59,13 @@ export type Action =
   | { type: 'updateLink'; linkId: string; patch: Partial<DecisionLink> }
   | { type: 'logOutcome'; outcome: Outcome }
   | { type: 'updateSuggestion'; suggestionId: string; patch: Partial<SuggestedDecision> }
+  | { type: 'addSuggestions'; suggestions: SuggestedDecision[] }
+  | { type: 'addLinks'; links: DecisionLink[] }
   | { type: 'addMessage'; message: ChatMessage }
   | { type: 'updateMessage'; messageId: string; patch: Partial<ChatMessage> }
+  | { type: 'setInsights'; insights: Insight[]; forUser: string | null; demo: boolean }
+  | { type: 'updateInsight'; insightId: string; patch: Partial<Insight> }
   | { type: 'deleteAllData' }
-  | { type: 'resetDemo' }
   | { type: 'loadDemo' }
   | { type: 'exitDemo' };
 
@@ -122,16 +128,70 @@ function revokeAll(state: AppState, source: Source, channelId?: string): AppStat
   };
 }
 
-function workspaceOf({ user: _user, sources: _sources, demo: _demo, beforeDemo: _before, ...w }: AppState): Workspace {
+function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const letters = parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : (parts[0] ?? '?').slice(0, 2);
+  return letters.toUpperCase();
+}
+
+// F-01: a real session signs the PM in. A different person on this browser
+// starts from a fresh workspace, so nobody sees someone else's decisions,
+// whether the last person signed out or not.
+function signIn(state: AppState, identity: AuthIdentity): AppState {
+  const prev = state.user ?? state.lastUser;
+  // Someone from before real sign-in (no authId) is the same person if the email matches.
+  const same = prev ? (prev.authId ? prev.authId === identity.authId : prev.email === identity.email) : false;
+  if (
+    state.user &&
+    same &&
+    prev?.authId === identity.authId &&
+    prev.email === identity.email &&
+    prev.signInProvider === identity.provider
+  )
+    return state;
+  // Nobody has used this browser yet: the sample workspace is theirs.
+  const base = prev && !same ? emptyWorkspaceState() : { ...state, lastUser: undefined };
+  const kept = same ? prev : undefined;
+  const name = kept?.name ?? identity.name;
+  const user: User = {
+    id: ME,
+    authId: identity.authId,
+    name,
+    email: identity.email,
+    role: kept?.role ?? '',
+    team: kept?.team ?? '',
+    company: kept?.company ?? '',
+    plan: 'beta',
+    signInProvider: identity.provider,
+    notificationChannel: kept?.notificationChannel ?? 'email',
+    defaultReviewDays: kept?.defaultReviewDays ?? 30,
+  };
+  return {
+    ...base,
+    user,
+    // The PM is a teammate on the map too; show their real name there.
+    teammates: base.teammates.map((t) => (t.id === ME ? { ...t, name, initials: initialsOf(name) } : t)),
+  };
+}
+
+function workspaceOf({
+  user: _user,
+  demo: _demo,
+  beforeDemo: _before,
+  lastUser: _last,
+  ...w
+}: AppState): Workspace {
   return w;
 }
 
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'signIn':
-      return { ...state, user: { ...(state.user ?? demoUser), signInProvider: action.provider } };
+      return signIn(state, action.identity);
     case 'signOut':
-      return { ...state, user: null };
+      // The workspace stays in this browser for the same person to come back
+      // to; signIn starts anyone else fresh.
+      return state.user ? { ...state, user: null, lastUser: state.user } : state;
     case 'updateUser':
       return state.user ? { ...state, user: { ...state.user, ...action.patch } } : state;
     case 'updateSource': {
@@ -245,6 +305,17 @@ export function reducer(state: AppState, action: Action): AppState {
         ...state,
         outcomes: [...state.outcomes.filter((o) => o.decisionId !== action.outcome.decisionId), action.outcome],
       };
+    case 'addSuggestions': {
+      // Don't raise the same question twice.
+      const asked = new Set(state.suggestions.map((s) => s.question.toLowerCase()));
+      return { ...state, suggestions: [...state.suggestions, ...action.suggestions.filter((s) => !asked.has(s.question.toLowerCase()))] };
+    }
+    case 'addLinks': {
+      // One link per pair: a suggestion never replaces a link the PM made or dismissed.
+      const pair = (l: DecisionLink) => [l.fromId, l.toId].sort().join('|');
+      const taken = new Set(state.links.map(pair));
+      return { ...state, links: [...state.links, ...action.links.filter((l) => !taken.has(pair(l)))] };
+    }
     case 'updateSuggestion':
       return {
         ...state,
@@ -256,6 +327,21 @@ export function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         messages: state.messages.map((m) => (m.id === action.messageId ? { ...m, ...action.patch } : m)),
+      };
+    case 'setInsights': {
+      // An answer that comes back after the workspace changed (deleted, another
+      // person signed in, the demo swapped in or out) belongs to the old one: drop it.
+      if ((state.user?.authId ?? null) !== action.forUser || state.demo !== action.demo) return state;
+      const ids = new Set(state.decisions.map((d) => d.id));
+      const fresh = action.insights.filter((i) => i.decisionIds.every((id) => ids.has(id)));
+      // Looking again keeps what the PM edited (F-08); everything else is replaced.
+      const kept = state.insights.filter((i) => i.userEdited && !i.dismissed);
+      return { ...state, insights: [...kept, ...fresh] };
+    }
+    case 'updateInsight':
+      return {
+        ...state,
+        insights: state.insights.map((i) => (i.id === action.insightId ? { ...i, ...action.patch } : i)),
       };
     case 'deleteAllData':
       // F-23: wipes decisions, context, links, outcomes, chat and reports and
@@ -271,26 +357,30 @@ export function reducer(state: AppState, action: Action): AppState {
         outcomes: [],
         suggestions: [],
         messages: [],
-        sources: state.sources.map((s) => ({ ...s, connected: false, connectedAt: undefined })),
+        insights: [],
+        // From inside the demo, it's the PM's own sources (set aside) that are disconnected.
+        sources: (state.demo && state.beforeDemo ? state.beforeDemo.sources : state.sources).map((s) => ({
+          ...s,
+          connected: false,
+          connectedAt: undefined,
+        })),
         // Deleting everything includes the workspace saved aside during the demo.
         demo: false,
         beforeDemo: undefined,
       };
-    case 'resetDemo':
-      return { ...seedState(), user: state.user };
     case 'loadDemo':
       // Swap in the planted demo workspace (0009), setting the PM's own work
-      // aside. Keeps the signed-in user and the sources and channels they chose.
+      // and sources aside. The demo reads only its own sample sources, never
+      // the PM's live Slack (0017).
       if (state.demo) return state;
-      return { ...demoState(), user: state.user, sources: state.sources, beforeDemo: workspaceOf(state) };
+      return { ...demoState(), user: state.user, beforeDemo: workspaceOf(state) };
     case 'exitDemo':
       // Bring the PM's own workspace back as they left it.
       if (!state.demo) return state;
       return {
-        ...seedState(),
+        ...emptyWorkspaceState(),
         ...(state.beforeDemo ?? {}),
         user: state.user,
-        sources: state.sources,
         demo: false,
         beforeDemo: undefined,
       };
@@ -301,11 +391,11 @@ function load(): AppState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     // Fill in anything an older save is missing, so new fields never crash the demo.
-    if (raw) return { ...seedState(), ...(JSON.parse(raw) as Partial<AppState>) };
+    if (raw) return { ...emptyWorkspaceState(), ...(JSON.parse(raw) as Partial<AppState>) };
   } catch {
     // fall through to the seed
   }
-  return seedState();
+  return emptyWorkspaceState();
 }
 
 interface StoreValue {

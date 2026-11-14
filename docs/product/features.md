@@ -54,7 +54,7 @@ Activities → Steps, left to right:
 |---|---|---|---|
 | F-01 | Log in | Log in to the portal with permissions | Authenticated session; user has a role/permission level. |
 | F-02 | Log in | Choose what data the agent can see | Settings UI to include/exclude channels/sources; agent respects these scopes. |
-| F-03 | Connect sources | Connect Slack so the agent can pull context | OAuth-style "Connect Slack" flow (mock in prototype); shows connected state + selected channels. |
+| F-03 | Connect sources | Connect Slack so the agent can pull context | Real Slack install through Slack's permission page (0017); shows connected state + selected channels, new channels unchecked. Drive isn't offered yet. |
 
 ### Activity: Prepare for decision
 
@@ -62,7 +62,7 @@ Activities → Steps, left to right:
 |---|---|---|---|
 | F-04 | Enter decision | **[Manual]** Enter the decision you need to make | Form/prompt: decision question, optional due/review date. |
 | F-05 | Enter decision | Provide context on your own | User can paste notes/links/text as extra context. |
-| F-06 | Gather context | Collect context from sources and past decision trees | Agent pulls relevant Slack messages + the user's own past decisions; shows a loading/gathering state. |
+| F-06 | Gather context | Collect context from sources and past decision trees | Agent pulls relevant Slack messages + the user's own past decisions (Claude, 0016); shows a loading/gathering state, and an error with a retry when it can't. |
 | F-07 | Gather context | Organize context into searchable lists | Context grouped (e.g. by source/theme) with search/filter. |
 | F-08 | Review context | Give feedback and fix inaccurate context | Each context item can be marked wrong, edited, or removed. |
 | F-09 | Review context | Agent flags missing information | Callout listing gaps / questions the agent couldn't answer. |
@@ -92,7 +92,7 @@ Activities → Steps, left to right:
 | ID | Step | Feature | Acceptance notes |
 |---|---|---|---|
 | F-20 | Sign up | Request beta access with work email | Waitlist/beta request form. |
-| F-21 | Sign up | Sign in with Slack or Google | SSO buttons (mocked in prototype). |
+| F-21 | Sign up | Sign in with Slack or Google | SSO buttons, real through Supabase Auth (0015), plus an email link. |
 | F-22 | Manage account | Edit profile, role and team | Profile settings page. |
 | F-23 | Manage account | Disconnect sources and delete your data | Disconnect per source; delete-all-data with confirmation. |
 | F-24 | Plan and billing | See your plan and beta status | Read-only plan/beta status card. |
@@ -137,7 +137,7 @@ Activities → Steps, left to right:
 | F-R3-02 | Connect sources | Ingest company tech stack |
 | F-R3-03 | Enter decision | Get notified of upcoming decisions |
 | F-R3-04 | Enter decision | **[Automatic]** AI scans new PRDs and Slack for pending decisions |
-| F-R3-05 | Find past decisions | View personal and company decision trends |
+| F-R3-05 | Find past decisions | View personal and company decision trends (pulled forward into the MVP: decision 0019) |
 | F-R3-06 | Record outcome | Agent automatically logs relevant results |
 | F-R3-07 | Review a past decision | See causal effects that led to a decision |
 | F-R3-08 | Review a past decision | Flag org-level decisions to revisit |

@@ -1,0 +1,6 @@
+# The Modal service's Python dependencies (decision 0016). Pinned; the Modal
+# image installs exactly these.
+anthropic==1.17.0
+fastapi==0.162.5
+pydantic==2.14.3
+httpx==0.28.1

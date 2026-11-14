@@ -2,10 +2,11 @@
 // on the decision map, frame a decision, work it through in the workspace
 // (brief, then options), log it, then reach settings from the profile menu and
 // help from the footer. Every step uses the real pages and fake data.
-import { screen, within } from '@testing-library/react';
-import { seedState } from '../data/fixtures';
+import { act, screen, within } from '@testing-library/react';
+import { demoUser, seedState } from '../data/fixtures';
 import { STORAGE_KEY } from '../store/store';
 import type { AppState } from '../types';
+import { fakeAuth, identityFor } from './fakeAuth';
 import { renderApp } from './render';
 
 const SLOW = { timeout: 5000 };
@@ -17,23 +18,23 @@ function saved(): AppState {
 beforeEach(() => localStorage.clear());
 
 it('F-01–F-28: walks sign in → onboarding → map → frame → brief → options → log → record → settings and help', async () => {
-  const { user } = renderApp('/', seedState());
+  const auth = fakeAuth(null);
+  const { user } = renderApp('/', seedState(), { auth });
 
-  // F-01, F-21: signed out, so the app sends us to the mocked sign-in.
+  // F-01, F-21: signed out, so the app sends us to sign in. Google's real
+  // consent screen happens off-site; here the fake session comes back.
   await user.click(await screen.findByRole('button', { name: /continue with google/i }));
-  const consent = await screen.findByRole('dialog');
-  expect(within(consent).getByText(/prototype/i)).toBeInTheDocument();
-  await user.click(within(consent).getByRole('button', { name: 'Allow' }));
+  expect(auth.signInWith).toHaveBeenCalledWith('google', expect.any(String));
+  await act(async () => auth.emit({ ...identityFor(demoUser)!, authId: 'auth-jordan' }));
 
   // F-02, F-03: choose what Rooted can see.
   expect(await screen.findByRole('heading', { level: 1, name: /choose what rooted can see/i })).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: /continue to rooted/i }));
 
-  // F-17: home is the decision map; "Needs you" opens from the top-left when wanted.
+  // F-17: home is the decision map, with "Needs you" open beside it: what's due and what to decide.
   expect(await screen.findByRole('heading', { level: 1, name: 'Decisions' })).toBeInTheDocument();
-  await user.click(screen.getByRole('button', { name: 'Show the Needs you panel' }));
-  expect(screen.getByRole('heading', { name: 'Needs you' })).toBeInTheDocument();
-  await user.click(screen.getByRole('link', { name: 'New decision' }));
+  const rail = screen.getByRole('complementary', { name: 'Needs you' });
+  await user.click(within(rail).getByRole('link', { name: 'New decision' }));
 
   // F-04, F-05: frame a new decision.
   await user.type(

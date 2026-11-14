@@ -1,6 +1,6 @@
 # 0007: Call the LLM from a Supabase Edge Function, with scripted sample answers as the fallback
 
-- **Status:** decided (the provider is still open)
+- **Status:** superseded by [0016](0016-ai-on-modal-with-claude.md)
 - **Date:** 2026-10-31
 - **Decided by:** Shirley (PM)
 - **Review date:** when the team picks a provider
