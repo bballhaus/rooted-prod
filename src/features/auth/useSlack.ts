@@ -61,7 +61,7 @@ export function useLiveSlack() {
 
   async function connect() {
     if (!ai) {
-      setError('not_configured');
+      setError('slack_not_configured');
       return;
     }
     setBusy(true);
@@ -77,7 +77,7 @@ export function useLiveSlack() {
   /** Finishes an install Slack sent back here. The service saves it only for the PM who started it. */
   async function complete(code: string, state: string): Promise<boolean> {
     if (!ai) {
-      setError('not_configured');
+      setError('slack_not_configured');
       return false;
     }
     setBusy(true);
@@ -98,8 +98,8 @@ export function useLiveSlack() {
   async function disconnect(): Promise<AiErrorCode | null> {
     if (!source) return 'unknown';
     if (!ai) {
-      setError('not_configured');
-      return 'not_configured';
+      setError('slack_not_configured');
+      return 'slack_not_configured';
     }
     setBusy(true);
     setError(null);

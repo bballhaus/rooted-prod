@@ -46,13 +46,43 @@
 
 .settings-legend {
   padding: 0;
-  font-size: 14px;
   font-weight: 600;
 }
 
-.settings-fieldset .hint {
+/* Three text sizes in a card (design-language §4.3): 16px body and item
+   titles, 14px help and meta. Prose is capped near 62 characters a line
+   (§4.4), so long explanations stay easy to read. */
+.settings-prose,
+.settings-help {
   margin: 0;
-  font-size: 13px;
+  max-width: 62ch;
+}
+
+.settings-help {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink2);
+}
+
+.settings-item-title {
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-sample {
+  font-weight: 500;
+}
+
+/* A value you can't edit here reads as text, not as a locked input. */
+.settings-readonly {
+  margin: 0;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  overflow-wrap: anywhere;
 }
 
 .settings-choice {
@@ -81,8 +111,15 @@
 
 .settings-status {
   margin: 0;
-  min-height: 1.5em;
-  font-weight: 600;
+  max-width: 62ch;
+  line-height: 1.5;
+}
+
+/* A confirmation reads as a quiet note, not a bold paragraph. */
+.settings-status:not(:empty) {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--chip-bg);
 }
 
 .settings-source-list {
@@ -101,19 +138,15 @@
 
 .settings-source-info,
 .settings-data-text {
+  display: grid;
   gap: 4px;
 }
 
-.settings-source-name {
-  font-size: 17px;
-  font-weight: 600;
-}
-
-.settings-source-meta,
-.settings-data-text p {
+.settings-source-meta {
   margin: 0;
   font-size: 14px;
-  gap: 8px;
+  color: var(--ink2);
+  gap: 6px;
 }
 
 @media (max-width: 880px) {

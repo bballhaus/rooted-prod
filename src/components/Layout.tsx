@@ -85,7 +85,7 @@ function Shell() {
           <Link to="/help">Help & FAQ</Link>
           <Link to="/help#help-support-title">Contact support</Link>
           <Link to="/help#help-report-title">Report a problem</Link>
-          <Link to="/settings#settings-data">Privacy and your data</Link>
+          <Link to="/privacy">Privacy and your data</Link>
         </nav>
       </footer>
       {!setup && <AgentLauncher />}

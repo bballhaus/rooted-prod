@@ -5,6 +5,7 @@ import { DataAccessPage } from './features/auth/DataAccessPage';
 import { SignInPage } from './features/auth/SignInPage';
 import { FramePage } from './features/frame/FramePage';
 import { HelpPage } from './features/help/HelpPage';
+import { PrivacyPage } from './features/privacy/PrivacyPage';
 import { DecisionRecordPage } from './features/log/DecisionRecordPage';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { WorkspacePage } from './features/workspace/WorkspacePage';
@@ -27,6 +28,8 @@ export function App() {
   return (
     <Routes>
       <Route path="/signin" element={<SignInPage />} />
+      {/* Public, so it can be read before signing in. */}
+      <Route path="/privacy" element={<PrivacyPage />} />
       <Route element={<RequireAuth />}>
         <Route element={<Layout />}>
           <Route path="/onboarding" element={<DataAccessPage />} />

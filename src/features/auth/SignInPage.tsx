@@ -3,7 +3,7 @@
 // connect Slack or Drive data, which you choose on the next page.
 // F-20: request beta access with a work email (mocked; nothing is stored or sent).
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { AUTH_ERROR_MESSAGE, callbackError, type AuthErrorCode, type OAuthProvider } from '../../auth/client';
 import { useStore } from '../../store/store';
@@ -118,7 +118,7 @@ export function SignInPage() {
           {tab === 'signin' ? <SignIn onRequest={() => setTab('request')} /> : <RequestAccess onSignIn={() => setTab('signin')} />}
 
           <p className="muted auth-small auth-fineprint">
-            Your workspace starts with sample decisions and stays in this browser.
+            Your decisions stay in this browser. <Link to="/privacy">How Rooted handles your data</Link>
           </p>
         </div>
       </main>

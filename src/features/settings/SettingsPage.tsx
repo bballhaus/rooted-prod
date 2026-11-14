@@ -15,7 +15,7 @@ const SECTIONS = [
   { id: 'settings-profile', label: 'Profile' },
   { id: 'settings-plan', label: 'Plan' },
   { id: 'settings-notifications', label: 'Notifications' },
-  { id: 'settings-sources', label: 'Sources' },
+  { id: 'settings-sources', label: 'Sources and access' },
   { id: 'settings-data', label: 'Your data' },
 ] as const;
 
@@ -28,7 +28,9 @@ export function SettingsPage() {
     <div className="page settings-page">
       <header className="stack">
         <h1 className="page-title">Settings</h1>
-        <p className="lead">Your profile, plan, nudges, connected sources and data.</p>
+        <p className="lead">
+          Your profile, nudges, what Rooted can read, and your data. <Link to="/privacy">How Rooted handles your data</Link>
+        </p>
       </header>
       <nav aria-label="Settings sections" className="settings-nav">
         <ul>
@@ -98,12 +100,16 @@ function ProfileSection({ user }: { user: User }) {
             />
           </div>
           <div className="field">
-            <label htmlFor="settings-email">Email</label>
-            <input id="settings-email" className="input" value={user.email} readOnly aria-describedby="settings-email-hint" />
-            <span id="settings-email-hint" className="hint">
+            <span className="label" id="settings-email-label">
+              Email
+            </span>
+            <p className="settings-readonly" aria-labelledby="settings-email-label">
+              {user.email}
+            </p>
+            <span className="settings-help">
               {user.signInProvider === 'email'
-                ? 'You sign in with this address, so it can’t be changed here.'
-                : `Comes from your ${user.signInProvider === 'google' ? 'Google' : 'Slack'} sign-in and can’t be changed here.`}
+                ? 'You sign in with this address.'
+                : `From your ${user.signInProvider === 'google' ? 'Google' : 'Slack'} sign-in.`}
             </span>
           </div>
           <div className="field">
@@ -149,13 +155,11 @@ function PlanSection() {
         <span className="pill">Beta</span>
       </div>
       <div className="card-section stack">
-        <p>
-          <strong>Free during the beta.</strong> You’re using an early prototype of Rooted. There’s nothing to pay and
-          no card on file.
+        <p className="settings-prose">
+          <strong>Free during the beta.</strong> There’s nothing to pay and no card on file.
         </p>
-        <p className="muted">
-          Paid plans and billing aren’t decided yet. We’ll tell you before anything changes, and nothing will be
-          charged without your say.
+        <p className="settings-help">
+          Paid plans aren’t decided yet. We’ll tell you before anything changes, and nothing is charged without your say.
         </p>
       </div>
     </section>
@@ -190,9 +194,9 @@ function NotificationsSection({ user }: { user: User }) {
       <div className="card-section stack">
         <fieldset className="settings-fieldset">
           <legend className="settings-legend">Where nudges arrive</legend>
-          <p className="hint muted">
-            When a decision reaches its review date, Rooted asks what happened. In this prototype nudges are mocked:
-            nothing is sent yet.
+          <p className="settings-help">
+            When a decision reaches its review date, Rooted asks what happened. Nudges aren’t sent yet; this sets where
+            they’ll go.
           </p>
           <div className="row">
             {(
@@ -216,9 +220,8 @@ function NotificationsSection({ user }: { user: User }) {
         </fieldset>
         <fieldset className="settings-fieldset">
           <legend className="settings-legend">Default review date</legend>
-          <p className="hint muted">
-            How long after you log a decision Rooted sets its review date. Applies to new decisions; ones you’ve already
-            logged keep their date.
+          <p className="settings-help">
+            How long after you log a decision Rooted asks what happened. Decisions you’ve already logged keep their date.
           </p>
           <div className="row">
             {([30, 60, 90] as const).map((days) => (
@@ -277,11 +280,12 @@ function SourcesSection({ sources }: { sources: Source[] }) {
     <section id="settings-sources" className="card settings-section" aria-labelledby="settings-sources-title">
       <div className="card-section stack">
         <h2 id="settings-sources-title" className="section-title">
-          Sources
+          Sources and access
         </h2>
-        <p className="muted">
-          Rooted only reads the channels and folders you allow. It never reads private channels or DMs. The demo
-          workspace uses sample sources.
+        <p className="settings-help">
+          Rooted reads only the public channels you allow, when you gather evidence or ask it to look for decisions. It
+          never reads private channels or direct messages. What it reads is sent to Claude to answer.{' '}
+          <Link to="/privacy#privacy-reads">More about what Rooted reads</Link>
         </p>
       </div>
       <ul className="settings-source-list">
@@ -290,36 +294,45 @@ function SourcesSection({ sources }: { sources: Source[] }) {
           const allowed = s.channels.filter((c) => c.allowed).length;
           return (
             <li key={s.id} className="card-section settings-source">
-              <div className="stack settings-source-info">
-                <h3 className="settings-source-name">{s.name}</h3>
+              <div className="settings-source-info">
+                <h3 className="settings-item-title">
+                  {s.name}
+                  {s.sample && <span className="pill settings-sample">Sample</span>}
+                </h3>
                 <p className="row settings-source-meta">
                   <span className={s.connected ? 'dot dot-alive' : 'dot settings-dot-off'} aria-hidden="true" />
                   <span>
-                    {s.connected
-                      ? `Connected${s.connectedAt ? ` ${formatDate(s.connectedAt)}` : ''}`
-                      : 'Not connected'}
+                    {s.unavailable
+                      ? 'Not available yet'
+                      : s.connected
+                        ? `Connected${s.connectedAt ? ` ${formatDate(s.connectedAt)}` : ''}`
+                        : 'Not connected'}
                   </span>
-                  <span className="muted tabular">
-                    {allowed} of {s.channels.length} {unit} allowed
-                  </span>
+                  {s.connected && (
+                    <span className="tabular">
+                      · {allowed} of {s.channels.length} {unit} allowed
+                    </span>
+                  )}
                 </p>
               </div>
-              <div className="row">
-                <Link to="/onboarding" className="btn btn-secondary">
-                  {s.connected ? `Manage ${unit}` : 'Connect'}
-                  <span className="visually-hidden"> for {s.name}</span>
-                </Link>
-                {s.connected && (
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => setConfirming(s)}
-                    aria-label={`Disconnect ${s.name}`}
-                  >
-                    Disconnect
-                  </button>
-                )}
-              </div>
+              {!s.unavailable && (
+                <div className="row">
+                  <Link to="/onboarding" className="btn btn-secondary">
+                    {s.connected ? `Manage ${unit}` : 'Connect'}
+                    <span className="visually-hidden"> for {s.name}</span>
+                  </Link>
+                  {s.connected && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setConfirming(s)}
+                      aria-label={`Disconnect ${s.name}`}
+                    >
+                      Disconnect
+                    </button>
+                  )}
+                </div>
+              )}
             </li>
           );
         })}
@@ -334,9 +347,9 @@ function SourcesSection({ sources }: { sources: Source[] }) {
         onClose={() => setConfirming(null)}
         title={`Disconnect ${confirming?.name ?? 'source'}?`}
       >
-        <p>
-          Rooted will stop reading {confirming?.name}. Evidence already in your decision records stays there, so you can
-          still trace past calls. You can reconnect from onboarding.
+        <p className="settings-prose">
+          Rooted will stop reading {confirming?.name} and give up its access. Evidence it gathered from {confirming?.name}{' '}
+          is removed from your decisions, including ones you’ve logged. You can connect again any time.
         </p>
         <div className="row">
           <button type="button" className="btn" onClick={disconnect}>
@@ -389,10 +402,10 @@ function DataSection() {
       </div>
       <div className="card-section settings-data-row">
         <div className="stack settings-data-text">
-          <h3 className="settings-source-name">Delete all data</h3>
-          <p className="muted">
-            Permanently removes every decision, its evidence, options, pruned branches and your reports, and disconnects
-            every source. Your account stays.
+          <h3 className="settings-item-title">Delete all data</h3>
+          <p className="settings-help">
+            Removes every decision and everything attached to it from this browser, and disconnects Slack. Your sign-in
+            account stays. <Link to="/privacy#privacy-controls">What gets deleted</Link>
           </p>
         </div>
         <button type="button" className="btn btn-secondary" onClick={() => setDialog('delete')}>

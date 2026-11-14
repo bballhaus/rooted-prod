@@ -1,0 +1,122 @@
+/* Privacy and your data. Semantic tokens only; one 880px breakpoint.
+   Prose is capped near 64 characters a line (design-language §4.4). */
+
+.privacy-bar {
+  border-bottom: 1px solid var(--card-rule);
+}
+
+.privacy-bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 68px;
+}
+
+.privacy-wordmark {
+  font-weight: 600;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.privacy-page {
+  max-width: 820px;
+}
+
+.privacy-head .lead {
+  max-width: 36em;
+}
+
+.privacy-h2 {
+  font-size: clamp(20px, 1.8vw, 24px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.privacy-text,
+.privacy-list,
+.privacy-facts dd {
+  max-width: 64ch;
+  line-height: 1.55;
+}
+
+.privacy-text {
+  margin: 0;
+}
+
+.privacy-list {
+  margin: 0;
+  padding-left: 1.2em;
+  display: grid;
+  gap: 8px;
+}
+
+/* A term and its answer side by side, then stacked under the breakpoint. */
+.privacy-facts {
+  margin: 0;
+  display: grid;
+  gap: 16px;
+}
+
+.privacy-facts > div {
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 1fr);
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--card-rule);
+}
+
+.privacy-facts > div:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.privacy-facts dt {
+  font-weight: 600;
+}
+
+.privacy-facts dd {
+  margin: 0;
+}
+
+.privacy-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.privacy-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--card-border);
+  background: var(--chip-bg);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.privacy-section {
+  scroll-margin-top: 24px;
+}
+
+.privacy-fineprint {
+  font-size: 14px;
+  max-width: 64ch;
+  margin: 0;
+}
+
+@media (max-width: 880px) {
+  .privacy-facts > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+}

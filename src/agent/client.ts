@@ -68,7 +68,7 @@ export const AI_ERROR_MESSAGE: Record<AiErrorCode, string> = {
   bad_payload: 'Something about this decision couldn’t be sent. Check the question isn’t empty, then try again.',
   too_large: 'There’s too much here to send at once. Remove some context, then try again.',
   slack_not_connected: 'Connect Slack first, or turn off Slack for this brief.',
-  slack_not_configured: 'Slack isn’t set up for this copy of Rooted yet.',
+  slack_not_configured: 'Connecting Slack isn’t set up for this copy of Rooted yet: it needs Rooted’s AI service, which hasn’t been deployed here. Your demo and sign-in still work.',
   slack_token_revoked: 'Rooted’s access to Slack was removed. Connect Slack again to read your channels.',
   slack_error: 'Slack didn’t answer just now. Try again in a minute.',
   slack_state_mismatch: 'That Slack connection was started from a different Rooted account, so it wasn’t saved. Connect Slack again from here.',
