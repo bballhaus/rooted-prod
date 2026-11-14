@@ -83,8 +83,8 @@ function Shell() {
       <footer className="site-footer">
         <nav aria-label="Help and support" className="site-footer-inner">
           <Link to="/help">Help & FAQ</Link>
-          <Link to="/help#help-support-title">Contact support</Link>
-          <Link to="/help#help-report-title">Report a problem</Link>
+          <Link to="/help/contact">Contact support</Link>
+          <Link to="/help/report">Report a problem</Link>
           <Link to="/privacy">Privacy and your data</Link>
         </nav>
       </footer>

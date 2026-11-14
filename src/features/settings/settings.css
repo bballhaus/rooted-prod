@@ -1,57 +1,82 @@
-/* Settings page. Semantic tokens only; one 880px breakpoint. */
+/* Settings. A sticky section menu beside one column of sections. Three text
+   sizes per section (design-language §4.3): the section title, 16px body and
+   item titles, 14px help and meta. Prose is capped near 62 characters (§4.4).
+   Semantic tokens only; one 880px breakpoint. */
+
+.settings-page {
+  width: 100%;
+  max-width: 1080px;
+  margin-inline: auto;
+}
+
+.settings-head .lead {
+  max-width: 36em;
+}
+
+.settings-layout {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 48px;
+  align-items: start;
+}
+
+.settings-nav {
+  position: sticky;
+  top: 92px;
+}
 
 .settings-nav ul {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid;
+  gap: 2px;
 }
 
 .settings-nav a {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   min-height: 44px;
-  padding: 0 16px;
-  border-radius: 999px;
-  border: 1px solid var(--card-border);
-  background: var(--chip-bg);
-  color: var(--ink);
+  padding: 0 14px;
+  border-radius: 10px;
+  color: var(--ink2);
   text-decoration: none;
   font-weight: 500;
 }
 
+.settings-nav a:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
 .settings-sections {
   display: grid;
-  gap: 24px;
-  max-width: 880px;
+  gap: 20px;
+  min-width: 0;
 }
 
 .settings-section {
-  scroll-margin-top: 24px;
+  scroll-margin-top: 92px;
+}
+
+/* Each section is one block: its title, then its content, no divider strip. */
+.settings-body {
+  display: grid;
+  gap: 20px;
+  padding: 24px 28px 28px;
+}
+
+.settings-h2 {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .settings-plan-head {
   justify-content: space-between;
 }
 
-.settings-fieldset {
-  border: 0;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 8px;
-}
-
-.settings-legend {
-  padding: 0;
-  font-weight: 600;
-}
-
-/* Three text sizes in a card (design-language §4.3): 16px body and item
-   titles, 14px help and meta. Prose is capped near 62 characters a line
-   (§4.4), so long explanations stay easy to read. */
 .settings-prose,
 .settings-help {
   margin: 0;
@@ -85,6 +110,24 @@
   overflow-wrap: anywhere;
 }
 
+.settings-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.settings-fieldset + .settings-fieldset {
+  margin-top: 8px;
+}
+
+.settings-legend {
+  padding: 0;
+  margin-bottom: 2px;
+  font-weight: 600;
+}
+
 .settings-choice {
   display: inline-flex;
   align-items: center;
@@ -109,23 +152,27 @@
   accent-color: var(--ink);
 }
 
+.settings-saved {
+  font-size: 14px;
+  color: var(--ink2);
+}
+
+/* A confirmation reads as a quiet note, and only appears when there is one. */
 .settings-status {
   margin: 0;
   max-width: 62ch;
-  line-height: 1.5;
-}
-
-/* A confirmation reads as a quiet note, not a bold paragraph. */
-.settings-status:not(:empty) {
   padding: 10px 14px;
   border-radius: 12px;
   background: var(--chip-bg);
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .settings-source-list {
   list-style: none;
   margin: 0;
   padding: 0;
+  border-top: 1px solid var(--card-rule);
 }
 
 .settings-source,
@@ -134,6 +181,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+}
+
+.settings-source {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--card-rule);
 }
 
 .settings-source-info,
@@ -149,15 +201,44 @@
   gap: 6px;
 }
 
+.settings-dot-off {
+  border: 1.5px solid var(--line);
+}
+
 @media (max-width: 880px) {
+  .settings-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  /* The menu becomes a row of chips that scrolls sideways. */
+  .settings-nav {
+    position: static;
+    margin-inline: calc(var(--gutter) * -1);
+    padding-inline: var(--gutter);
+    overflow-x: auto;
+  }
+
+  .settings-nav ul {
+    display: flex;
+    gap: 8px;
+    width: max-content;
+  }
+
+  .settings-nav a {
+    border: 1px solid var(--card-border);
+    border-radius: 999px;
+    background: var(--chip-bg);
+    white-space: nowrap;
+  }
+
+  .settings-body {
+    padding: 20px;
+  }
+
   .settings-source,
   .settings-data-row {
     flex-direction: column;
     align-items: flex-start;
   }
-}
-
-
-.settings-dot-off {
-  border: 1.5px solid var(--line);
 }

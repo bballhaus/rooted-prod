@@ -377,7 +377,8 @@
 
 .auth-summary {
   margin: 0;
-  font-weight: 600;
+  font-size: 14px;
+  color: var(--ink2);
 }
 
 @media (max-width: 880px) {

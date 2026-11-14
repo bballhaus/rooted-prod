@@ -226,6 +226,9 @@ h3 {
 
 /* Layout */
 .container {
+  /* Full width up to the max. Without it, auto margins inside the app shell's
+     flex column shrink a page to its content, so pages sat at different x. */
+  width: 100%;
   max-width: var(--max);
   margin: 0 auto;
   padding: 0 var(--gutter);
@@ -309,12 +312,13 @@ h3 {
   padding: 0 24px;
 }
 
-/* Cards */
+/* Cards. In the app, cards sit on the page with a light lift; the deep wine
+   glow (--card-shadow) is kept for dialogs and the chosen option. */
 .card {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 16px;
-  box-shadow: var(--card-shadow);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
 
@@ -329,6 +333,7 @@ h3 {
 .card-rec {
   background: var(--rec-bg);
   color: var(--rec-fg);
+  box-shadow: var(--card-shadow);
 }
 
 /* Pills, chips */
@@ -425,6 +430,8 @@ a.pill {
 .field {
   display: grid;
   gap: 6px;
+  /* Keep a field's parts at their own height when a neighbouring field is taller. */
+  align-content: start;
 }
 
 .field label,
@@ -484,11 +491,24 @@ a.pill {
   accent-color: var(--ink);
 }
 
+/* One centred reading column for single-column pages (settings, help,
+   privacy, framing), so every page lines up the same way. */
+.page-narrow {
+  width: 100%;
+  max-width: 880px;
+  margin-inline: auto;
+}
+
 /* Banners */
 .banner {
   border-radius: 12px;
   padding: 16px 20px;
   background: var(--chip-bg);
+}
+
+/* The AI error notice: message, then its actions, without stray margins. */
+.ai-error p {
+  margin: 0;
 }
 
 /* Dialog */

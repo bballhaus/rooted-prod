@@ -5,20 +5,60 @@ import type { WrongAnswerReport } from '../../types';
 import { FAQ, FAQ_TOPICS } from './faq';
 import './help.css';
 
-// Help: searchable FAQ (F-27), report a wrong answer and contact support (F-28).
+// Help (F-27): searchable answers, with contact support and reporting a
+// problem (F-28) on pages of their own.
 
 export function HelpPage() {
   return (
-    <div className="page help-page">
+    <div className="page page-narrow help-page">
       <header className="stack">
         <h1 className="page-title">Help</h1>
-        <p className="lead">Answers about this prototype, a place to report a wrong answer, and a way to reach us.</p>
+        <p className="lead">Answers to common questions, and how to reach us when they don’t cover it.</p>
       </header>
+      <nav aria-label="Get in touch" className="help-routes">
+        <Link to="/help/contact" className="card help-route">
+          <span className="help-route-title">Contact support</span>
+          <span className="help-route-text">Questions, bugs or ideas</span>
+        </Link>
+        <Link to="/help/report" className="card help-route">
+          <span className="help-route-title">Report a problem</span>
+          <span className="help-route-text">Rooted got something wrong</span>
+        </Link>
+      </nav>
       <FaqSection />
-      <div className="grid-2 help-forms">
-        <ReportSection />
-        <SupportSection />
-      </div>
+    </div>
+  );
+}
+
+function SubpageHead({ title, lead }: { title: string; lead: string }) {
+  return (
+    <header className="stack">
+      <Link to="/help" className="help-back">
+        <span aria-hidden="true">←</span> Help
+      </Link>
+      <h1 className="page-title">{title}</h1>
+      <p className="lead">{lead}</p>
+    </header>
+  );
+}
+
+export function ContactSupportPage() {
+  return (
+    <div className="page page-narrow help-page">
+      <SubpageHead title="Contact support" lead="Questions, bugs or ideas for the Rooted team." />
+      <SupportSection />
+    </div>
+  );
+}
+
+export function ReportProblemPage() {
+  return (
+    <div className="page page-narrow help-page">
+      <SubpageHead
+        title="Report a problem"
+        lead="Rooted got something wrong in a brief, an option or a record? Tell us. You can also use “Report wrong answer” right next to anything Rooted wrote."
+      />
+      <ReportSection />
       <ReportsList />
     </div>
   );
@@ -57,7 +97,9 @@ function FaqSection() {
       {matches.length === 0 ? (
         <div className="banner stack help-empty">
           <p>No answers match “{query.trim()}”.</p>
-          <p className="muted">Try a different word, or ask us with the support form below.</p>
+          <p className="muted">
+            Try a different word, or <Link to="/help/contact">contact support</Link>.
+          </p>
           <div>
             <button type="button" className="btn btn-secondary" onClick={() => setQuery('')}>
               Clear search
@@ -131,21 +173,12 @@ function ReportSection() {
     setNote('');
     setDecisionId('');
     setSurface('brief');
-    setStatus('Report saved. It’s listed under “Your reports” below.');
+    setStatus('Thanks. Your report is saved and listed under “Your reports” below.');
   }
 
   return (
-    <section className="card" aria-labelledby="help-report-title">
-      <div className="card-section stack">
-        <h2 id="help-report-title" className="section-title">
-          Report a wrong answer
-        </h2>
-        <p className="muted">
-          Rooted got something wrong in a brief, an option or a record? Tell us. You can also use “Report wrong
-          answer” right next to any agent output.
-        </p>
-      </div>
-      <form className="card-section stack" onSubmit={submit} noValidate>
+    <section className="card" aria-label="Report a wrong answer">
+      <form className="card-section stack help-form" onSubmit={submit} noValidate>
         <div className="field">
           <label htmlFor="help-report-decision">Decision (optional)</label>
           <select
@@ -199,7 +232,7 @@ function ReportSection() {
             Send report
           </button>
         </div>
-        <p role="status" className="help-status">
+        <p role="status" className={status ? 'help-status' : 'visually-hidden'}>
           {status}
         </p>
       </form>
@@ -230,14 +263,9 @@ function SupportSection() {
   }
 
   return (
-    <section className="card" aria-labelledby="help-support-title">
-      <div className="card-section stack">
-        <h2 id="help-support-title" className="section-title">
-          Contact support
-        </h2>
-        <p className="muted">Questions, bugs or ideas. In this prototype the form doesn’t send anything.</p>
-      </div>
-      <form className="card-section stack" onSubmit={submit} noValidate>
+    <section className="card" aria-label="Contact support">
+      <form className="card-section stack help-form" onSubmit={submit} noValidate>
+        <p className="help-note">Messages can’t be delivered from here yet during the beta.</p>
         <div className="field">
           <label htmlFor="help-support-topic">Topic</label>
           <select id="help-support-topic" className="select" value={topic} onChange={(e) => setTopic(e.target.value)}>
@@ -273,8 +301,8 @@ function SupportSection() {
             Send message
           </button>
         </div>
-        <p role="status" className="help-status">
-          {sent ? 'Thanks. Prototype: nothing was sent.' : ''}
+        <p role="status" className={sent ? 'help-status' : 'visually-hidden'}>
+          {sent ? 'Thanks. During the beta this message wasn’t sent anywhere; nothing was stored.' : ''}
         </p>
       </form>
     </section>

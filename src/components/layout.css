@@ -116,6 +116,7 @@
 .header-new {
   background: var(--cream);
   color: var(--wine);
+  white-space: nowrap;
 }
 
 /* Icon buttons (inbox, profile) and pills read in cream on the wine bar. */

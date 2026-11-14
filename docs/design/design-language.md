@@ -321,7 +321,12 @@ new components from their patterns.
 ### 6.3 Cards
 
 - Surface `cardBg`, `1px solid cardBorder`, `border-radius:16px`, `overflow:hidden`,
-  wine-tinted `cardShadow`.
+  wine-tinted `cardShadow`. In the Rooted app, where cards stack down a page, they
+  take the lighter `shadowSm`; the deep wine glow is kept for dialogs and the wine
+  card that marks the chosen option.
+- Single-column app pages (settings, help, privacy, framing) share one centred
+  880px reading column (`.page-narrow`); settings and privacy add a sticky
+  section menu beside it.
 - Internal structure is **stacked sections divided by hairlines** (`cardRule`),
   not boxes-within-boxes: head → recommended → pruned → evidence → footer.
 - Each row (`rl-row`) is a 3-col grid: `[8px status dot] [label + reason stack]

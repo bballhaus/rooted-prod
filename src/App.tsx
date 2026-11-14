@@ -4,7 +4,7 @@ import { DashboardPage } from './features/dashboard/DashboardPage';
 import { DataAccessPage } from './features/auth/DataAccessPage';
 import { SignInPage } from './features/auth/SignInPage';
 import { FramePage } from './features/frame/FramePage';
-import { HelpPage } from './features/help/HelpPage';
+import { ContactSupportPage, HelpPage, ReportProblemPage } from './features/help/HelpPage';
 import { PrivacyPage } from './features/privacy/PrivacyPage';
 import { DecisionRecordPage } from './features/log/DecisionRecordPage';
 import { SettingsPage } from './features/settings/SettingsPage';
@@ -42,6 +42,8 @@ export function App() {
           <Route path="/decisions/:id" element={<DecisionRecordPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/help" element={<HelpPage />} />
+          <Route path="/help/contact" element={<ContactSupportPage />} />
+          <Route path="/help/report" element={<ReportProblemPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Route>

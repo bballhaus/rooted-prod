@@ -91,7 +91,7 @@ export function SignInPage() {
 
       <main id="main" className="auth-panel">
         <div className="auth-panel-inner">
-          <span className="pill auth-proto">Beta · sample data</span>
+          <span className="pill auth-proto">Beta</span>
           <div className="auth-tabs" role="tablist" aria-label="Sign in or request access">
             <button
               type="button"

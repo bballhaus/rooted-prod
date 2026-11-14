@@ -26,27 +26,29 @@ export function SettingsPage() {
 
   return (
     <div className="page settings-page">
-      <header className="stack">
+      <header className="stack settings-head">
         <h1 className="page-title">Settings</h1>
         <p className="lead">
           Your profile, nudges, what Rooted can read, and your data. <Link to="/privacy">How Rooted handles your data</Link>
         </p>
       </header>
-      <nav aria-label="Settings sections" className="settings-nav">
-        <ul>
-          {SECTIONS.map((s) => (
-            <li key={s.id}>
-              <a href={`#${s.id}`}>{s.label}</a>
-            </li>
-          ))}
-        </ul>
-      </nav>
-      <div className="settings-sections">
-        <ProfileSection user={user} />
-        <PlanSection />
-        <NotificationsSection user={user} />
-        <SourcesSection sources={state.sources} />
-        <DataSection />
+      <div className="settings-layout">
+        <nav aria-label="Settings sections" className="settings-nav">
+          <ul>
+            {SECTIONS.map((s) => (
+              <li key={s.id}>
+                <a href={`#${s.id}`}>{s.label}</a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        <div className="settings-sections">
+          <ProfileSection user={user} />
+          <PlanSection />
+          <NotificationsSection user={user} />
+          <SourcesSection sources={state.sources} />
+          <DataSection />
+        </div>
       </div>
     </div>
   );
@@ -81,12 +83,10 @@ function ProfileSection({ user }: { user: User }) {
 
   return (
     <section id="settings-profile" className="card settings-section" aria-labelledby="settings-profile-title">
-      <div className="card-section">
-        <h2 id="settings-profile-title" className="section-title">
+      <form className="settings-body" onSubmit={save} noValidate>
+        <h2 id="settings-profile-title" className="settings-h2">
           Profile
         </h2>
-      </div>
-      <form className="card-section stack" onSubmit={save} noValidate>
         <div className="grid-2">
           <div className="field">
             <label htmlFor="settings-name">Name</label>
@@ -136,7 +136,7 @@ function ProfileSection({ user }: { user: User }) {
           <button type="submit" className="btn">
             Save profile
           </button>
-          <span role="status" className="settings-status">
+          <span role="status" className="settings-saved">
             {saved ? 'Saved' : ''}
           </span>
         </div>
@@ -148,13 +148,13 @@ function ProfileSection({ user }: { user: User }) {
 function PlanSection() {
   return (
     <section id="settings-plan" className="card settings-section" aria-labelledby="settings-plan-title">
-      <div className="card-section row settings-plan-head">
-        <h2 id="settings-plan-title" className="section-title">
-          Plan
-        </h2>
-        <span className="pill">Beta</span>
-      </div>
-      <div className="card-section stack">
+      <div className="settings-body">
+        <div className="row settings-plan-head">
+          <h2 id="settings-plan-title" className="settings-h2">
+            Plan
+          </h2>
+          <span className="pill">Beta</span>
+        </div>
         <p className="settings-prose">
           <strong>Free during the beta.</strong> There’s nothing to pay and no card on file.
         </p>
@@ -186,12 +186,10 @@ function NotificationsSection({ user }: { user: User }) {
       className="card settings-section"
       aria-labelledby="settings-notifications-title"
     >
-      <div className="card-section">
-        <h2 id="settings-notifications-title" className="section-title">
+      <div className="settings-body">
+        <h2 id="settings-notifications-title" className="settings-h2">
           Notifications
         </h2>
-      </div>
-      <div className="card-section stack">
         <fieldset className="settings-fieldset">
           <legend className="settings-legend">Where nudges arrive</legend>
           <p className="settings-help">
@@ -238,11 +236,18 @@ function NotificationsSection({ user }: { user: User }) {
             ))}
           </div>
         </fieldset>
-        <p role="status" className="settings-status">
-          {status}
-        </p>
+        <Status text={status} />
       </div>
     </section>
+  );
+}
+
+// A confirmation, shown only when there is one, so sections don't carry empty rows.
+function Status({ text }: { text: string }) {
+  return (
+    <p role="status" className={text ? 'settings-status' : 'visually-hidden'}>
+      {text}
+    </p>
   );
 }
 
@@ -278,8 +283,8 @@ function SourcesSection({ sources }: { sources: Source[] }) {
 
   return (
     <section id="settings-sources" className="card settings-section" aria-labelledby="settings-sources-title">
-      <div className="card-section stack">
-        <h2 id="settings-sources-title" className="section-title">
+      <div className="settings-body">
+        <h2 id="settings-sources-title" className="settings-h2">
           Sources and access
         </h2>
         <p className="settings-help">
@@ -287,60 +292,56 @@ function SourcesSection({ sources }: { sources: Source[] }) {
           never reads private channels or direct messages. What it reads is sent to Claude to answer.{' '}
           <Link to="/privacy#privacy-reads">More about what Rooted reads</Link>
         </p>
-      </div>
-      <ul className="settings-source-list">
-        {sources.map((s) => {
-          const unit = s.type === 'slack' ? 'channels' : 'folders';
-          const allowed = s.channels.filter((c) => c.allowed).length;
-          return (
-            <li key={s.id} className="card-section settings-source">
-              <div className="settings-source-info">
-                <h3 className="settings-item-title">
-                  {s.name}
-                  {s.sample && <span className="pill settings-sample">Sample</span>}
-                </h3>
-                <p className="row settings-source-meta">
-                  <span className={s.connected ? 'dot dot-alive' : 'dot settings-dot-off'} aria-hidden="true" />
-                  <span>
-                    {s.unavailable
-                      ? 'Not available yet'
-                      : s.connected
-                        ? `Connected${s.connectedAt ? ` ${formatDate(s.connectedAt)}` : ''}`
-                        : 'Not connected'}
-                  </span>
-                  {s.connected && (
-                    <span className="tabular">
-                      · {allowed} of {s.channels.length} {unit} allowed
+        <ul className="settings-source-list">
+          {sources.map((s) => {
+            const unit = s.type === 'slack' ? 'channels' : 'folders';
+            const allowed = s.channels.filter((c) => c.allowed).length;
+            return (
+              <li key={s.id} className="settings-source">
+                <div className="settings-source-info">
+                  <h3 className="settings-item-title">
+                    {s.name}
+                    {s.sample && <span className="pill settings-sample">Sample</span>}
+                  </h3>
+                  <p className="row settings-source-meta">
+                    <span className={s.connected ? 'dot dot-alive' : 'dot settings-dot-off'} aria-hidden="true" />
+                    <span>
+                      {s.unavailable
+                        ? 'Not available yet'
+                        : s.connected
+                          ? `Connected${s.connectedAt ? ` ${formatDate(s.connectedAt)}` : ''}`
+                          : 'Not connected'}
                     </span>
-                  )}
-                </p>
-              </div>
-              {!s.unavailable && (
-                <div className="row">
-                  <Link to="/onboarding" className="btn btn-secondary">
-                    {s.connected ? `Manage ${unit}` : 'Connect'}
-                    <span className="visually-hidden"> for {s.name}</span>
-                  </Link>
-                  {s.connected && (
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => setConfirming(s)}
-                      aria-label={`Disconnect ${s.name}`}
-                    >
-                      Disconnect
-                    </button>
-                  )}
+                    {s.connected && (
+                      <span className="tabular">
+                        · {allowed} of {s.channels.length} {unit} allowed
+                      </span>
+                    )}
+                  </p>
                 </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-      <div className="card-section">
-        <p role="status" className="settings-status">
-          {status}
-        </p>
+                {!s.unavailable && (
+                  <div className="row">
+                    <Link to="/onboarding" className="btn btn-secondary">
+                      {s.connected ? `Manage ${unit}` : 'Connect'}
+                      <span className="visually-hidden"> for {s.name}</span>
+                    </Link>
+                    {s.connected && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => setConfirming(s)}
+                        aria-label={`Disconnect ${s.name}`}
+                      >
+                        Disconnect
+                      </button>
+                    )}
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+        <Status text={status} />
       </div>
       <Dialog
         open={confirming !== null}
@@ -395,27 +396,23 @@ function DataSection() {
 
   return (
     <section id="settings-data" className="card settings-section" aria-labelledby="settings-data-title">
-      <div className="card-section">
-        <h2 id="settings-data-title" className="section-title">
+      <div className="settings-body">
+        <h2 id="settings-data-title" className="settings-h2">
           Your data
         </h2>
-      </div>
-      <div className="card-section settings-data-row">
-        <div className="stack settings-data-text">
-          <h3 className="settings-item-title">Delete all data</h3>
-          <p className="settings-help">
-            Removes every decision and everything attached to it from this browser, and disconnects Slack. Your sign-in
-            account stays. <Link to="/privacy#privacy-controls">What gets deleted</Link>
-          </p>
+        <div className="settings-data-row">
+          <div className="stack settings-data-text">
+            <h3 className="settings-item-title">Delete all data</h3>
+            <p className="settings-help">
+              Removes every decision and everything attached to it from this browser, and disconnects Slack. Your sign-in
+              account stays. <Link to="/privacy#privacy-controls">What gets deleted</Link>
+            </p>
+          </div>
+          <button type="button" className="btn btn-secondary" onClick={() => setDialog('delete')}>
+            Delete all data
+          </button>
         </div>
-        <button type="button" className="btn btn-secondary" onClick={() => setDialog('delete')}>
-          Delete all data
-        </button>
-      </div>
-      <div className="card-section">
-        <p role="status" className="settings-status">
-          {status}
-        </p>
+        <Status text={status} />
       </div>
       <Dialog open={dialog === 'delete'} onClose={close} title="Delete all your data?">
         <form className="stack" onSubmit={deleteAll}>

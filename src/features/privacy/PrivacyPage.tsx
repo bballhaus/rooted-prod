@@ -6,6 +6,9 @@ import { Link } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import './privacy.css';
 
+// Change this date whenever what this page says changes.
+const UPDATED = 'November 13, 2026';
+
 const SECTIONS = [
   { id: 'privacy-reads', label: 'What Rooted reads' },
   { id: 'privacy-claude', label: 'What goes to Claude' },
@@ -32,16 +35,28 @@ export function PrivacyPage() {
 
       <main id="main" className="container page privacy-page">
         <header className="stack privacy-head">
-          <p className="kicker">Beta</p>
           <h1 className="page-title">Privacy and your data</h1>
           <p className="lead">
-            What Rooted reads, what it sends to Claude, where it all lives, and how to turn any of it off. This page
-            describes what this version of Rooted does today.
+            What Rooted reads, what it sends to Claude, where it all lives, and how to turn any of it off.
           </p>
+          <p className="privacy-updated">Updated {UPDATED}</p>
         </header>
 
-        <section className="card privacy-summary" aria-labelledby="privacy-summary-title">
-          <div className="card-section stack">
+        <div className="privacy-layout">
+        <nav aria-label="On this page" className="privacy-nav">
+          <p className="privacy-nav-title">On this page</p>
+          <ul>
+            {SECTIONS.map((s) => (
+              <li key={s.id}>
+                <a href={`#${s.id}`}>{s.label}</a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <div className="privacy-content">
+        <section className="privacy-summary" aria-labelledby="privacy-summary-title">
+          <div className="stack">
             <h2 id="privacy-summary-title" className="privacy-h2">
               In short
             </h2>
@@ -55,18 +70,8 @@ export function PrivacyPage() {
           </div>
         </section>
 
-        <nav aria-label="On this page" className="privacy-nav">
-          <ul>
-            {SECTIONS.map((s) => (
-              <li key={s.id}>
-                <a href={`#${s.id}`}>{s.label}</a>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        <section id="privacy-reads" className="card privacy-section" aria-labelledby="privacy-reads-title">
-          <div className="card-section stack">
+        <section id="privacy-reads" className="privacy-section" aria-labelledby="privacy-reads-title">
+          <div className="stack">
             <h2 id="privacy-reads-title" className="privacy-h2">
               What Rooted reads
             </h2>
@@ -106,8 +111,8 @@ export function PrivacyPage() {
           </div>
         </section>
 
-        <section id="privacy-claude" className="card privacy-section" aria-labelledby="privacy-claude-title">
-          <div className="card-section stack">
+        <section id="privacy-claude" className="privacy-section" aria-labelledby="privacy-claude-title">
+          <div className="stack">
             <h2 id="privacy-claude-title" className="privacy-h2">
               What goes to Claude
             </h2>
@@ -129,8 +134,8 @@ export function PrivacyPage() {
           </div>
         </section>
 
-        <section id="privacy-where" className="card privacy-section" aria-labelledby="privacy-where-title">
-          <div className="card-section stack">
+        <section id="privacy-where" className="privacy-section" aria-labelledby="privacy-where-title">
+          <div className="stack">
             <h2 id="privacy-where-title" className="privacy-h2">
               Where your data lives
             </h2>
@@ -164,8 +169,8 @@ export function PrivacyPage() {
           </div>
         </section>
 
-        <section id="privacy-controls" className="card privacy-section" aria-labelledby="privacy-controls-title">
-          <div className="card-section stack">
+        <section id="privacy-controls" className="privacy-section" aria-labelledby="privacy-controls-title">
+          <div className="stack">
             <h2 id="privacy-controls-title" className="privacy-h2">
               What you control
             </h2>
@@ -213,6 +218,8 @@ export function PrivacyPage() {
           Rooted is a student project in beta. This page explains how this version handles data. It isn’t a legal
           privacy policy.
         </p>
+        </div>
+        </div>
       </main>
     </div>
   );

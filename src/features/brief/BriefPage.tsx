@@ -176,51 +176,57 @@ function Brief({
               <h2 id="brief-items-title" className="section-title">
                 Context <span className="muted tabular">({live.length})</span>
               </h2>
-              <div className="field brief-search">
-                <label htmlFor="brief-search">Search the brief</label>
-                <input
-                  id="brief-search"
-                  type="search"
-                  className="input"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Try “trial” or “#growth”"
-                />
-              </div>
+              {all.length > 0 && (
+                <div className="field brief-search">
+                  <label htmlFor="brief-search">Search the brief</label>
+                  <input
+                    id="brief-search"
+                    type="search"
+                    className="input"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Try “trial” or “#growth”"
+                  />
+                </div>
+              )}
             </div>
 
-            <div className="brief-filters" role="group" aria-label="Filter by theme">
-              <button type="button" className="toggle" aria-pressed={group === null} onClick={() => setGroup(null)}>
-                All themes
-              </button>
-              {groups.map((g) => (
-                <button
-                  key={g}
-                  type="button"
-                  className="toggle"
-                  aria-pressed={group === g}
-                  onClick={() => setGroup(group === g ? null : g)}
-                >
-                  {g}
-                </button>
-              ))}
-            </div>
-            <div className="brief-filters" role="group" aria-label="Filter by source">
-              <button type="button" className="toggle" aria-pressed={origin === null} onClick={() => setOrigin(null)}>
-                All sources
-              </button>
-              {origins.map((o) => (
-                <button
-                  key={o}
-                  type="button"
-                  className="toggle"
-                  aria-pressed={origin === o}
-                  onClick={() => setOrigin(origin === o ? null : o)}
-                >
-                  {ORIGIN_LABELS[o]}
-                </button>
-              ))}
-            </div>
+            {all.length > 0 && (
+              <>
+                <div className="brief-filters" role="group" aria-label="Filter by theme">
+                  <button type="button" className="toggle" aria-pressed={group === null} onClick={() => setGroup(null)}>
+                    All themes
+                  </button>
+                  {groups.map((g) => (
+                    <button
+                      key={g}
+                      type="button"
+                      className="toggle"
+                      aria-pressed={group === g}
+                      onClick={() => setGroup(group === g ? null : g)}
+                    >
+                      {g}
+                    </button>
+                  ))}
+                </div>
+                <div className="brief-filters" role="group" aria-label="Filter by source">
+                  <button type="button" className="toggle" aria-pressed={origin === null} onClick={() => setOrigin(null)}>
+                    All sources
+                  </button>
+                  {origins.map((o) => (
+                    <button
+                      key={o}
+                      type="button"
+                      className="toggle"
+                      aria-pressed={origin === o}
+                      onClick={() => setOrigin(origin === o ? null : o)}
+                    >
+                      {ORIGIN_LABELS[o]}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
 
             <p className="visually-hidden" role="status" aria-live="polite">
               {visible.length} of {live.length} items shown

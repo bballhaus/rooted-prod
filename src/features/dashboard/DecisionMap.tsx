@@ -497,6 +497,7 @@ function MapInner({
         maxZoom={1.5}
         nodesDraggable={graph}
         nodesConnectable={false}
+        proOptions={{ hideAttribution: true }}
         onNodesChange={onNodesChange}
         onNodeDragStop={onNodeDragStop}
         translateExtent={
