@@ -11,7 +11,8 @@ export type AiTask =
   | 'subOptions'
   | 'draftRecord'
   | 'findLinks'
-  | 'spotDecisions';
+  | 'spotDecisions'
+  | 'findPatterns';
 
 export type AiErrorCode =
   | 'not_configured'

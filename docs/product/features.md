@@ -137,7 +137,7 @@ Activities → Steps, left to right:
 | F-R3-02 | Connect sources | Ingest company tech stack |
 | F-R3-03 | Enter decision | Get notified of upcoming decisions |
 | F-R3-04 | Enter decision | **[Automatic]** AI scans new PRDs and Slack for pending decisions |
-| F-R3-05 | Find past decisions | View personal and company decision trends |
+| F-R3-05 | Find past decisions | View personal and company decision trends (pulled forward into the MVP: decision 0019) |
 | F-R3-06 | Record outcome | Agent automatically logs relevant results |
 | F-R3-07 | Review a past decision | See causal effects that led to a decision |
 | F-R3-08 | Review a past decision | Flag org-level decisions to revisit |

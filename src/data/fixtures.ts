@@ -223,6 +223,7 @@ export function seedState(): AppState {
     outcomes: structuredClone(seedOutcomes),
     suggestions: structuredClone(seedSuggestions),
     messages: [],
+    insights: [],
     demo: false,
   };
 }
@@ -248,6 +249,7 @@ export function emptyWorkspaceState(): AppState {
     outcomes: [],
     suggestions: [],
     messages: [],
+    insights: [],
     demo: false,
   };
 }

@@ -479,6 +479,79 @@ def check_spot(a: dict[str, Any], p: dict[str, Any]) -> dict[str, Any]:
     return {"suggestions": out}
 
 
+# patterns and predictions (F-R3-05, decision 0019) ──────────────────────
+
+
+class OutcomeIn(Strict):
+    result: Literal["worked", "mixed", "did-not-work", "too-early"]
+    summary: str = Field(default="", max_length=2000)
+
+
+class HistoryDecision(PastDecision):
+    status: str = ""
+    goal: str | None = None
+    owner: str | None = None
+    started: str = ""
+    reviewDate: str | None = None
+    notTaken: list[str] = Field(default_factory=list, max_length=20)
+    outcome: OutcomeIn | None = None
+
+
+class PatternsIn(Strict):
+    today: str = Field(min_length=10, max_length=10)
+    decisions: list[HistoryDecision] = Field(min_length=3, max_length=300)
+    stats: dict[str, Any] = Field(default_factory=dict)
+
+
+INSIGHT_KINDS = ("pattern", "trend", "prediction", "risk")
+CONFIDENCE = ("low", "medium", "high")
+
+
+def build_patterns(p: dict[str, Any]) -> str:
+    pi = parse(PatternsIn, p)
+    return "\n\n".join(
+        [
+            data("today", pi.today),
+            data("decisions", [d.model_dump() for d in pi.decisions]),
+            data("counts", pi.stats),
+            "Look across these decisions for what the PM can't easily see one at a time. Return up to 6 insights, "
+            "each one of these kinds:\n"
+            "- pattern: something that keeps happening in how the team decides or how decisions turn out "
+            "(the kinds of options they pick or prune, which goals get revisited, what tends to work).\n"
+            "- trend: a direction over time (more or fewer decisions on a goal, outcomes improving or slipping, "
+            "decisions taking longer). Use the dates and counts; don't claim a trend the dates don't show.\n"
+            "- prediction: a decision or question that's likely to come up next, or how an open decision may play out "
+            "given what happened before. Phrase it as likely, never certain, and say in watchFor what the PM could "
+            "check to confirm or rule it out.\n"
+            "- risk: something that may go wrong if nothing changes (outcomes not being logged, a goal with many open "
+            "decisions, a bet that rests on one earlier call).\n"
+            "For each: title (one short sentence), detail (two or three sentences on what you saw and why it matters), "
+            "decisionIds (the ids of the decisions it rests on: at least two for a pattern, trend or risk, at least "
+            "one for a prediction), confidence (low, medium or high; low when it rests on few decisions or "
+            "outcomes), and watchFor (for a prediction; otherwise an empty string).\n"
+            "Base every insight only on these decisions and counts. Don't tell the PM what to decide. With little "
+            "history, return fewer insights with low confidence rather than stretching; none is fine.",
+        ]
+    )
+
+
+def check_patterns(a: dict[str, Any], p: dict[str, Any]) -> dict[str, Any]:
+    known = {d["id"] for d in p.get("decisions", []) if isinstance(d, dict) and "id" in d}
+    out = []
+    for i in a.get("insights", []):
+        kind = i.get("kind") if i.get("kind") in INSIGHT_KINDS else None
+        title = str(i.get("title", "")).strip()
+        ids = [x for x in dict.fromkeys(i.get("decisionIds", [])) if x in known]
+        if not kind or not title or len(ids) < (1 if kind == "prediction" else 2):
+            continue  # an insight that doesn't rest on enough real decisions is dropped
+        confidence = i.get("confidence") if i.get("confidence") in CONFIDENCE else "low"
+        watch = str(i.get("watchFor", "")).strip() if kind == "prediction" else ""
+        out.append({"kind": kind, "title": title, "detail": str(i.get("detail", "")).strip(), "decisionIds": ids[:8], "confidence": confidence, "watchFor": watch})
+        if len(out) == 6:
+            break
+    return {"insights": out}
+
+
 TASKS: dict[str, Task] = {
     "chat": Task("low", 4000, obj({"text": STR, "citations": STRS}), f"{ROLE}\n\n{UNTRUSTED}", build_chat, check_chat),
     "suggestTags": Task("low", 2000, obj({"tags": STRS}), f"{ROLE}\n\n{UNTRUSTED}", build_tags, check_tags),
@@ -516,9 +589,33 @@ TASKS: dict[str, Task] = {
         build_spot,
         check_spot,
     ),
+    "findPatterns": Task(
+        "medium",
+        8000,
+        obj(
+            {
+                "insights": {
+                    "type": "array",
+                    "items": obj(
+                        {
+                            "kind": {"type": "string", "enum": list(INSIGHT_KINDS)},
+                            "title": STR,
+                            "detail": STR,
+                            "decisionIds": STRS,
+                            "confidence": {"type": "string", "enum": list(CONFIDENCE)},
+                            "watchFor": STR,
+                        }
+                    ),
+                }
+            }
+        ),
+        f"{ROLE}\n\n{UNTRUSTED}",
+        build_patterns,
+        check_patterns,
+    ),
 }
 
 # Tasks whose messages can come from a connected Slack workspace.
 SLACK_TASKS = {"brief", "spotDecisions"}
 
-TaskName = Literal["chat", "suggestTags", "brief", "options", "subOptions", "draftRecord", "findLinks", "spotDecisions"]
+TaskName = Literal["chat", "suggestTags", "brief", "options", "subOptions", "draftRecord", "findLinks", "spotDecisions", "findPatterns"]

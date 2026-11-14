@@ -4,7 +4,7 @@ A Python service on [Modal](https://modal.com) that answers every agent task by 
 
 | Path | What it does |
 |---|---|
-| `POST /agent` | `{ task, payload }`. The tasks are `chat`, `suggestTags`, `brief`, `options`, `subOptions`, `draftRecord`, `findLinks` and `spotDecisions`. Returns `{ ok: true, result }` or `{ ok: false, error }`. |
+| `POST /agent` | `{ task, payload }`. The tasks are `chat`, `suggestTags`, `brief`, `options`, `subOptions`, `draftRecord`, `findLinks`, `spotDecisions` and `findPatterns` (0019). Returns `{ ok: true, result }` or `{ ok: false, error }`. |
 | `GET /slack/status` | Whether this person's Slack is connected, and its public channels. |
 | `POST /slack/install` | The URL of Slack's permission page. |
 | `GET /slack/callback` | Where Slack sends the person back. It stores nothing and hands the code back to the app. |

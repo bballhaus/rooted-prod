@@ -7,6 +7,7 @@ import { FramePage } from './features/frame/FramePage';
 import { ContactSupportPage, HelpPage, ReportProblemPage } from './features/help/HelpPage';
 import { PrivacyPage } from './features/privacy/PrivacyPage';
 import { DecisionRecordPage } from './features/log/DecisionRecordPage';
+import { PatternsPage } from './features/patterns/PatternsPage';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { WorkspacePage } from './features/workspace/WorkspacePage';
 import { useStore } from './store/store';
@@ -40,6 +41,7 @@ export function App() {
           <Route path="/decisions/:id/brief" element={<ToWorkspace section="evidence" />} />
           <Route path="/decisions/:id/options" element={<ToWorkspace section="options" />} />
           <Route path="/decisions/:id" element={<DecisionRecordPage />} />
+          <Route path="/patterns" element={<PatternsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/help" element={<HelpPage />} />
           <Route path="/help/contact" element={<ContactSupportPage />} />

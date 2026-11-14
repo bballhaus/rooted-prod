@@ -192,12 +192,27 @@ export interface ChatMessage {
 
 export interface WrongAnswerReport {
   id: string;
-  surface: 'brief' | 'gap' | 'option' | 'record' | 'chat' | 'link' | 'suggestion' | 'tag' | 'other';
+  surface: 'brief' | 'gap' | 'option' | 'record' | 'chat' | 'link' | 'suggestion' | 'tag' | 'insight' | 'other';
   targetId?: string;
   decisionId?: string;
   excerpt?: string; // what the agent said
   note: string; // what the PM says is wrong
   createdAt: string;
+}
+
+// F-R3-05 (0019): a pattern, trend or prediction Rooted found across the
+// decisions. It's Rooted's (✦) and stays editable and reportable (F-08, F-28).
+export interface Insight {
+  id: string;
+  kind: 'pattern' | 'trend' | 'prediction' | 'risk';
+  title: string;
+  detail: string;
+  decisionIds: string[]; // the decisions it rests on, all real ones
+  confidence?: 'low' | 'medium' | 'high'; // how sure Rooted is; predictions always have one
+  watchFor?: string; // predictions: what would confirm or rule it out
+  foundAt: string;
+  userEdited: boolean;
+  dismissed: boolean;
 }
 
 export interface AppState {
@@ -213,6 +228,7 @@ export interface AppState {
   outcomes: Outcome[];
   suggestions: SuggestedDecision[];
   messages: ChatMessage[];
+  insights: Insight[];
   // True when the planted demo workspace is loaded, so the UI can label it
   // as sample data rather than the PM's own decisions (0009).
   demo: boolean;

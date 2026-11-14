@@ -31,11 +31,10 @@ it('F-01–F-28: walks sign in → onboarding → map → frame → brief → op
   expect(await screen.findByRole('heading', { level: 1, name: /choose what rooted can see/i })).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: /continue to rooted/i }));
 
-  // F-17: home is the decision map; "Needs you" opens from the top-left when wanted.
+  // F-17: home is the decision map, with "Needs you" open beside it: what's due and what to decide.
   expect(await screen.findByRole('heading', { level: 1, name: 'Decisions' })).toBeInTheDocument();
-  await user.click(screen.getByRole('button', { name: 'Show the Needs you panel' }));
-  expect(screen.getByRole('heading', { name: 'Needs you' })).toBeInTheDocument();
-  await user.click(screen.getByRole('link', { name: 'New decision' }));
+  const rail = screen.getByRole('complementary', { name: 'Needs you' });
+  await user.click(within(rail).getByRole('link', { name: 'New decision' }));
 
   // F-04, F-05: frame a new decision.
   await user.type(

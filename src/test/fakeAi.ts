@@ -51,6 +51,29 @@ export const DEFAULT_ANSWERS: Record<AiTask, (p: Payload) => unknown> = {
     const [a, b] = p.decisions ?? [];
     return { links: a && b ? [{ fromId: a.id, toId: b.id, kind: 'related', reason: 'Both touch the same customers.' }] : [] };
   },
+  findPatterns: (p) => {
+    const ids: string[] = (p.decisions ?? []).map((d: Payload) => d.id);
+    return {
+      insights: [
+        {
+          kind: 'pattern',
+          title: 'Pricing calls keep coming back to seats.',
+          detail: 'Several decisions turn on how seats are counted.',
+          decisionIds: ids.slice(0, 2),
+          confidence: 'medium',
+          watchFor: '',
+        },
+        {
+          kind: 'prediction',
+          title: 'A seat-cap decision is likely next.',
+          detail: 'The last two pricing calls left the cap open.',
+          decisionIds: ids.slice(0, 1),
+          confidence: 'low',
+          watchFor: 'Accounts hitting the cap in the next month.',
+        },
+      ],
+    };
+  },
   spotDecisions: (p) => {
     const m = (p.messages ?? [])[0];
     return {

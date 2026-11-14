@@ -221,3 +221,32 @@ describe('sign-in', () => {
     expect(s2.user).toMatchObject({ authId: 'auth-b', name: 'Ben Ito', role: '' });
   });
 });
+
+describe('Rooted’s insights (F-R3-05)', () => {
+  const at = '2026-11-13T12:00:00.000Z';
+  const base = { ...seedState(), user: { ...demoUser, authId: 'auth-a' } };
+  const [a, b] = base.decisions;
+  const insight = (id: string, decisionIds = [a.id, b.id]) => ({
+    id,
+    kind: 'pattern' as const,
+    title: id,
+    detail: '',
+    decisionIds,
+    foundAt: at,
+    userEdited: false,
+    dismissed: false,
+  });
+
+  it('F-R3-05: are saved for the person and workspace that asked', () => {
+    const s = reducer(base, { type: 'setInsights', insights: [insight('i1')], forUser: 'auth-a', demo: false });
+    expect(s.insights.map((i) => i.id)).toEqual(['i1']);
+  });
+
+  it('F-01, F-23: are dropped if someone else is signed in, the demo was swapped, or the decisions they cite are gone', () => {
+    expect(reducer(base, { type: 'setInsights', insights: [insight('i1')], forUser: 'auth-b', demo: false }).insights).toEqual([]);
+    expect(reducer(base, { type: 'setInsights', insights: [insight('i1')], forUser: 'auth-a', demo: true }).insights).toEqual([]);
+    const wiped = reducer(base, { type: 'deleteAllData' });
+    expect(reducer(wiped, { type: 'setInsights', insights: [insight('i1')], forUser: 'auth-a', demo: false }).insights).toEqual([]);
+    expect(reducer(base, { type: 'setInsights', insights: [insight('i2', [a.id, 'd-gone'])], forUser: 'auth-a', demo: false }).insights).toEqual([]);
+  });
+});

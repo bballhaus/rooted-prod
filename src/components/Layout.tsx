@@ -53,8 +53,16 @@ function Shell() {
             </NavLink>
             {state.demo && (
               <span className="pill demo-badge">
-                Demo<span className="demo-badge-more"> workspace · sample data</span>
+                Demo<span className="demo-badge-more"> · sample data</span>
               </span>
+            )}
+            {!setup && (
+              <nav aria-label="Main" className="header-nav">
+                <NavLink to="/" end>
+                  Decisions
+                </NavLink>
+                <NavLink to="/patterns">Patterns</NavLink>
+              </nav>
             )}
           </div>
           {setup ? (

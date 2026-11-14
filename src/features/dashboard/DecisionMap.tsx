@@ -1,12 +1,13 @@
-// F-17, F-19: the decision map. In Timeline, each node is a decision placed by
-// when it was made, in a swimlane. In Graph (the default, decision 0010), a
-// force layout arranges decisions by their links, and nodes can be dragged;
-// where you put them is remembered per scope. Solid lines are links the team made ("builds on");
-// dashed sage lines are connections Rooted found, until someone accepts or
-// dismisses them. Wine marks only the chosen option on each node. Lines stay
-// faint until you hover or pick a decision; then its connections light up.
+// F-17, F-19: the decision map. In Tree (the default, decision 0019), linked
+// decisions read left to right as branches, one tree per thread, and cards can
+// be dragged; where you put them is remembered per scope. In Timeline, each
+// card is placed by when it was made, in a swimlane. Solid lines are links the
+// team made ("builds on"); dashed sage lines are connections Rooted found, until
+// someone accepts or dismisses them. Wine marks only the chosen option on each
+// card. Picking a decision lights up its lineage: what it built on and led to.
 import {
   Background,
+  ControlButton,
   Controls,
   Handle,
   MarkerType,
@@ -28,6 +29,7 @@ import { formatDate } from '../log/format';
 import {
   chosenLabel,
   decisionDate,
+  goalOf,
   MAP_STATUS_LABEL,
   mapStatus,
   ownerOf,
@@ -35,17 +37,14 @@ import {
   type MapStatus,
 } from '../../store/dashboard';
 import type { AppState, Decision } from '../../types';
-import { graphLayout, lineage, type GraphEdge, type Pt } from './graphLayout';
+import { lineage, treeLayout, type GraphEdge } from './graphLayout';
 import { loadPositions, savePositions, type Positions } from './positions';
-import { LANE_LABEL_W, layoutMap, NODE_H, NODE_W, type LaneBy } from './mapLayout';
+import { LANE_LABEL_W, layoutMap, NODE_H, NODE_W, STANDALONE, threadOf, type LaneBy } from './mapLayout';
 
-export type MapLayoutMode = 'graph' | 'timeline';
+export type MapLayoutMode = 'tree' | 'timeline';
 export type ColorBy = 'status' | 'goal' | 'owner';
 
-/** What "goal" colours by: the decision's goal label, else its first tag. */
-export function goalOf(d: Decision): string | undefined {
-  return d.metric ?? d.tags?.[0]?.label;
-}
+export { goalOf };
 
 const GOAL_COLORS = 6;
 export const OTHER_GOAL = 'Other';
@@ -81,8 +80,8 @@ interface DecisionData extends Record<string, unknown> {
   faded: boolean; // a decision is picked and this one isn't connected to it
   matched: boolean;
   highlighted: boolean;
-  traced: boolean; // on the picked decision's lineage while Trace is on
-  accent?: string; // stripe color when coloring by goal or owner
+  traced: boolean; // on the picked decision's lineage
+  accent?: string; // card color when coloring by goal or owner; status colors come from the stylesheet
   goal?: string; // shown on the card when coloring by goal, so color isn't the only cue
   simple: boolean; // the quiet default card: a status dot, the question, the choice — nothing else
   onOpen: (id: string) => void;
@@ -121,7 +120,7 @@ function DecisionNode({ data, selected }: NodeProps<Node<DecisionData>>) {
       <button
         type="button"
         className="map-node-hit"
-        aria-label={`${d.question}, ${d.speculative ? 'direction to explore' : MAP_STATUS_LABEL[data.status]}${data.traced ? ', on the traced path' : ''}`}
+        aria-label={`${d.question}, ${d.speculative ? 'direction to explore' : MAP_STATUS_LABEL[data.status]}${data.traced && !selected ? ', on the picked decision’s path' : ''}`}
         aria-pressed={!!selected}
         onClick={() => data.onOpen(d.id)}
       />
@@ -145,8 +144,8 @@ function DecisionNode({ data, selected }: NodeProps<Node<DecisionData>>) {
               {data.chosen}
             </span>
           ) : (
-            <span className="muted map-node-chosen-plain" aria-hidden="true">
-              {d.speculative ? '' : 'Not decided yet'}
+            <span className="muted map-node-chosen-plain map-node-chosen" aria-hidden="true">
+              {d.speculative ? '' : data.status === 'open' ? 'Not decided yet' : d.summary}
             </span>
           )}
         </>
@@ -175,7 +174,7 @@ function DecisionNode({ data, selected }: NodeProps<Node<DecisionData>>) {
                 {data.chosen}
               </span>
             ) : (
-              <span className="muted map-node-undecided">Not decided yet</span>
+              <span className="muted map-node-undecided map-node-chosen">{data.status === 'open' ? 'Not decided yet' : d.summary}</span>
             )}
           </div>
         </>
@@ -214,12 +213,26 @@ function LaneLabels({ lanes }: { lanes: { key: string; y: number; count: number;
 // Below this zoom the cards are hard to read, so the map opens on the newest decisions instead of fitting all.
 const READABLE_ZOOM = 0.75;
 const OPENING_ZOOM = 0.9;
+// Tree: fit everything when it stays this legible, else open on the first tree at this zoom.
+const TREE_FIT_ZOOM = 0.62;
+const TREE_OPEN_ZOOM = 0.8;
 
 function MonthNode({ data }: NodeProps<Node<{ label: string }>>) {
   return <span className="map-month">{data.label}</span>;
 }
 
-const nodeTypes = { decision: DecisionNode, lane: LaneNode, month: MonthNode };
+// The name of one tree on the map (its thread), or the unlinked decisions.
+function GroupNode({ data }: NodeProps<Node<{ label: string; count: number }>>) {
+  return (
+    <span className="map-group">
+      {data.label}
+      <span className="map-group-count tabular">{data.count}</span>
+    </span>
+  );
+}
+
+const nodeTypes = { decision: DecisionNode, lane: LaneNode, month: MonthNode, treeLabel: GroupNode };
+const GROUP_LABEL_H = 36;
 
 export interface DecisionMapProps {
   state: AppState;
@@ -228,7 +241,6 @@ export interface DecisionMapProps {
   laneBy: LaneBy;
   colorBy: ColorBy;
   detailed: boolean; // full node cards (power users); off = the quiet default
-  trace: boolean;
   positionsKey: string; // which saved arrangement to use, e.g. the "who" filter
   today: string;
   selectedId?: string;
@@ -252,7 +264,6 @@ function MapInner({
   laneBy,
   colorBy,
   detailed,
-  trace,
   positionsKey,
   today,
   selectedId,
@@ -262,46 +273,42 @@ function MapInner({
 }: DecisionMapProps) {
   const flow = useReactFlow();
   const canvas = useRef<HTMLDivElement>(null);
-  const graph = mode === 'graph';
+  const tree = mode === 'tree';
   const timeline = useMemo(() => layoutMap(decisions, laneBy, state, today), [decisions, laneBy, state, today]);
   const [hoverId, setHoverId] = useState<string | undefined>(undefined);
 
-  // The decision whose connections stand out: the one under the pointer, else the one picked.
-  const focusId = hoverId ?? selectedId;
   const links = useMemo(() => {
     const shown = new Set(decisions.map((d) => d.id));
     return visibleLinks(state).filter((l) => shown.has(l.fromId) && shown.has(l.toId));
   }, [decisions, state]);
-  // Lineage follows links the team made or accepted, not ones Rooted only suggested.
+  // The tree and lineage follow links the team made or accepted, not ones Rooted only suggested.
   const confirmed = useMemo<GraphEdge[]>(
     () => links.filter((l) => l.status === 'accepted').map((l) => ({ from: l.fromId, to: l.toId })),
     [links],
   );
-  const traced = useMemo(
-    () => (trace && selectedId ? lineage(confirmed, selectedId) : null),
-    [trace, selectedId, confirmed],
-  );
+  // Picking a decision lights up its whole lineage: everything it built on and everything it led to.
+  const traced = useMemo(() => (selectedId ? lineage(confirmed, selectedId) : null), [selectedId, confirmed]);
 
-  // Graph: the force layout, with any node the PM dragged where they left it.
+  // Tree: the layered layout, with any card the PM dragged where they left it.
   const [custom, setCustom] = useState<Positions>(() => loadPositions(positionsKey));
   useEffect(() => setCustom(loadPositions(positionsKey)), [positionsKey]);
-  const forced = useMemo(
-    () => (graph ? graphLayout(decisions.map((d) => d.id), confirmed) : new Map<string, Pt>()),
-    [graph, decisions, confirmed],
-  );
+  const branches = useMemo(() => {
+    if (!tree) return null;
+    const oldestFirst = [...decisions].sort((a, b) => decisionDate(a).localeCompare(decisionDate(b)) || a.id.localeCompare(b.id));
+    return treeLayout(oldestFirst.map((d) => d.id), confirmed, { nodeW: NODE_W, nodeH: NODE_H });
+  }, [tree, decisions, confirmed]);
   const layout = useMemo(() => {
-    if (!graph) return timeline;
+    if (!branches) return timeline;
     const placed = timeline.placed.map((p) => {
-      const c = forced.get(p.decision.id) ?? { x: 0, y: 0 };
-      const at = custom[p.decision.id] ?? { x: c.x - NODE_W / 2, y: c.y - NODE_H / 2 };
+      const at = custom[p.decision.id] ?? branches.pos.get(p.decision.id) ?? { x: 0, y: 0 };
       return { ...p, x: at.x, y: at.y };
     });
-    return { ...timeline, placed, lanes: [], months: [] };
-  }, [graph, timeline, forced, custom]);
+    return { ...timeline, placed, lanes: [], months: [], width: branches.width, height: branches.height };
+  }, [branches, timeline, custom]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
-      if (!graph) return;
+      if (!tree) return;
       const moved = changes.filter((c) => c.type === 'position' && c.position);
       if (moved.length === 0) return;
       setCustom((prev) => {
@@ -310,7 +317,7 @@ function MapInner({
         return next;
       });
     },
-    [graph],
+    [tree],
   );
   const onNodeDragStop = useCallback(
     (_: unknown, node: Node) => {
@@ -322,13 +329,18 @@ function MapInner({
     },
     [positionsKey],
   );
+  function tidy() {
+    setCustom({});
+    savePositions(positionsKey, {});
+  }
+  const moved = tree && Object.keys(custom).some((id) => decisions.some((d) => d.id === id));
 
   const palette = useMemo(() => goalPalette(decisions), [decisions]);
 
+  // What stays bright when a decision is picked: its lineage, plus any connection Rooted suggested for it.
   const neighbors = useMemo(() => {
-    if (traced) return traced;
-    if (!selectedId) return null;
-    const ids = new Set([selectedId]);
+    if (!selectedId || !traced) return null;
+    const ids = new Set(traced);
     for (const l of links) {
       if (l.fromId === selectedId) ids.add(l.toId);
       if (l.toId === selectedId) ids.add(l.fromId);
@@ -356,6 +368,16 @@ function MapInner({
       draggable: false,
       focusable: false,
     }));
+    const byId = new Map(decisions.map((d) => [d.id, d]));
+    const groupNodes: Node[] = (branches?.groups ?? []).map((g, i) => ({
+      id: `tree-label-${i}`,
+      type: 'treeLabel',
+      position: { x: g.x, y: g.y - GROUP_LABEL_H },
+      data: { label: g.loose ? STANDALONE : threadOf(byId.get(g.ids[0])!, state), count: g.ids.length },
+      selectable: false,
+      draggable: false,
+      focusable: false,
+    }));
     const decisionNodes: Node<DecisionData>[] = layout.placed.map(({ decision, x, y }) => {
       const owner = ownerOf(decision, state);
       const goal = goalOf(decision);
@@ -370,7 +392,7 @@ function MapInner({
         type: 'decision',
         position: { x, y },
         selected: decision.id === selectedId,
-        draggable: graph,
+        draggable: tree,
         // The card's own button takes focus, so the node wrapper doesn't add a second tab stop.
         focusable: false,
         data: {
@@ -392,49 +414,54 @@ function MapInner({
         },
       };
     });
-    return [...laneNodes, ...monthNodes, ...decisionNodes];
-  }, [layout, state, today, selectedId, matchIds, highlightIds, onSelect, neighbors, traced, colorBy, palette, graph, detailed]);
+    return [...laneNodes, ...monthNodes, ...groupNodes, ...decisionNodes];
+  }, [layout, branches, decisions, state, today, selectedId, matchIds, highlightIds, onSelect, neighbors, traced, colorBy, palette, tree, detailed]);
 
   const edges = useMemo<Edge[]>(() => {
     const at = new Map(layout.placed.map((p) => [p.decision.id, p]));
     return links.map((l) => {
-        const ai = l.origin === 'ai';
-        const lit = traced
-          ? traced.has(l.fromId) && traced.has(l.toId) && l.status === 'accepted'
-          : !!focusId && (l.fromId === focusId || l.toId === focusId);
-        const color = ai ? 'var(--ai-line)' : lit ? 'var(--ink)' : 'var(--ink2)';
-        // A follow-up that starts before its parent's card ends would make a curve loop back over
-        // the cards, so it leaves from the parent's bottom (or top) as a right-angle elbow instead.
-        const from = at.get(l.fromId);
-        const to = at.get(l.toId);
-        const overlaps = !graph && !!from && !!to && to.x < from.x + NODE_W + 40;
-        const [sourceHandle, targetHandle] = graph
-          ? graphHandles(from, to)
-          : [overlaps ? (to!.y >= from!.y ? 'bottom' : 'top') : 'right', 'left'];
-        return {
-          id: l.id,
-          source: l.fromId,
-          target: l.toId,
-          sourceHandle,
-          targetHandle,
-          type: overlaps ? 'smoothstep' : 'default',
-          selectable: false,
-          focusable: false,
-          zIndex: lit ? 1 : 0,
-          className: ai ? `map-edge-ai map-edge-${l.status}` : 'map-edge-user',
-          style: {
-            stroke: color,
-            strokeWidth: lit ? 2.4 : 1.4,
-            strokeDasharray: ai ? '6 5' : undefined,
-            opacity: lit ? 1 : focusId || traced ? 0.12 : 0.4,
-          },
-          markerEnd: { type: MarkerType.ArrowClosed, color, width: 16, height: 16 },
-          // The "suggested" label only shows on the picked decision's lines, so it doesn't clutter the map.
-          label: ai && l.status === 'suggested' && lit ? '✦ suggested' : undefined,
-          labelClassName: 'map-edge-label',
-        };
-      });
-  }, [links, focusId, layout, graph, traced]);
+      const ai = l.origin === 'ai';
+      const lit = selectedId
+        ? (l.status === 'accepted' && !!traced?.has(l.fromId) && !!traced?.has(l.toId)) || l.fromId === selectedId || l.toId === selectedId
+        : !!hoverId && (l.fromId === hoverId || l.toId === hoverId);
+      const color = ai ? 'var(--ai-line)' : lit ? 'var(--ink)' : 'var(--ink2)';
+      const from = at.get(l.fromId);
+      const to = at.get(l.toId);
+      // Tree: a branch leaves its parent's right side and enters the child's left, in right angles.
+      // Timeline: a follow-up that starts before its parent's card ends would make a curve loop back
+      // over the cards, so it leaves from the parent's bottom (or top) as a right-angle elbow instead.
+      const forward = !!from && !!to && to.x >= from.x + NODE_W;
+      const overlaps = !tree && !!from && !!to && to.x < from.x + NODE_W + 40;
+      const [sourceHandle, targetHandle] = tree
+        ? forward
+          ? ['right', 'left']
+          : graphHandles(from, to)
+        : [overlaps ? (to!.y >= from!.y ? 'bottom' : 'top') : 'right', 'left'];
+      return {
+        id: l.id,
+        source: l.fromId,
+        target: l.toId,
+        sourceHandle,
+        targetHandle,
+        type: (tree && forward) || overlaps ? 'smoothstep' : 'default',
+        pathOptions: tree && forward ? { borderRadius: 14, offset: 24 } : undefined,
+        selectable: false,
+        focusable: false,
+        zIndex: lit ? 1 : 0,
+        className: ai ? `map-edge-ai map-edge-${l.status}` : 'map-edge-user',
+        style: {
+          stroke: color,
+          strokeWidth: lit ? 2.4 : 1.5,
+          strokeDasharray: ai ? '6 5' : undefined,
+          opacity: lit ? 1 : selectedId ? 0.12 : hoverId ? 0.3 : tree ? 0.7 : 0.4,
+        },
+        markerEnd: { type: MarkerType.ArrowClosed, color, width: 16, height: 16 },
+        // The "suggested" label only shows on the picked decision's lines, so it doesn't clutter the map.
+        label: ai && l.status === 'suggested' && lit ? '✦ suggested' : undefined,
+        labelClassName: 'map-edge-label',
+      };
+    });
+  }, [links, hoverId, selectedId, layout, tree, traced]);
 
   const laneLabels = layout.lanes.map((lane) => {
     const mate = laneBy === 'owner' ? state.teammates.find((t) => t.name === lane.key) : undefined;
@@ -460,22 +487,22 @@ function MapInner({
   }, [selectedId, layout, flow]);
 
   function openView() {
-    if (graph) {
-      // Open close-up on the most recent decision, not zoomed out to fit everything,
-      // so the map reads as a workspace you're already in rather than a distant map.
-      const newest = [...layout.placed].sort((a, b) =>
-        decisionDate(b.decision).localeCompare(decisionDate(a.decision)),
-      )[0];
-      if (newest) {
-        // No animation on first paint; this is the opening position, not a move.
-        void flow.setCenter(newest.x + NODE_W / 2, newest.y + NODE_H / 2, { zoom: 0.9, duration: 0 });
-      } else {
-        void flow.fitView({ padding: 0.2, maxZoom: 1 });
-      }
-      return;
-    }
+    if (selectedId) return; // the effect above centers the focused decision
     const w = canvas.current?.clientWidth ?? 0;
     const h = canvas.current?.clientHeight ?? 0;
+    if (tree) {
+      // The whole forest when it's readable; otherwise the biggest tree from its
+      // root, at a zoom where every card can still be read.
+      const top = -GROUP_LABEL_H;
+      const fit = Math.min((w - 96) / layout.width, (h - 180) / (layout.height - top));
+      if (fit >= TREE_FIT_ZOOM) {
+        void flow.fitView({ padding: 0.12, maxZoom: 1 });
+        return;
+      }
+      const zoom = Math.max(TREE_OPEN_ZOOM, Math.min(1, fit));
+      void flow.setViewport({ x: 48, y: 76 - top * zoom, zoom });
+      return;
+    }
     const fit = Math.min(w / (layout.width + 80), h / (layout.height + 120));
     if (fit >= READABLE_ZOOM) {
       void flow.fitView({ padding: 0.08, maxZoom: 1 });
@@ -488,20 +515,20 @@ function MapInner({
   return (
     <div className="map-canvas" ref={canvas}>
       <ReactFlow
-        key={graph ? `graph-${positionsKey}` : laneBy}
+        key={tree ? `tree-${positionsKey}` : laneBy}
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
         onInit={openView}
         minZoom={0.25}
         maxZoom={1.5}
-        nodesDraggable={graph}
+        nodesDraggable={tree}
         nodesConnectable={false}
         proOptions={{ hideAttribution: true }}
         onNodesChange={onNodesChange}
         onNodeDragStop={onNodeDragStop}
         translateExtent={
-          graph
+          tree
             ? undefined
             : [
                 [-LANE_LABEL_W, -200],
@@ -514,14 +541,31 @@ function MapInner({
       >
         <Background variant={BackgroundVariant.Dots} gap={24} size={1.3} color="var(--grid-dot)" />
         {/* Bottom-left, clear of the agent launcher in the bottom-right corner. */}
-        <Controls showInteractive={false} position="bottom-left" />
-        {!graph && laneBy !== 'none' && <LaneLabels lanes={laneLabels} />}
+        <Controls showInteractive={false} position="bottom-left">
+          {moved && (
+            <ControlButton onClick={tidy} title="Put every card back in its tree" aria-label="Tidy the tree">
+              <IconTidy />
+            </ControlButton>
+          )}
+        </Controls>
+        {!tree && laneBy !== 'none' && <LaneLabels lanes={laneLabels} />}
       </ReactFlow>
     </div>
   );
 }
 
-// In Graph, a link leaves the side of its source that faces its target.
+function IconTidy() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+      <rect x="1.5" y="6" width="4" height="4" rx="1" />
+      <rect x="10.5" y="2" width="4" height="4" rx="1" />
+      <rect x="10.5" y="10" width="4" height="4" rx="1" />
+      <path d="M5.5 8h2.5M8 4v8M8 4h2.5M8 12h2.5" />
+    </svg>
+  );
+}
+
+// A link that doesn't run forward (Rooted's suggestions can) leaves the side of its source that faces its target.
 function graphHandles(from?: { x: number; y: number }, to?: { x: number; y: number }): [string, string] {
   if (!from || !to) return ['right', 'left'];
   const dx = to.x - from.x;

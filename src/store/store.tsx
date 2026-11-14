@@ -11,6 +11,7 @@ import type {
   Decision,
   DecisionLink,
   Gap,
+  Insight,
   OptionNode,
   Outcome,
   Source,
@@ -62,6 +63,8 @@ export type Action =
   | { type: 'addLinks'; links: DecisionLink[] }
   | { type: 'addMessage'; message: ChatMessage }
   | { type: 'updateMessage'; messageId: string; patch: Partial<ChatMessage> }
+  | { type: 'setInsights'; insights: Insight[]; forUser: string | null; demo: boolean }
+  | { type: 'updateInsight'; insightId: string; patch: Partial<Insight> }
   | { type: 'deleteAllData' }
   | { type: 'loadDemo' }
   | { type: 'exitDemo' };
@@ -325,6 +328,21 @@ export function reducer(state: AppState, action: Action): AppState {
         ...state,
         messages: state.messages.map((m) => (m.id === action.messageId ? { ...m, ...action.patch } : m)),
       };
+    case 'setInsights': {
+      // An answer that comes back after the workspace changed (deleted, another
+      // person signed in, the demo swapped in or out) belongs to the old one: drop it.
+      if ((state.user?.authId ?? null) !== action.forUser || state.demo !== action.demo) return state;
+      const ids = new Set(state.decisions.map((d) => d.id));
+      const fresh = action.insights.filter((i) => i.decisionIds.every((id) => ids.has(id)));
+      // Looking again keeps what the PM edited (F-08); everything else is replaced.
+      const kept = state.insights.filter((i) => i.userEdited && !i.dismissed);
+      return { ...state, insights: [...kept, ...fresh] };
+    }
+    case 'updateInsight':
+      return {
+        ...state,
+        insights: state.insights.map((i) => (i.id === action.insightId ? { ...i, ...action.patch } : i)),
+      };
     case 'deleteAllData':
       // F-23: wipes decisions, context, links, outcomes, chat and reports and
       // disconnects every source. Teammates belong to the workspace and stay.
@@ -339,6 +357,7 @@ export function reducer(state: AppState, action: Action): AppState {
         outcomes: [],
         suggestions: [],
         messages: [],
+        insights: [],
         // From inside the demo, it's the PM's own sources (set aside) that are disconnected.
         sources: (state.demo && state.beforeDemo ? state.beforeDemo.sources : state.sources).map((s) => ({
           ...s,

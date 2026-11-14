@@ -50,12 +50,44 @@
   padding: 0 var(--gutter);
 }
 
+/* The lead never shrinks under its own content; the search gives way instead. */
 .header-lead {
   flex: 1 1 0;
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: 0;
+  min-width: max-content;
+}
+
+/* Decisions and Patterns: the two places to look at your decisions. */
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.header-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: var(--header-fg);
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  opacity: 0.78;
+}
+
+.header-nav a:hover {
+  opacity: 1;
+  background: var(--header-field-bg);
+}
+
+.header-nav a[aria-current='page'] {
+  opacity: 1;
+  background: var(--header-field-bg);
+  font-weight: 600;
 }
 
 .wordmark {
@@ -72,6 +104,7 @@
 .header-search {
   flex: 0 1 560px;
   width: 100%;
+  min-width: 180px;
   position: relative;
   display: flex;
   align-items: center;
@@ -311,8 +344,16 @@
   }
 
   /* Wordmark + actions share the first row; search drops to its own full row. */
+  /* The lead's pieces join the header's own rows: wordmark and actions on the
+     first, search on the second, Decisions and Patterns as tabs on the last. */
   .header-lead {
-    flex: 0 1 auto;
+    display: contents;
+  }
+
+  .header-nav {
+    order: 4;
+    flex-basis: 100%;
+    margin-left: -12px;
   }
 
   .header-actions {
