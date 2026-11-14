@@ -112,7 +112,8 @@ def test_provider_failures_become_codes_the_app_can_explain(env):
     cases = [
         (anthropic.RateLimitError("busy", response=httpx.Response(429, request=REQ), body=None), "provider_busy"),
         (anthropic.InternalServerError("boom", response=httpx.Response(500, request=REQ), body=None), "provider_error"),
-        (anthropic.AuthenticationError("bad key", response=httpx.Response(401, request=REQ), body=None), "not_configured"),
+        # A key Anthropic refuses is the deployer's to fix, not "no AI here".
+        (anthropic.AuthenticationError("bad key", response=httpx.Response(401, request=REQ), body=None), "provider_key"),
         (anthropic.APITimeoutError(request=REQ), "provider_timeout"),
         (anthropic.APIConnectionError(request=REQ), "provider_unreachable"),
     ]
@@ -122,6 +123,13 @@ def test_provider_failures_become_codes_the_app_can_explain(env):
         assert res.json() == {"ok": False, "error": code}
     # Failed calls still count toward the person's limit (5 in the test window).
     assert env.client.post("/agent", json=CHAT, headers=AUTH).status_code == 429
+
+
+def test_a_key_without_access_is_reported_as_a_key_problem(env):
+    env.claude.answers.append(anthropic.PermissionDeniedError("no access", response=httpx.Response(403, request=REQ), body=None))
+    res = env.client.post("/agent", json=CHAT, headers=AUTH)
+    assert res.status_code == 503
+    assert res.json() == {"ok": False, "error": "provider_key"}
 
 
 def test_demo_brief_reads_the_sample_messages_it_was_sent(env):

@@ -25,6 +25,7 @@ export type AiErrorCode =
   | 'provider_unreachable'
   | 'provider_error'
   | 'provider_rejected'
+  | 'provider_key'
   | 'refused'
   | 'too_long'
   | 'bad_output'
@@ -63,6 +64,8 @@ export const AI_ERROR_MESSAGE: Record<AiErrorCode, string> = {
   provider_unreachable: 'Rooted couldn’t reach the AI. Check your connection and try again.',
   provider_error: 'The AI had a problem answering. Try again.',
   provider_rejected: 'The AI couldn’t work with that request. Try shortening your notes, or do this step yourself.',
+  provider_key:
+    'Rooted’s AI service is running, but Anthropic refused its API key. Whoever deployed Rooted needs to check the key in the rooted-anthropic secret. You can still do this step yourself.',
   refused: 'The AI declined to answer this one. Try rewording it, or do this step yourself.',
   too_long: 'The answer ran too long and was cut off. Try again, or narrow the question.',
   bad_output: 'The AI’s answer didn’t hold up (it cited things that weren’t there). Try again.',

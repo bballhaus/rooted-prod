@@ -149,7 +149,7 @@ def create_app(deps: Deps) -> FastAPI:
         except ModelError as e:
             limits.settle(reserved, cost_usd(e.usage) if e.usage is not None else 0.0)
             log("task_failed", task=name, code=e.code)
-            return fail(503 if e.code == "not_configured" else 502, e.code)
+            return fail(503 if e.code in ("not_configured", "provider_key") else 502, e.code)
         spent = cost_usd(answer.usage)
         limits.settle(reserved, spent)
         try:

@@ -46,10 +46,11 @@ def ask(client: anthropic.Anthropic, *, system: str, user: str, schema: dict[str
             messages=[{"role": "user", "content": user}],
             output_config={"effort": effort, "format": {"type": "json_schema", "schema": schema}},
         )
+    # The API key is wrong, revoked, or can't use this model: the deployer has to fix it.
     except anthropic.AuthenticationError as e:
-        raise ModelError("not_configured") from e
+        raise ModelError("provider_key") from e
     except anthropic.PermissionDeniedError as e:
-        raise ModelError("not_configured") from e
+        raise ModelError("provider_key") from e
     except anthropic.RateLimitError as e:
         raise ModelError("provider_busy") from e
     except anthropic.OverloadedError as e:
