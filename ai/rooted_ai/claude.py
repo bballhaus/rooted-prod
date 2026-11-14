@@ -8,7 +8,8 @@ from typing import Any
 
 import anthropic
 
-MODEL = "claude-opus-5-5"
+# Sonnet, not Opus: faster answers at half the price, good enough for these tasks (decision 0020).
+MODEL = "claude-sonnet-5-5"
 # If a safety classifier declines, Anthropic re-runs the request on its
 # recommended model for that category instead of returning the refusal.
 FALLBACK_BETA = "server-side-fallback-2026-07-01"

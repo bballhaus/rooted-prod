@@ -25,6 +25,7 @@ Rooted is a decision record, so the team keeps its own here. One file per decisi
 | [0017](0017-real-slack-connection.md) | Connect Slack for real, reading public channels on the server | Decided 2026-11-13 |
 | [0018](0018-empty-workspace-for-real-users.md) | Real people start with an empty workspace; the sample company is the demo | Decided 2026-11-13 |
 | [0019](0019-tree-map-and-patterns.md) | The map opens as a tree, Needs you stays open, and patterns come forward from R3 | Decided 2026-11-13 |
+| [0020](0020-sonnet-for-the-agent.md) | Run the agent on Claude Sonnet 5.5, not Opus 5.5 | Decided 2026-11-13 (supersedes 0016's model choice) |
 
 ## Open decisions
 
@@ -32,7 +33,7 @@ Raise these with the team. Agents don't settle them.
 
 | Decision | Where it stands |
 |---|---|
-| Revisit the one-model choice | 0016 runs every task on Claude Opus 5.5 (low or medium effort). Revisit with cost and quality numbers before trying a cheaper model for light tasks. |
+| Revisit the one-model choice | 0020 moved every task to Claude Sonnet 5.5 for speed. Whether light tasks (tags, chat) should run on Haiku 5.5 is still open; decide with quality numbers. |
 | MVP context source: Slack or meeting transcripts | Story map picks Slack; the parking lot still asks. |
 | What counts as a decision, and the minimum decision record | Parking lot: "answer first." Spotting decisions in Slack (0016) uses a provisional, neutral prompt ("choices the team seems to be facing", up to 3) that doesn't settle it. |
 | Consent from teammates whose Slack messages Rooted reads | Rooted reads only public channels the installing PM allows, and a workspace admin may have to approve the app (0017). Colleagues aren't asked or told yet. Decide before outside testers. |

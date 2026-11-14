@@ -13,8 +13,9 @@ from typing import Any, Callable, Protocol
 
 from .config import Settings
 
-# Claude Opus 5.5 list prices, US dollars per million tokens.
-PRICE_PER_MTOK = {"input": 4.00, "output": 20.00, "cache_read": 0.20, "cache_write": 5.00}
+# Claude Sonnet 5.5 list prices, US dollars per million tokens (0020). Its
+# server-side fallback, Claude Sonnet 5, costs the same.
+PRICE_PER_MTOK = {"input": 2.00, "output": 10.00, "cache_read": 0.20, "cache_write": 2.50}
 
 
 class Store(Protocol):

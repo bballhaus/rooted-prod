@@ -34,17 +34,17 @@ def test_when_supabase_is_down_it_says_so(env):
     assert res.status_code == 503 and res.json()["error"] == "auth_unavailable"
 
 
-def test_answers_through_claude_opus_with_fallbacks_and_a_schema(env):
+def test_answers_through_claude_sonnet_with_fallbacks_and_a_schema(env):
     env.claude.answers.append(reply({"text": "Per workspace.", "citations": ["d-1", "d-x"]}))
     res = env.client.post("/agent", json=CHAT, headers=AUTH)
     assert res.json() == {"ok": True, "result": {"text": "Per workspace.", "citations": ["d-1"]}}
     call = env.claude.calls[0]
-    assert call["model"] == "claude-opus-5-5"
+    assert call["model"] == "claude-sonnet-5-5"
     assert call["fallbacks"] == "default" and call["betas"] == ["server-side-fallback-2026-07-01"]
     assert call["output_config"]["format"]["type"] == "json_schema"
     assert call["output_config"]["effort"] == "low"
-    # 1,000 input and 200 output tokens at Opus 5.5 prices.
-    assert env.store.get(DAY) == pytest.approx((1000 * 4 + 200 * 20) / 1_000_000)
+    # 1,000 input and 200 output tokens at Sonnet 5.5 prices.
+    assert env.store.get(DAY) == pytest.approx((1000 * 2 + 200 * 10) / 1_000_000)
 
 
 def test_unknown_tasks_bad_json_and_huge_bodies_are_refused(env):
@@ -73,8 +73,8 @@ def test_each_person_has_a_rate_limit(env):
 
 
 def test_each_call_reserves_its_worst_case_so_a_burst_cant_overrun_the_cap(env):
-    # The test budget is $1; a chat call's worst case is about $0.08 (4,000 output tokens).
-    env.store.put(DAY, 0.95)
+    # The test budget is $1; a chat call's worst case is about $0.04 (4,000 output tokens).
+    env.store.put(DAY, 0.97)
     res = env.client.post("/agent", json=CHAT, headers=AUTH)
     assert res.status_code == 503 and res.json()["error"] == "budget_reached"
     assert env.claude.calls == []
@@ -82,7 +82,7 @@ def test_each_call_reserves_its_worst_case_so_a_burst_cant_overrun_the_cap(env):
     env.claude.answers.append(reply({"text": "ok", "citations": []}))
     assert env.client.post("/agent", json=CHAT, headers=AUTH).status_code == 200
     # Once settled, only what the call really cost stays counted.
-    assert env.store.get(DAY) == pytest.approx(0.5 + (1000 * 4 + 200 * 20) / 1_000_000)
+    assert env.store.get(DAY) == pytest.approx(0.5 + (1000 * 2 + 200 * 10) / 1_000_000)
 
 
 def test_the_daily_budget_stops_every_call_once_spent(env):

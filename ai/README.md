@@ -46,7 +46,7 @@ The tests fake Claude and Slack, so they cost nothing and need no secrets.
 
 ## Costs and limits
 
-Every task runs on Claude Opus 5.5:
+Every task runs on Claude Sonnet 5.5 (decision 0020):
 
 - **Per person:** 30 calls per 10 minutes.
 - **Whole app:** the daily cap `DAILY_BUDGET_USD` (UTC day). Once it's reached, AI features say so until midnight UTC.
