@@ -130,6 +130,16 @@
   align-items: start;
 }
 
+/* The record's sections (choice, summary, rationale, options not taken,
+   outcome) need more room between them than the lines inside each. */
+.log-record-main {
+  gap: 36px;
+}
+
+.log-record-main > section.stack {
+  gap: 12px;
+}
+
 .log-meta {
   margin: 0;
   display: grid;

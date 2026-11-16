@@ -1,4 +1,4 @@
-# Typechecks, tests and builds the prototype on every PR and push to main.
+# Typechecks, tests and builds the prototype, and tests the AI service, on every PR and push to main.
 # Same gate as `npm run typecheck && npm test && npm run build` locally.
 name: App
 
@@ -23,3 +23,17 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+  # The AI service on Modal (decision 0016). Its tests fake Claude and Slack,
+  # so they need no secrets.
+  ai:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: ai/requirements-dev.txt
+      - run: pip install -r ai/requirements-dev.txt
+      - run: python -m pytest ai

@@ -2,6 +2,7 @@ import { cleanup, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { demoState } from '../../data/demoFixtures';
 import { STORAGE_KEY } from '../../store/store';
+import { fakeAi } from '../../test/fakeAi';
 import { renderApp, signedInState } from '../../test/render';
 import type { AppState } from '../../types';
 
@@ -23,12 +24,11 @@ async function openList() {
 }
 const rows = () => screen.getAllByRole('button').filter((b) => b.classList.contains('dash-row'));
 
-// The filters and the Needs-you rail are closed by default (0012-era redesign);
-// open them when a test needs the controls or the panel they hold.
+// Filters open on demand; open them when a test needs those controls.
+// Needs you is open by default on a wide screen (0019).
 const openFilters = (user: ReturnType<typeof renderApp>['user']) =>
-  user.click(screen.getByRole('button', { name: 'Filters' }));
-const openRail = (user: ReturnType<typeof renderApp>['user']) =>
-  user.click(screen.getByRole('button', { name: 'Show the Needs you panel' }));
+  user.click(screen.getByRole('button', { name: /^Filters/ }));
+const rail = () => screen.getByRole('complementary', { name: 'Needs you' });
 
 describe('Home dashboard', () => {
   it('F-17: shows everyone’s decisions, grouped by tag, with who decided and what they chose', async () => {
@@ -46,12 +46,12 @@ describe('Home dashboard', () => {
   it('F-17: filters by who decided, by status and by tag', async () => {
     const { user } = await openList();
     await openFilters(user);
-    await user.selectOptions(screen.getByLabelText('Who'), 'Rafael Ortiz');
+    await user.selectOptions(screen.getByLabelText('Who decided'), 'Rafael Ortiz');
     expect(rows().map((r) => r.textContent)).toEqual([
       expect.stringContaining('Offer an annual discount'),
       expect.stringContaining('one bet for Q4'),
     ]);
-    await user.selectOptions(screen.getByLabelText('Who'), 'me');
+    await user.selectOptions(screen.getByLabelText('Who decided'), 'me');
     await user.selectOptions(screen.getByLabelText('Status'), 'outcome-due');
     expect(rows().map((r) => r.textContent)).toEqual([
       expect.stringContaining('daily or weekly'),
@@ -140,7 +140,7 @@ describe('Home dashboard', () => {
     });
   });
 
-  it('F-28: suggested tags and suggested decisions can be reported as wrong, and seeded suggestions say they are samples', async () => {
+  it('F-28: suggested tags and suggested decisions can be reported as wrong', async () => {
     const { user } = await openList();
     await user.click(screen.getByRole('button', { name: /checklist or a guided tour/ }));
     const panel = screen.getByRole('complementary', { name: /checklist or a guided tour/ });
@@ -149,9 +149,32 @@ describe('Home dashboard', () => {
     await user.type(screen.getByLabelText('What did Rooted get wrong?'), 'Not a support decision');
     await user.click(screen.getByRole('button', { name: 'Send report' }));
     expect(stored().reports[0]).toMatchObject({ surface: 'tag', decisionId: 'd-onboarding-checklist' });
-    await openRail(user);
-    const rail = screen.getByRole('complementary', { name: 'Needs you' });
-    expect(within(rail).getAllByText('Sample')).toHaveLength(3);
+    expect(within(rail()).getAllByRole('button', { name: 'Report wrong answer' }).length).toBe(3);
+    expect(within(rail()).queryByText('Sample')).not.toBeInTheDocument();
+  });
+
+  it('F-R2, F-19: Rooted can be asked to spot decisions in Slack and to find connections, as suggestions', async () => {
+    const ai = fakeAi();
+    const { user } = renderApp('/', signedInState(), { ai });
+    await user.click(within(rail()).getByRole('button', { name: 'Check Slack for decisions' }));
+    expect(await within(rail()).findByText(/Rooted spotted 1 decision to consider/)).toBeInTheDocument();
+    expect(within(rail()).getByText('Should we change how we onboard new teams?')).toBeInTheDocument();
+    expect(stored().suggestions.find((x) => x.question === 'Should we change how we onboard new teams?')?.status).toBe('new');
+    // The demo's sample channels are sent; only allowed ones.
+    const sent = ai.run.mock.calls.find(([task]) => task === 'spotDecisions')![1];
+    expect(sent.messages.every((m: { source: string }) => !['#sales', '#leadership', '#random'].includes(m.source))).toBe(true);
+
+    await user.click(within(rail()).getByRole('button', { name: 'Find connections' }));
+    expect(await within(rail()).findByText(/Rooted found \d+ possible connection/)).toBeInTheDocument();
+    const added = stored().links.filter((l) => l.id.startsWith('l-ai-'));
+    expect(added.length).toBeGreaterThan(0);
+    expect(added.every((l) => l.origin === 'ai' && l.status === 'suggested')).toBe(true);
+  });
+
+  it('F-R2: when Rooted can’t check Slack, it says why', async () => {
+    const { user } = renderApp('/', signedInState(), { ai: fakeAi({ spotDecisions: 'slack_token_revoked' }) });
+    await user.click(within(rail()).getByRole('button', { name: 'Check Slack for decisions' }));
+    expect(await within(rail()).findByRole('alert')).toHaveTextContent('Connect Slack again');
   });
 
   it('F-04: "Add a follow-up decision" starts one that builds on the picked decision', async () => {
@@ -169,24 +192,34 @@ describe('Home dashboard', () => {
 });
 
 describe('Needs you and the inbox', () => {
-  it('F-16: the rail lists outcomes due and the inbox badge counts them', async () => {
-    const { user } = renderApp('/');
+  it('F-16: the rail lists outcomes due, each with its next step, and the inbox badge counts them', () => {
+    renderApp('/');
     expect(screen.getByRole('button', { name: 'Inbox, 2 due' })).toBeInTheDocument();
-    await openRail(user);
-    const rail = screen.getByRole('complementary', { name: 'Needs you' });
-    expect(within(rail).getByText('Should onboarding use a checklist or a guided tour?')).toBeInTheDocument();
-    expect(within(rail).getByText(/Outcome overdue since Oct 15, 2026/)).toBeInTheDocument();
+    const due = within(screen.getByRole('region', { name: /^Due/ }));
+    expect(due.getByText('Should onboarding use a checklist or a guided tour?')).toBeInTheDocument();
+    expect(due.getByText(/Outcome overdue since Oct 15, 2026/)).toBeInTheDocument();
+    expect(due.getAllByRole('link', { name: 'Log outcome' })[0]).toHaveAttribute('href', expect.stringMatching(/#outcome$/));
+    expect(within(rail()).getByText(/^2 due · /)).toBeInTheDocument();
+  });
+
+  it('F-19: the rail lists the PM’s decisions in progress with their stage, open questions and deadline', () => {
+    const state = demoState();
+    renderApp('/', state);
+    const decide = within(screen.getByRole('region', { name: 'Decisions to make' }));
+    const sso = decide.getByRole('link', { name: /Build SSO and SAML/ });
+    expect(sso).toHaveAttribute('href', '/decisions/d-sso-enterprise/work');
+    expect(sso).toHaveTextContent('Gathering evidence · 2 open questions · decide by');
+    expect(decide.getByRole('link', { name: 'New decision' })).toHaveAttribute('href', '/decisions/new');
+    expect(within(rail()).getByRole('link', { name: /Patterns and trends/ })).toHaveAttribute('href', '/patterns');
   });
 
   it('decisions Rooted spotted can be started or dismissed', async () => {
     const { user } = renderApp('/');
-    await openRail(user);
-    const rail = screen.getByRole('complementary', { name: 'Needs you' });
-    const guest = within(rail).getByText('Let admins turn off @mention emails for guests?').closest('li')!;
+    const guest = within(rail()).getByText('Let admins turn off @mention emails for guests?').closest('li')!;
     await user.click(within(guest).getByRole('button', { name: 'Dismiss' }));
     expect(stored().suggestions.find((s) => s.id === 'sg-guest-mentions')?.status).toBe('dismissed');
 
-    const sync = within(rail).getByText('Move onboarding checklist progress to the server?').closest('li')!;
+    const sync = within(rail()).getByText('Move onboarding checklist progress to the server?').closest('li')!;
     await user.click(within(sync).getByRole('button', { name: 'Start this decision' }));
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Move onboarding checklist progress to the server?' }, WAIT),
@@ -233,22 +266,61 @@ describe('Decision canvas', () => {
   const demo = () => demoState();
   const panelFor = (name: RegExp) => within(screen.getByRole('complementary', { name }));
 
-  it('F-17: opens as a graph, with timeline, color and trace controls', async () => {
+  it('F-17: opens as a tree, with Tree, Timeline and List always side by side in one switch', async () => {
     const { user } = renderApp('/', demo());
-    expect(screen.getByRole('button', { name: /Graph/ })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: /Timeline/ })).toHaveAttribute('aria-pressed', 'false');
-    await openFilters(user);
-    expect(screen.getByLabelText('Color by')).toHaveValue('status');
-    expect(screen.getByRole('button', { name: /Trace/ })).toBeDisabled();
-    // Lanes only apply to the timeline.
-    expect(screen.queryByLabelText('Lanes')).not.toBeInTheDocument();
+    const views = within(screen.getByRole('group', { name: 'View' }));
+    expect(views.getByRole('button', { name: /Tree/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(views.getByRole('button', { name: /Timeline/ })).toHaveAttribute('aria-pressed', 'false');
+    // Grouping only applies to the timeline and the list.
+    expect(screen.queryByLabelText('Group by')).not.toBeInTheDocument();
+    await user.click(views.getByRole('button', { name: /List/ }));
+    // Switching to the list keeps every view in reach.
+    expect(views.getByRole('button', { name: /Tree/ })).toHaveAttribute('aria-pressed', 'false');
+    expect(views.getByRole('button', { name: /Timeline/ })).toBeInTheDocument();
+    expect(views.getByRole('button', { name: /List/ })).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('F-17: switching to the timeline brings back the lanes', async () => {
+  it('F-17: the tree names each tree of linked decisions and sets unlinked ones apart', () => {
+    renderApp('/', demo());
+    const labels = [...document.querySelectorAll('.map-group')].map((l) => l.textContent);
+    expect(labels.length).toBeGreaterThan(1);
+    expect(labels.some((l) => /^Enterprise · Expansion\d+$/.test(l ?? ''))).toBe(true);
+  });
+
+  it('F-17: switching to the timeline brings in grouping by lane', async () => {
     const { user } = renderApp('/', demo());
     await user.click(screen.getByRole('button', { name: /Timeline/ }));
+    expect(screen.getByLabelText('Group by')).toHaveValue('thread');
+  });
+
+  it('F-17: the map key sets what the colors show and says what each color and line means', () => {
+    renderApp('/', demo());
+    const key = within(screen.getByRole('region', { name: 'Map key' }));
+    expect(key.getByLabelText('Color by')).toHaveValue('status');
+    const statuses = within(key.getByRole('list', { name: 'Statuses' }));
+    for (const s of ['In progress', 'Decided', 'Outcome due', 'Outcome logged', 'Direction to explore'])
+      expect(statuses.getByText(s)).toBeInTheDocument();
+    expect(within(key.getByRole('list', { name: 'Lines' })).getByText('Builds on')).toBeInTheDocument();
+  });
+
+  it('F-17: the key can be hidden to a single button and brought back', async () => {
+    const { user } = renderApp('/', demo());
+    await user.click(screen.getByRole('button', { name: 'Hide the key' }));
+    expect(screen.queryByRole('region', { name: 'Map key' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Key · Status/ }));
+    expect(screen.getByRole('region', { name: 'Map key' })).toBeInTheDocument();
+  });
+
+  it('F-17: filters say how many are on and how many decisions show, and clear in one step', async () => {
+    const { user } = renderApp('/', demo());
     await openFilters(user);
-    expect(screen.getByLabelText('Lanes')).toBeInTheDocument();
+    expect(screen.getByText('17 of 17 shown')).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Status'), 'open');
+    expect(screen.getByRole('button', { name: 'Filters, 1 on' })).toBeInTheDocument();
+    expect(screen.getByText(/^\d+ of 17 shown$/)).not.toHaveTextContent('17 of 17');
+    await user.click(screen.getByRole('button', { name: 'Clear filters' }));
+    expect(screen.getByLabelText('Status')).toHaveValue('all');
+    expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument();
   });
 
   it('F-18: picking a decided decision shows its reasoning, outcome and a link to the record', async () => {
@@ -302,22 +374,15 @@ describe('Decision canvas', () => {
     expect(panelFor(/Ship API v2/).queryByRole('button', { name: 'Rename decision' })).not.toBeInTheDocument();
   });
 
-  it('planted directions are not listed as the PM’s decisions in progress', async () => {
-    const { user } = renderApp('/', demo());
-    await openRail(user);
-    const rail = within(screen.getByRole('complementary', { name: 'Needs you' }));
-    expect(rail.getByRole('link', { name: /drive expansion revenue/ })).toBeInTheDocument();
-    expect(rail.queryByRole('link', { name: /usage-based pricing/ })).not.toBeInTheDocument();
+  it('planted directions are not listed as the PM’s decisions in progress', () => {
+    renderApp('/', demo());
+    expect(within(rail()).getByRole('link', { name: /drive expansion revenue/ })).toBeInTheDocument();
+    expect(within(rail()).queryByRole('link', { name: /usage-based pricing/ })).not.toBeInTheDocument();
   });
 
-  it('F-19: Trace lights up everything a decision built on and led to, and fades the rest', async () => {
-    const { user } = renderApp('/?focus=d-weekly-digest', demo());
-    await openFilters(user);
+  it('F-19: picking a decision lights up everything it built on and led to, and fades the rest', () => {
+    renderApp('/?focus=d-weekly-digest', demo());
     const card = (id: string) => document.querySelector(`.react-flow__node[data-id="${id}"] .map-node`)!;
-    const trace = screen.getByRole('button', { name: /Trace/ });
-    expect(trace).toBeEnabled();
-    await user.click(trace);
-    expect(trace).toHaveAttribute('aria-pressed', 'true');
     expect(card('d-weekly-digest')).toHaveClass('map-node-traced');
     expect(card('d-mobile-push')).toHaveClass('map-node-traced');
     expect(card('d-activation-metric')).toHaveClass('map-node-faded');
@@ -326,7 +391,6 @@ describe('Decision canvas', () => {
 
   it('coloring by goal or by person shows what each color means', async () => {
     const { user } = renderApp('/', demo());
-    await openFilters(user);
     await user.selectOptions(screen.getByLabelText('Color by'), 'goal');
     expect(within(screen.getByRole('list', { name: 'Goals' })).getByText('Activation')).toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText('Color by'), 'owner');
@@ -335,21 +399,21 @@ describe('Decision canvas', () => {
 
   it('the demo labels itself as sample data, and "Just me" hides teammates’ decisions', async () => {
     const { user } = await openListWith(demo());
-    expect(screen.getByText(/Demo/).closest('.demo-badge')).toHaveTextContent('Demo workspace · sample data');
+    expect(screen.getByText(/Demo/).closest('.demo-badge')).toHaveTextContent('Demo · sample data');
     expect(screen.getByRole('button', { name: /Ship API v2 with breaking changes/ })).toBeInTheDocument();
     await openFilters(user);
-    await user.selectOptions(screen.getByLabelText('Who'), 'me');
+    await user.selectOptions(screen.getByLabelText('Who decided'), 'me');
     expect(screen.queryByRole('button', { name: /Ship API v2 with breaking changes/ })).not.toBeInTheDocument();
   });
 
-  it('the Needs you panel is closed by default, and can be shown then hidden again', async () => {
+  it('the Needs you panel is open by default on a wide screen, and can be hidden then shown again', async () => {
     const { user } = renderApp('/', demo());
-    // Closed by default so the canvas is full-width on open.
-    expect(screen.queryByRole('complementary', { name: 'Needs you' })).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Show the Needs you panel' }));
-    expect(screen.getByRole('complementary', { name: 'Needs you' })).toBeInTheDocument();
+    expect(rail()).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Hide the Needs you panel' }));
     expect(screen.queryByRole('complementary', { name: 'Needs you' })).not.toBeInTheDocument();
+    expect(localStorage.getItem('rooted-needs-open')).toBe('off');
+    await user.click(screen.getByRole('button', { name: /Show the Needs you panel/ }));
+    expect(rail()).toBeInTheDocument();
   });
 
   it('with no decisions, offers to frame the first one or load the demo', async () => {
@@ -357,7 +421,7 @@ describe('Decision canvas', () => {
     expect(screen.getByRole('link', { name: 'Frame your first decision' })).toHaveAttribute('href', '/decisions/new');
     await user.click(screen.getByRole('button', { name: 'Explore the demo' }));
     expect(stored().demo).toBe(true);
-    expect(screen.getByText(/workspace · sample data/)).toBeInTheDocument();
+    expect(screen.getByText(/· sample data/)).toBeInTheDocument();
   });
 });
 
@@ -384,26 +448,15 @@ describe('Profile menu: theme and demo', () => {
     expect(toggle).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('dark mode toggled from the map bar also updates the profile menu', async () => {
-    document.documentElement.dataset.theme = 'light';
-    const { user } = renderApp('/');
-    // The always-visible toggle in the workspace bar.
-    await user.click(screen.getByRole('button', { name: 'Switch to dark theme' }));
-    expect(document.documentElement.dataset.theme).toBe('dark');
-    // The profile menu's toggle must reflect the same state, not a stale copy.
-    await user.click(screen.getByRole('button', { name: 'Your account' }));
-    expect(screen.getByRole('button', { name: /Dark mode/ })).toHaveAttribute('aria-pressed', 'true');
-  });
-
   it('the demo can be entered and left from the profile menu', async () => {
     const { user } = renderApp('/');
     await user.click(screen.getByRole('button', { name: 'Your account' }));
     await user.click(screen.getByRole('button', { name: 'Explore the demo' }));
     expect(stored().demo).toBe(true);
-    expect(screen.getByText(/workspace · sample data/)).toBeInTheDocument();
+    expect(screen.getByText(/· sample data/)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Your account' }));
     await user.click(screen.getByRole('button', { name: 'Leave demo' }));
     expect(stored().demo).toBe(false);
-    expect(screen.queryByText(/workspace · sample data/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/· sample data/)).not.toBeInTheDocument();
   });
 });

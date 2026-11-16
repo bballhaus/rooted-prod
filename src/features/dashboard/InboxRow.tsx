@@ -33,8 +33,8 @@ export function InboxRow({ item, onDone }: { item: InboxItem; onDone?: () => voi
           </Link>
         )}
         {(item.kind === 'deadline' || item.kind === 'gap') && (
-          <Link to={`/?focus=${item.decisionId}`} className="btn btn-secondary" onClick={onDone}>
-            Open
+          <Link to={`/decisions/${item.decisionId}/work`} className="btn btn-secondary" onClick={onDone}>
+            Continue
           </Link>
         )}
         {suggestion && (

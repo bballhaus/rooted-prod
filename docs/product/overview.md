@@ -27,7 +27,7 @@ Interviewees trust AI to support a decision but not to make it. Rooted gathers a
 |---|---|
 | 1: MVP | The PM's own data only. Slack context, manual decision entry, context correction, options and rationale chat, one-step logging, past and rejected options, outcome reminders, account, settings, help. Feature IDs `F-01`–`F-28`. |
 | 2: Team | Coworkers' data with permission, meeting transcripts (Granola, Fireflies), Docs/Notion/Gmail/Calendar, stakeholders and dependencies, weekly open-decision digest, SSO, roles, billing. `F-R2-xx`. |
-| 3: Proactive | Microsoft Teams, spotting pending decisions in PRDs and Slack, automatic outcome logging, decision patterns across the company. `F-R3-xx`. |
+| 3: Proactive | Microsoft Teams, spotting pending decisions in PRDs and Slack, automatic outcome logging, decision patterns across the company. `F-R3-xx`. Patterns and trends (`F-R3-05`) were pulled into the MVP by decision 0019. |
 
 The full list with acceptance notes is `features.md`.
 

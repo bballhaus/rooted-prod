@@ -1,8 +1,9 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { seedState } from '../../data/fixtures';
+import { emptyWorkspaceState } from '../../data/fixtures';
 import { STORAGE_KEY } from '../../store/store';
-import { renderApp } from '../../test/render';
+import { fakeAi } from '../../test/fakeAi';
+import { renderApp, signedInState } from '../../test/render';
 import type { AppState } from '../../types';
 
 // The store persists every change to localStorage, so tests read it back from there.
@@ -13,7 +14,9 @@ function stored(): AppState {
 describe('Settings', () => {
   it('F-22: edits name, role and team and confirms the save; email is read-only', async () => {
     const { user } = renderApp('/settings');
-    expect(screen.getByRole('textbox', { name: 'Email' })).toHaveAttribute('readonly');
+    // The email comes from sign-in, so it reads as text, not as a locked field.
+    expect(screen.queryByRole('textbox', { name: 'Email' })).not.toBeInTheDocument();
+    expect(screen.getByText(signedInState().user!.email)).toBeInTheDocument();
     const role = screen.getByLabelText('Role');
     await user.clear(role);
     await user.type(role, 'Senior product manager');
@@ -41,25 +44,28 @@ describe('Settings', () => {
     await user.click(screen.getByRole('radio', { name: 'Email' }));
     expect(screen.getByRole('radio', { name: 'Email' })).toBeChecked();
     expect(stored().user?.notificationChannel).toBe('email');
-    expect(screen.getByText(/nudges are mocked/i)).toBeInTheDocument();
+    expect(screen.getByText(/Nudges aren’t sent yet/)).toBeInTheDocument();
   });
 
   it('F-26: choosing a 90-day default review offset updates the store and says it applies to new decisions', async () => {
     const { user } = renderApp('/settings');
     await user.click(screen.getByRole('radio', { name: '90 days' }));
     expect(stored().user?.defaultReviewDays).toBe(90);
-    expect(screen.getByText(/applies to new decisions/i)).toBeInTheDocument();
+    expect(screen.getByText(/new decisions get a review date 90 days/i)).toBeInTheDocument();
+    expect(screen.getByText(/already logged keep their date/)).toBeInTheDocument();
   });
 
   it('F-23: disconnecting a source asks for confirmation first', async () => {
     const { user } = renderApp('/settings');
-    const sources = screen.getByRole('region', { name: 'Sources' });
+    const sources = screen.getByRole('region', { name: 'Sources and access' });
     expect(within(sources).getByRole('link', { name: 'Manage channels for Fernwave Slack' })).toHaveAttribute(
       'href',
       '/onboarding',
     );
     await user.click(within(sources).getByRole('button', { name: 'Disconnect Fernwave Slack' }));
     const dialog = screen.getByRole('dialog', { name: /disconnect fernwave slack/i });
+    // It says what really happens to gathered evidence.
+    expect(dialog).toHaveTextContent('is removed from your decisions, including ones you’ve logged');
     // Cancel leaves it connected.
     await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     expect(stored().sources.find((s) => s.id === 'src-slack')?.connected).toBe(true);
@@ -99,16 +105,33 @@ describe('Settings', () => {
     expect(screen.getByText(/all your data was deleted/i)).toBeInTheDocument();
   });
 
-  it('F-23: reset sample data asks to confirm and restores the sample decisions', async () => {
-    const { user } = renderApp('/settings');
+  it('F-23: deleting all data also removes Rooted’s access to a live Slack', async () => {
+    const ai = fakeAi();
+    ai.slack = { available: true, connected: true, teamName: 'Acme', channels: [{ id: 'C1', name: '#pricing', memberCount: 4 }] };
+    const base = signedInState();
+    const state = { ...base, sources: [{ id: 'src-slack', type: 'slack' as const, name: 'Slack', connected: true, channels: [] }] };
+    const { user } = renderApp('/settings', state, { ai });
     await user.click(screen.getByRole('button', { name: 'Delete all data' }));
     await user.type(screen.getByLabelText('Type DELETE to confirm'), 'DELETE');
     await user.click(screen.getByRole('button', { name: 'Delete everything' }));
-    expect(stored().decisions).toEqual([]);
-    await user.click(screen.getByRole('button', { name: 'Reset sample data' }));
-    const dialog = screen.getByRole('dialog', { name: 'Reset sample data?' });
-    await user.click(within(dialog).getByRole('button', { name: 'Reset sample data' }));
-    expect(stored().decisions.map((d) => d.id)).toEqual(seedState().decisions.map((d) => d.id));
-    expect(stored().user?.name).toBe('Jordan Lee');
+    await waitFor(() => expect(ai.slackDisconnect).toHaveBeenCalled());
+    expect(stored().sources.every((x) => !x.connected)).toBe(true);
+    // Real workspaces start empty, so there's no sample data to reset to; the demo is in the profile menu.
+    expect(screen.queryByRole('button', { name: 'Reset sample data' })).not.toBeInTheDocument();
+  });
+});
+
+describe('Settings layout', () => {
+  it('Drive isn’t offered in a real workspace, and the sample sources are labelled', () => {
+    renderApp('/settings', { ...emptyWorkspaceState(), user: signedInState().user });
+    const sources = screen.getByRole('region', { name: 'Sources and access' });
+    expect(within(sources).getByText('Not available yet')).toBeInTheDocument();
+    expect(within(sources).queryByRole('link', { name: /for Google Drive/ })).not.toBeInTheDocument();
+  });
+
+  it('links to the privacy page from the sources and data sections', () => {
+    renderApp('/settings');
+    expect(screen.getByRole('link', { name: 'More about what Rooted reads' })).toHaveAttribute('href', '/privacy#privacy-reads');
+    expect(screen.getByRole('link', { name: 'What gets deleted' })).toHaveAttribute('href', '/privacy#privacy-controls');
   });
 });

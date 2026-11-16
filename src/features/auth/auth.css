@@ -212,6 +212,24 @@
   width: 100%;
 }
 
+/* "or" between the provider buttons and the email form, on a hairline. */
+.auth-or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink2);
+}
+
+.auth-or::before,
+.auth-or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--card-rule);
+}
+
 .auth-small {
   font-size: 14px;
   margin: 0;
@@ -359,7 +377,8 @@
 
 .auth-summary {
   margin: 0;
-  font-weight: 600;
+  font-size: 14px;
+  color: var(--ink2);
 }
 
 @media (max-width: 880px) {

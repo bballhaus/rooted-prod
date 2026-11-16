@@ -1,7 +1,9 @@
 import { screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { generateOptions, generateSubOptions } from '../../agent/options';
-import { draftRecordNow } from '../../agent/record';
+import { fetchSubOptions } from '../../agent/options';
+import { draftRecord } from '../../agent/record';
+import { fakeAi } from '../../test/fakeAi';
+import { sampleOptions } from '../../test/options';
 import { renderApp, signedInState } from '../../test/render';
 import type { AppState, ContextItem, Decision, OptionNode } from '../../types';
 
@@ -44,7 +46,31 @@ const items: ContextItem[] = [
   },
 ];
 
-const top = generateOptions(trial, items, []);
+const top = sampleOptions(trial, items);
+
+// Sub-options as Claude might return them for the first branch.
+const SUB_LABELS = ['Pilot with 5 design partners', 'All new signups', 'Self-serve only'];
+function subsOf(parent: OptionNode, labels: string[] = SUB_LABELS): OptionNode[] {
+  return labels.map((label, i) => ({
+    ...parent,
+    id: `o-sub-${parent.id.replace(/^o-/, '')}-${i + 1}`,
+    parentId: parent.id,
+    label,
+    summary: `${label}.`,
+    contextIds: [],
+    state: 'open' as const,
+  }));
+}
+const draftOf = (label: string) => ({
+  label,
+  summary: `${label}.`,
+  pros: ['Fast'],
+  cons: ['Narrow'],
+  score: 60,
+  criteria: { impact: 3, effort: 2, risk: 2, evidence: 1 },
+  contextIds: [],
+  linkedDecisionId: null,
+});
 
 function state(options: OptionNode[] = top): AppState {
   const base = signedInState();
@@ -59,59 +85,49 @@ function state(options: OptionNode[] = top): AppState {
 const tree = () => screen.getByRole('region', { name: 'Decision tree' });
 const node = (name: RegExp) => within(tree()).getByRole('button', { name });
 
-describe('generateOptions criteria', () => {
-  it('F-10: every option gets rough 1–5 ratings for impact, effort, risk and evidence', () => {
-    for (const o of top) {
-      for (const key of ['impact', 'effort', 'risk', 'evidence'] as const) {
-        expect(o.criteria?.[key]).toBeGreaterThanOrEqual(1);
-        expect(o.criteria?.[key]).toBeLessThanOrEqual(5);
-      }
-    }
-  });
-});
-
-describe('generateSubOptions', () => {
-  it('F-10: splits a branch into deterministic sub-options that point at it', () => {
+describe('fetchSubOptions', () => {
+  it('F-10: sub-options point at their branch, with fresh ids and the ratings Claude gave', async () => {
     const parent = top[0];
-    const subs = generateSubOptions(trial, parent, top, items);
-    expect(subs.length).toBeGreaterThanOrEqual(2);
-    expect(subs.every((s) => s.parentId === parent.id && s.state === 'open')).toBe(true);
-    expect(new Set(subs.map((s) => s.id)).size).toBe(subs.length);
-    expect(generateSubOptions(trial, parent, top, items)).toEqual(subs);
-    // Each level splits along a different dimension.
-    const deeper = generateSubOptions(trial, subs[0], [...top, ...subs], items);
-    expect(deeper.map((s) => s.label)).not.toEqual(subs.map((s) => s.label));
-    expect(deeper.every((s) => s.parentId === subs[0].id)).toBe(true);
+    const ai = fakeAi({ subOptions: { options: [draftOf('Pilot'), draftOf('Everyone')] } });
+    const existing = subsOf(parent, ['Earlier sub-option']);
+    const subs = await fetchSubOptions(ai, trial, parent, state([...top, ...existing]));
+    expect(subs.map((s) => [s.label, s.parentId, s.state])).toEqual([
+      ['Pilot', parent.id, 'open'],
+      ['Everyone', parent.id, 'open'],
+    ]);
+    expect(subs.every((s) => !existing.some((e) => e.id === s.id))).toBe(true);
+    expect(subs[0].criteria).toEqual({ impact: 3, effort: 2, risk: 2, evidence: 1 });
+    // Claude is told which sub-options exist, so it doesn't repeat them.
+    expect(ai.run.mock.calls[0][1].siblings).toEqual(['Earlier sub-option']);
   });
 
-  it('F-10: sub-options only cite evidence their branch cited and the PM still trusts', () => {
-    const parent = { ...top[0], contextIds: ['c-t1', 'c-gone'] };
-    const subs = generateSubOptions(trial, parent, top, items);
-    for (const s of subs) expect(s.contextIds.every((id) => id === 'c-t1')).toBe(true);
+  it('F-10, F-08: only evidence the PM still trusts is sent', async () => {
+    const ai = fakeAi();
+    const flagged = items.map((c) => (c.id === 'c-t1' ? { ...c, flaggedInaccurate: true } : c));
+    await fetchSubOptions(ai, trial, top[0], { ...state(), contextItems: flagged });
+    expect(ai.run.mock.calls[0][1].evidence.map((e: { id: string }) => e.id)).toEqual(['c-t-past']);
   });
 
-  it('F-10: the gather-more-evidence branch splits into evidence steps', () => {
-    const defer = top.find((o) => /gather more evidence/i.test(o.label))!;
-    const subs = generateSubOptions(trial, defer, top, items);
-    expect(subs.map((s) => s.label)).toContain('Run 5 customer calls');
+  it('F-28: sub-options drafted under the PM’s own option are still agent output', async () => {
+    const mine: OptionNode = { ...top[0], id: 'o-user-abc', label: 'Annual-only trial', score: 0 };
+    const subs = await fetchSubOptions(fakeAi(), trial, mine, state([...top, mine]));
+    expect(subs.length).toBeGreaterThan(0);
+    expect(subs.every((s) => !s.id.startsWith('o-user-'))).toBe(true);
   });
 });
 
 describe('Decision tree graph', () => {
-  it('F-28: sub-options the agent drafts under the PM’s own option are still agent output with a report action', () => {
-    const mine: OptionNode = { ...top[0], id: 'o-user-abc', label: 'Annual-only trial', score: 0 };
-    const subs = generateSubOptions(trial, mine, [...top, mine], items);
-    expect(subs.every((s) => !s.id.startsWith('o-user-'))).toBe(true);
-  });
-
   it('F-10: an edit made while the agent is branching out is kept', async () => {
-    const { user } = renderApp('/decisions/d-trial/options', state());
+    let answer: (v: unknown) => void = () => {};
+    const ai = fakeAi({ subOptions: () => new Promise((resolve) => (answer = resolve)) });
+    const { user } = renderApp('/decisions/d-trial/options', state(), { ai });
     const [first, second] = top;
     await user.click(screen.getByRole('button', { name: `Branch out ${first.label}` }));
     // Prune another branch before the sub-options arrive.
     await user.click(screen.getByRole('button', { name: `Prune ${second.label}` }));
     await user.type(screen.getByLabelText('Why are you pruning this branch?'), 'Legal sign-off takes longer');
     await user.click(screen.getByRole('button', { name: 'Prune branch' }));
+    answer({ options: SUB_LABELS.map(draftOf) });
     await screen.findByRole('heading', { level: 2, name: `Sub-options of “${first.label}”` }, { timeout: 3000 });
     await user.click(screen.getByRole('button', { name: 'Top-level options' }));
     expect(screen.getByText('Legal sign-off takes longer')).toBeInTheDocument();
@@ -129,13 +145,15 @@ describe('Decision tree graph', () => {
   });
 
   it('F-10: branching out adds sub-options to the graph and opens them as cards', async () => {
-    const { user } = renderApp('/decisions/d-trial/options', state());
+    const ai = fakeAi({ subOptions: { options: SUB_LABELS.map(draftOf) } });
+    const { user } = renderApp('/decisions/d-trial/options', state(), { ai });
     const first = top[0];
     await user.click(screen.getByRole('button', { name: `Branch out ${first.label}` }));
     expect(
       await screen.findByRole('heading', { level: 2, name: `Sub-options of “${first.label}”` }, { timeout: 3000 }),
     ).toBeInTheDocument();
     expect(node(/^.* › Pilot with 5 design partners\./)).toBeInTheDocument();
+    expect(ai.run).toHaveBeenCalledWith('subOptions', expect.objectContaining({ parent: expect.objectContaining({ id: first.id }) }));
     expect(screen.getByRole('heading', { level: 3, name: 'Pilot with 5 design partners' })).toBeInTheDocument();
     // Back to the top level from the breadcrumb.
     await user.click(screen.getByRole('button', { name: 'Top-level options' }));
@@ -143,7 +161,7 @@ describe('Decision tree graph', () => {
   });
 
   it('F-11: picking a node in the graph shows its level in the cards; collapsing hides its sub-options', async () => {
-    const subs = generateSubOptions(trial, top[0], top, items);
+    const subs = subsOf(top[0]);
     const { user } = renderApp('/decisions/d-trial/options', state([...top, ...subs]));
     await user.click(node(/› All new signups\./));
     expect(screen.getByRole('heading', { level: 2, name: `Sub-options of “${top[0].label}”` })).toBeInTheDocument();
@@ -156,7 +174,7 @@ describe('Decision tree graph', () => {
   });
 
   it('F-11: choosing a sub-option makes only that node and card wine', async () => {
-    const subs = generateSubOptions(trial, top[0], top, items);
+    const subs = subsOf(top[0]);
     const { user } = renderApp('/decisions/d-trial/options', state([...top, ...subs]));
     await user.click(screen.getByRole('button', { name: `Sub-options (${subs.length}) of ${top[0].label}` }));
     const subCard = screen.getByRole('heading', { level: 3, name: 'All new signups' }).closest('li')!;
@@ -167,7 +185,7 @@ describe('Decision tree graph', () => {
   });
 
   it('F-11: options under a pruned branch can’t be chosen until it is restored', async () => {
-    const subs = generateSubOptions(trial, top[0], top, items);
+    const subs = subsOf(top[0]);
     const pruned = [{ ...top[0], state: 'pruned' as const, pruneReason: 'Too slow' }, ...top.slice(1), ...subs];
     const { user } = renderApp('/decisions/d-trial/options', state(pruned));
     await user.click(screen.getByRole('button', { name: `Sub-options (${subs.length}) of ${top[0].label}` }));
@@ -188,12 +206,14 @@ describe('Decision tree graph', () => {
 });
 
 describe('draftRecord with sub-options', () => {
-  it('F-15: drafts reasons only for the alternatives off the chosen path', () => {
-    const subs = generateSubOptions(trial, top[0], top, items);
+  it('F-15: asks for reasons only for the alternatives off the chosen path', async () => {
+    const subs = subsOf(top[0]);
     const all = [...top, ...subs];
-    const draft = draftRecordNow(trial, all, subs[1].id, 'All new signups first.', items);
+    const ai = fakeAi();
+    const draft = await draftRecord(ai, trial, all, subs[1].id, 'All new signups first.', state(all));
     const ids = draft.rejected.map((r) => r.optionId).sort();
     const expected = [...top.slice(1).map((o) => o.id), subs[0].id, subs[2].id].sort();
     expect(ids).toEqual(expected);
+    expect(ai.run.mock.calls[0][1].others.map((o: { id: string }) => o.id).sort()).toEqual(expected);
   });
 });

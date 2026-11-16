@@ -1,11 +1,12 @@
 // F-12, F-13: the agent chat, docked on the right. Closed, it's a ✦ circle in
 // the corner. Open, it answers questions about decisions (cited answers link to
 // the decision on the map), talks through the decision or option in scope, and
-// starts a new decision. Every answer is editable (F-08) and reportable (F-28);
-// scripted answers carry a "Sample answer" label until a real LLM is configured.
+// starts a new decision. Every answer is editable (F-08) and reportable (F-28).
+// When Claude can't answer, the reply says why and offers to ask again (0016).
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { suggestedPrompts } from '../../agent/chat';
+import { isRetryable, type AiErrorCode } from '../../agent/client';
 import { CloseIcon, SparkIcon } from '../../components/icons';
 import { ReportWrongAnswer } from '../../components/ReportWrongAnswer';
 import { localToday } from '../../store/dashboard';
@@ -168,9 +169,25 @@ export function AgentPanel() {
 
 function Message({ message }: { message: ChatMessage }) {
   const { dispatch } = useStore();
+  const { ask, pending } = useAgent();
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(message.text);
   const editId = useId();
+
+  if (message.failed) {
+    return (
+      <div className="agent-msg agent-msg-agent agent-msg-failed" role="alert">
+        <p className="agent-msg-text">{message.text}</p>
+        {message.retry && isRetryable((message.failedCode ?? 'unknown') as AiErrorCode) && (
+          <div className="row agent-msg-actions">
+            <button type="button" className="btn btn-secondary" disabled={pending} onClick={() => ask(message.retry!)}>
+              Ask again
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   if (message.role === 'user') {
     return (
@@ -219,7 +236,6 @@ function Message({ message }: { message: ChatMessage }) {
         </ul>
       )}
       <div className="row agent-msg-actions">
-        {message.sample && <span className="sample-badge">Sample answer</span>}
         {message.edited && <span className="muted agent-edited">Edited</span>}
         {!editing && (
           <button type="button" className="btn btn-ghost" onClick={() => setEditing(true)}>

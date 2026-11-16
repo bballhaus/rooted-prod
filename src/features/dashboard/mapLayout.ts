@@ -29,7 +29,7 @@ export const STANDALONE = 'Not linked yet';
 /**
  * Threads: decisions joined by confirmed links (the team's own, or Rooted's once
  * accepted) share a lane, so a chain of decisions reads left to right. Each
- * thread is named after its most-used tag.
+ * thread is named after its most-used tag, else the goals it serves most.
  */
 const threadCache = new WeakMap<AppState, Map<string, string>>();
 export function threadOf(d: Decision, state: AppState): string {
@@ -61,10 +61,14 @@ function buildThreads(state: AppState): Map<string, string> {
   for (const group of ordered) {
     const counts = new Map<string, number>();
     for (const d of group) for (const t of d.tags ?? []) if (t.origin === 'user') counts.set(t.label, (counts.get(t.label) ?? 0) + 1);
-    const top = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? 'linked';
+    const tag = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0];
+    const goals = new Map<string, number>();
+    for (const d of group) if (d.metric) goals.set(d.metric, (goals.get(d.metric) ?? 0) + 1);
+    const goal = [...goals.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 2).map(([g]) => g);
+    const top = tag ? `#${tag}` : goal.length ? goal.join(' · ') : 'Linked decisions';
     const n = (used.get(top) ?? 0) + 1;
     used.set(top, n);
-    const label = n === 1 ? `#${top}` : `#${top} (${n})`;
+    const label = n === 1 ? top : `${top} (${n})`;
     for (const d of group) out.set(d.id, label);
   }
   return out;

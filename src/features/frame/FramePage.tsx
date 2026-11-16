@@ -236,7 +236,7 @@ export function FrameForm({
   }
 
   return (
-    <div className={embedded ? 'stack frame' : 'page frame'}>
+    <div className={embedded ? 'stack frame' : 'page page-narrow frame'}>
       {embedded ? (
         <h2 className="section-title">Frame the decision</h2>
       ) : (

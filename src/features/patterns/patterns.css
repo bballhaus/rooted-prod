@@ -1,0 +1,311 @@
+/* Patterns and trends (F-R3-05). The numbers first, in tiles and two small
+   cards; Rooted's insights (sage, ✦) below. One series per chart, text in ink
+   tokens, the bars in ink2. Semantic tokens only; one 880px breakpoint. */
+
+.patterns {
+  width: 100%;
+  max-width: 1080px;
+  margin-inline: auto;
+}
+
+.patterns-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.patterns-intro {
+  gap: 12px;
+}
+
+.patterns-scope {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--chip-bg);
+}
+
+.patterns-section {
+  display: grid;
+  gap: 20px;
+}
+
+.patterns-h2 {
+  font-size: clamp(20px, 1.8vw, 24px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.patterns-h3 {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.patterns-text {
+  margin: 0;
+  max-width: 64ch;
+  line-height: 1.55;
+}
+
+.patterns-tiles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.patterns-tile {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 18px 20px;
+}
+
+.patterns-tile p {
+  margin: 0;
+}
+
+.patterns-tile-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink2);
+}
+
+.patterns-tile-value {
+  font-size: clamp(26px, 2.4vw, 32px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.patterns-tile-note {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink2);
+}
+
+.patterns-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.patterns-chart {
+  margin: 0;
+}
+
+.patterns-chart-head {
+  gap: 4px;
+}
+
+/* Bars: anchored to the baseline, rounded only at the data end, with a gutter
+   between columns. Six bars, so every count is printed above its bar; hover
+   repeats it with the full month. This month is labelled "so far" in words. */
+.patterns-bars {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  height: 180px;
+  padding-top: 8px;
+  border-bottom: 1px solid var(--card-rule);
+}
+
+.patterns-bar-col {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  align-items: end;
+  justify-items: center;
+  min-height: 0;
+}
+
+.patterns-bar-value {
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 18px;
+}
+
+.patterns-bar {
+  align-self: end;
+  width: min(100%, 40px);
+  min-height: 2px;
+  border-radius: 4px 4px 0 0;
+  background: var(--ink2);
+}
+
+.patterns-bar-col:last-child .patterns-bar {
+  background: var(--ink);
+}
+
+.patterns-bar-label {
+  position: absolute;
+  top: 100%;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--ink2);
+}
+
+.patterns-bar-col:hover::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 4px);
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--ground);
+  font-size: 13px;
+  white-space: nowrap;
+  z-index: 2;
+}
+
+.patterns-chart .card-section {
+  padding-bottom: 40px;
+}
+
+.patterns-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.patterns-table th,
+.patterns-table td {
+  padding: 10px 8px;
+  text-align: right;
+  border-bottom: 1px solid var(--card-rule);
+}
+
+.patterns-table th:first-child {
+  padding-left: 0;
+  text-align: left;
+}
+
+.patterns-table td:last-child,
+.patterns-table th:last-child {
+  padding-right: 0;
+}
+
+.patterns-table thead th {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink2);
+}
+
+.patterns-table tbody th {
+  font-weight: 600;
+}
+
+.patterns-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.patterns-rooted-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.patterns-rooted-intro {
+  gap: 8px;
+}
+
+.patterns-found {
+  margin: 0;
+  font-size: 14px;
+}
+
+.patterns-empty {
+  margin: 0;
+  padding: 24px;
+  border: 1px dashed var(--ai-line);
+  border-radius: 16px;
+  color: var(--ink2);
+}
+
+.patterns-insights {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+/* Rooted's own: a dashed sage edge and tint, like every suggestion (✦). */
+.patterns-insight {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 18px 20px 12px;
+  border-radius: 16px;
+  border: 1px dashed var(--ai-line);
+  background: var(--ai-bg);
+}
+
+.patterns-insight p {
+  margin: 0;
+}
+
+.patterns-insight-kind {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.patterns-insight-title {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.patterns-cited {
+  display: grid;
+  gap: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--card-rule);
+}
+
+.patterns-cited-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink2);
+}
+
+.patterns-cited-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+
+.patterns-cited-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.patterns-insight-actions {
+  gap: 4px;
+  margin-left: -12px;
+}
+
+@media (max-width: 880px) {
+  .patterns-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .patterns-pair,
+  .patterns-insights {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

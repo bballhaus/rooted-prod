@@ -10,5 +10,6 @@
   },
   "globs": ["**/*.md"],
   // Agent prompts and GitHub templates don't start with an H1 by design.
-  "ignores": ["node_modules/**", ".claude/**", ".github/**"]
+  // ai/.venv is the AI service's local Python environment (git ignores it).
+  "ignores": ["node_modules/**", ".claude/**", ".github/**", "ai/.venv/**"]
 }

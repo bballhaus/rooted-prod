@@ -4,8 +4,10 @@
 // A section of the decision workspace.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAi } from '../../agent/AiContext';
 import { describeSourceAccess, gatherBrief, gatherSteps } from '../../agent/brief';
-import { AGENT_DELAY_MS } from '../../agent/mockAgent';
+import { errorCode, type AiErrorCode } from '../../agent/client';
+import { AiErrorNotice } from '../../components/AiErrorNotice';
 import { Dialog } from '../../components/Dialog';
 import { ReportWrongAnswer } from '../../components/ReportWrongAnswer';
 import { newId, useStore } from '../../store/store';
@@ -25,37 +27,52 @@ const ORIGIN_LABELS: Record<ContextOrigin, string> = {
   'user-note': 'Your notes',
 };
 
+// How long each narration line shows while Claude reads.
+const STEP_MS = 1500;
+
 function useGather(decision: Decision | undefined) {
   const { state, dispatch } = useStore();
+  const ai = useAi();
   const [gathering, setGathering] = useState(false);
   const [step, setStep] = useState('');
+  const [error, setError] = useState<AiErrorCode | null>(null);
   const started = useRef<string | null>(null);
 
   function run() {
     if (!decision) return;
+    if (!ai) {
+      setError('not_configured');
+      return;
+    }
     const steps = gatherSteps(state);
+    setError(null);
     setGathering(true);
     setStep(steps[0]);
     let i = 0;
-    const timer = setInterval(
-      () => {
-        i = Math.min(i + 1, steps.length - 1);
-        setStep(steps[i]);
-      },
-      Math.max(80, Math.floor(AGENT_DELAY_MS / steps.length)),
-    );
-    void gatherBrief(decision, state).then(({ items, gaps }) => {
-      clearInterval(timer);
-      dispatch({ type: 'setBrief', decisionId: decision.id, items, gaps });
-      if (decision.status === 'framing') {
-        dispatch({ type: 'updateDecision', decisionId: decision.id, patch: { status: 'brief' } });
-      }
-      setGathering(false);
-      setStep('');
-    });
+    const timer = setInterval(() => {
+      i = Math.min(i + 1, steps.length - 1);
+      setStep(steps[i]);
+    }, STEP_MS);
+    gatherBrief(ai, decision, state)
+      .then(({ items, gaps }) => {
+        dispatch({ type: 'setBrief', decisionId: decision.id, items, gaps });
+        if (decision.status === 'framing') {
+          dispatch({ type: 'updateDecision', decisionId: decision.id, patch: { status: 'brief' } });
+        }
+      })
+      .catch((e) => setError(errorCode(e)))
+      .finally(() => {
+        clearInterval(timer);
+        setGathering(false);
+        setStep('');
+      });
   }
 
-  const hasItems = !!decision && state.contextItems.some((c) => c.decisionId === decision.id);
+  // A brief can come back with gaps and no items; that's still a brief, so
+  // don't pay for another one on every visit.
+  const hasItems =
+    !!decision &&
+    (state.contextItems.some((c) => c.decisionId === decision.id) || state.gaps.some((g) => g.decisionId === decision.id));
   useEffect(() => {
     if (!decision || hasItems || started.current === decision.id) return;
     started.current = decision.id;
@@ -63,23 +80,25 @@ function useGather(decision: Decision | undefined) {
     // Runs once when a decision with no brief is first shown.
   }, [decision?.id, hasItems]);
 
-  return { gathering, step, regather: run };
+  return { gathering, step, error, regather: run };
 }
 
 export function BriefSection({ decision }: { decision: Decision }) {
-  const { gathering, step, regather } = useGather(decision);
-  return <Brief decision={decision} gathering={gathering} step={step} regather={regather} />;
+  const { gathering, step, error, regather } = useGather(decision);
+  return <Brief decision={decision} gathering={gathering} step={step} error={error} regather={regather} />;
 }
 
 function Brief({
   decision,
   gathering,
   step,
+  error,
   regather,
 }: {
   decision: Decision;
   gathering: boolean;
   step: string;
+  error: AiErrorCode | null;
   regather: () => void;
 }) {
   const { state, dispatch } = useStore();
@@ -145,6 +164,11 @@ function Brief({
         </div>
       ) : (
         <>
+          {error && (
+            <AiErrorNotice code={error} onRetry={regather}>
+              <span className="muted">You can add your own context below.</span>
+            </AiErrorNotice>
+          )}
           {gaps.length > 0 && <GapsCallout gaps={gaps} decisionId={decision.id} />}
 
           <section aria-labelledby="brief-items-title" className="stack">
@@ -152,51 +176,57 @@ function Brief({
               <h2 id="brief-items-title" className="section-title">
                 Context <span className="muted tabular">({live.length})</span>
               </h2>
-              <div className="field brief-search">
-                <label htmlFor="brief-search">Search the brief</label>
-                <input
-                  id="brief-search"
-                  type="search"
-                  className="input"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Try “trial” or “#growth”"
-                />
-              </div>
+              {all.length > 0 && (
+                <div className="field brief-search">
+                  <label htmlFor="brief-search">Search the brief</label>
+                  <input
+                    id="brief-search"
+                    type="search"
+                    className="input"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Try “trial” or “#growth”"
+                  />
+                </div>
+              )}
             </div>
 
-            <div className="brief-filters" role="group" aria-label="Filter by theme">
-              <button type="button" className="toggle" aria-pressed={group === null} onClick={() => setGroup(null)}>
-                All themes
-              </button>
-              {groups.map((g) => (
-                <button
-                  key={g}
-                  type="button"
-                  className="toggle"
-                  aria-pressed={group === g}
-                  onClick={() => setGroup(group === g ? null : g)}
-                >
-                  {g}
-                </button>
-              ))}
-            </div>
-            <div className="brief-filters" role="group" aria-label="Filter by source">
-              <button type="button" className="toggle" aria-pressed={origin === null} onClick={() => setOrigin(null)}>
-                All sources
-              </button>
-              {origins.map((o) => (
-                <button
-                  key={o}
-                  type="button"
-                  className="toggle"
-                  aria-pressed={origin === o}
-                  onClick={() => setOrigin(origin === o ? null : o)}
-                >
-                  {ORIGIN_LABELS[o]}
-                </button>
-              ))}
-            </div>
+            {all.length > 0 && (
+              <>
+                <div className="brief-filters" role="group" aria-label="Filter by theme">
+                  <button type="button" className="toggle" aria-pressed={group === null} onClick={() => setGroup(null)}>
+                    All themes
+                  </button>
+                  {groups.map((g) => (
+                    <button
+                      key={g}
+                      type="button"
+                      className="toggle"
+                      aria-pressed={group === g}
+                      onClick={() => setGroup(group === g ? null : g)}
+                    >
+                      {g}
+                    </button>
+                  ))}
+                </div>
+                <div className="brief-filters" role="group" aria-label="Filter by source">
+                  <button type="button" className="toggle" aria-pressed={origin === null} onClick={() => setOrigin(null)}>
+                    All sources
+                  </button>
+                  {origins.map((o) => (
+                    <button
+                      key={o}
+                      type="button"
+                      className="toggle"
+                      aria-pressed={origin === o}
+                      onClick={() => setOrigin(origin === o ? null : o)}
+                    >
+                      {ORIGIN_LABELS[o]}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
 
             <p className="visually-hidden" role="status" aria-live="polite">
               {visible.length} of {live.length} items shown

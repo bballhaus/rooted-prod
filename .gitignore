@@ -19,3 +19,8 @@ coverage/
 .idea/
 *.swp
 *.tsbuildinfo
+
+# Python (the Modal service in ai/)
+.venv/
+__pycache__/
+.pytest_cache/

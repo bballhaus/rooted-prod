@@ -1,6 +1,7 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import { slackCorpus } from '../../data/slackCorpus';
 import { STORAGE_KEY } from '../../store/store';
+import { fakeAi } from '../../test/fakeAi';
 import { renderApp, signedInState } from '../../test/render';
 import type { AppState, Decision } from '../../types';
 
@@ -26,8 +27,19 @@ function stateWith(patch: Partial<Decision> = {}): AppState {
 
 const WAIT = { timeout: 4000 };
 
-async function openGathered(state = stateWith()) {
-  const utils = renderApp('/decisions/d-trial/brief', state);
+// Claude's pick, faked: the trial and billing messages it was sent, grouped by theme.
+type Sent = { ref: string; source: string; author?: string; date: string; text: string };
+const briefAnswer = (p: { messages: Sent[] }) => ({
+  items: p.messages
+    .filter((m) => /trial|billing|convert/i.test(m.text))
+    .slice(0, 6)
+    .map((m) => ({ kind: 'message', ref: m.ref, group: /billing/i.test(m.text) ? 'Billing' : 'Trials and conversion', source: m.source, author: m.author ?? null, date: m.date, text: m.text, link: null })),
+  gaps: ['What trial-to-paid rate are you aiming for?', 'Who owns the billing change?'],
+});
+const briefAi = () => fakeAi({ brief: briefAnswer });
+
+async function openGathered(state = stateWith(), ai = briefAi()) {
+  const utils = renderApp('/decisions/d-trial/brief', state, { ai });
   await screen.findByRole('heading', { name: /^Context/, level: 2 }, WAIT);
   return utils;
 }
@@ -38,12 +50,17 @@ function firstItem(): HTMLElement {
 
 describe('BriefPage', () => {
   it('F-06: shows a gathering state, then items from allowed sources only', async () => {
-    renderApp('/decisions/d-trial/brief', stateWith());
+    const ai = briefAi();
+    renderApp('/decisions/d-trial/brief', stateWith(), { ai });
     expect(screen.getByRole('status')).toHaveTextContent(/Reading #|Checking past decisions/);
     await screen.findByRole('heading', { name: /^Context/, level: 2 }, WAIT);
     expect(screen.getAllByRole('article').length).toBeGreaterThan(0);
     expect(screen.getByText(/Trial-to-paid is 11.4%/)).toBeInTheDocument();
 
+    // Nothing from a blocked channel is ever sent to the AI, so it can't show up.
+    const sent: Sent[] = ai.run.mock.calls[0][1].messages;
+    expect(sent.length).toBeGreaterThan(0);
+    expect(sent.some((m) => ['#sales', '#leadership', '#random'].includes(m.source))).toBe(false);
     const blocked = slackCorpus.filter((m) => ['ch-sales', 'ch-leadership', 'ch-random'].includes(m.channelId));
     for (const m of blocked) expect(screen.queryByText(m.text)).not.toBeInTheDocument();
     expect(screen.queryByText('Google Drive', { selector: '.pill' })).not.toBeInTheDocument();
@@ -125,8 +142,8 @@ describe('BriefPage', () => {
   it('F-09: gaps are shown and an answer is saved', async () => {
     const { user } = await openGathered();
     const gaps = screen.getByRole('region', { name: "What Rooted couldn't find" });
-    expect(within(gaps).getByText(/#sales isn't in your allowed channels/, { selector: 'p' })).toBeInTheDocument();
-    expect(within(gaps).getByText(/Google Drive isn't connected/, { selector: 'p' })).toBeInTheDocument();
+    expect(within(gaps).getByText('What trial-to-paid rate are you aiming for?', { selector: 'p' })).toBeInTheDocument();
+    expect(within(gaps).getByText('Who owns the billing change?', { selector: 'p' })).toBeInTheDocument();
     expect(within(gaps).getAllByRole('button', { name: 'Report wrong answer' }).length).toBeGreaterThanOrEqual(2);
 
     const input = within(gaps).getAllByRole('textbox')[0];
@@ -136,15 +153,27 @@ describe('BriefPage', () => {
     expect(within(gaps).getByRole('button', { name: /Edit your answer/ })).toBeInTheDocument();
   });
 
+  it('F-06: when Claude can’t gather, it says why, can retry, and the PM can add context themselves', async () => {
+    const ai = fakeAi({ brief: 'provider_timeout' });
+    const { user } = renderApp('/decisions/d-trial/brief', stateWith(), { ai });
+    expect(await screen.findByText('The AI took too long to answer. Try again.', {}, WAIT)).toBeInTheDocument();
+    expect(screen.getByLabelText('What should Rooted know?')).toBeInTheDocument();
+    ai.answers.brief = briefAnswer;
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+    await screen.findByText(/Trial-to-paid is 11.4%/, {}, WAIT);
+    expect(screen.queryByText('The AI took too long to answer. Try again.')).not.toBeInTheDocument();
+  });
+
   it('F-06: gather again asks first, then replaces edits', async () => {
-    const { user } = await openGathered();
+    const ai = briefAi();
+    const { user } = await openGathered(stateWith(), ai);
     await user.click(within(firstItem()).getByRole('button', { name: 'Remove' }));
     expect(screen.getByText('Removed (1)')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Gather again' }));
     expect(screen.getByRole('heading', { name: 'Gather context again?' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Replace the brief' }));
-    expect(await screen.findByText(/Reading #|Checking past/)).toBeInTheDocument();
+    await waitFor(() => expect(ai.run).toHaveBeenCalledTimes(2));
     await screen.findByRole('heading', { name: /^Context/, level: 2 }, WAIT);
     expect(screen.queryByText('Removed (1)')).not.toBeInTheDocument();
   });

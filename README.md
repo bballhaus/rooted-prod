@@ -2,7 +2,7 @@
 
 An AI decision partner and decision history for startup product managers. Rooted pulls context from where the team already works, helps the PM weigh the options, and keeps a searchable record of what was decided, why, and what happened next. The PM still makes the call.
 
-This is the product repo for Team 10 (Geckos), Stanford CS 177, Fall 2026. It holds the MVP prototype, a Vite + React app ([decision 0003](docs/decisions/0003-vite-react-prototype.md)) hosted on Vercel ([0011](docs/decisions/0011-host-on-vercel.md)). Sign-in, Slack and teammates are mocked on synthetic data, and the agent gives labelled sample answers until an LLM provider is chosen. Run it with `npm ci && npm run dev`. The landing page at [rooted-stanford.vercel.app](https://rooted-stanford.vercel.app/) lives in a separate repo.
+This is the product repo for Team 10 (Geckos), Stanford CS 177, Fall 2026. It holds the MVP prototype, a Vite + React app ([decision 0003](docs/decisions/0003-vite-react-prototype.md)) hosted on Vercel ([0011](docs/decisions/0011-host-on-vercel.md)). Sign-in is real (email link, Google or Slack, [0015](docs/decisions/0015-real-sign-in.md)), every agent feature calls Claude through a Python service on Modal ([0016](docs/decisions/0016-ai-on-modal-with-claude.md), in [`ai/`](ai/README.md)), and Slack connects for real ([0017](docs/decisions/0017-real-slack-connection.md)). New accounts start empty; the sample company is the "Explore the demo" workspace ([0018](docs/decisions/0018-empty-workspace-for-real-users.md)). Run the app with `npm ci && npm run dev`. The landing page at [rooted-stanford.vercel.app](https://rooted-stanford.vercel.app/) lives in a separate repo.
 
 ## Start here
 

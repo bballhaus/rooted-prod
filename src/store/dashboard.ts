@@ -47,6 +47,11 @@ export function decisionDate(d: Decision): string {
   return localToday(new Date(d.loggedAt ?? d.createdAt));
 }
 
+/** A decision's goal: its goal label, else its first tag. */
+export function goalOf(d: Decision): string | undefined {
+  return d.metric ?? d.tags?.[0]?.label;
+}
+
 export function chosenLabel(d: Decision, state: Pick<AppState, 'options'>): string | undefined {
   return state.options.find((o) => o.id === d.chosenOptionId)?.label;
 }

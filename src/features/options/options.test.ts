@@ -1,123 +1,89 @@
 import { describe, expect, it } from 'vitest';
-import { citableContext, generateOptions, parseEitherOr, pickTemplate } from '../../agent/options';
-import type { ContextItem, Decision, Gap } from '../../types';
+import { citableContext, fetchOptions } from '../../agent/options';
+import { seedState } from '../../data/fixtures';
+import { fakeAi } from '../../test/fakeAi';
+import type { AppState, ContextItem, Decision, OptionNode } from '../../types';
 
-function decision(question: string, patch: Partial<Decision> = {}): Decision {
+const decision: Decision = {
+  id: 'd-trial',
+  question: 'Should the trial use a usage limit or a 14-day time limit?',
+  notes: 'Conversion slipped.',
+  links: [],
+  constraints: ['No new billing code'],
+  status: 'brief',
+  createdAt: '2026-10-20T17:00:00.000Z',
+};
+
+const item = (id: string, patch: Partial<ContextItem> = {}): ContextItem => ({
+  id,
+  decisionId: 'd-trial',
+  origin: 'slack',
+  sourceLabel: '#growth',
+  date: '2026-10-14',
+  snippet: `Evidence ${id}`,
+  group: 'Usage',
+  flaggedInaccurate: false,
+  userEdited: false,
+  removed: false,
+  ...patch,
+});
+
+function state(patch: Partial<AppState> = {}): AppState {
+  const base = seedState();
   return {
-    id: 'd-test',
-    question,
-    notes: 'Trial-to-paid conversion slipped from 14% to 11% this quarter.',
-    links: [],
-    constraints: ['No new eng headcount'],
-    status: 'brief',
-    createdAt: '2026-10-20T17:00:00.000Z',
+    ...base,
+    decisions: [decision, ...base.decisions],
+    contextItems: [item('c-1'), item('c-gone', { removed: true }), item('c-wrong', { flaggedInaccurate: true }), item('c-other', { decisionId: 'd-other' })],
+    gaps: [{ id: 'g-1', decisionId: 'd-trial', question: 'What conversion target?', answer: '15%' }],
     ...patch,
   };
 }
 
-function item(id: string, patch: Partial<ContextItem> = {}): ContextItem {
-  return {
-    id,
-    decisionId: 'd-test',
-    origin: 'slack',
-    sourceLabel: '#growth',
-    author: 'Sam (Growth eng)',
-    date: '2026-10-14',
-    snippet: 'Most trials that convert hit the usage limit in week one.',
-    group: 'Usage',
-    flaggedInaccurate: false,
-    userEdited: false,
-    removed: false,
-    ...patch,
-  };
-}
-
-const items: ContextItem[] = [
-  item('c-1'),
-  item('c-2', {
-    sourceLabel: '#customer-feedback',
-    snippet: 'Admins say 14 days is too short to get legal sign-off.',
-  }),
-  item('c-3', { snippet: 'Removed: old pricing thread.', removed: true }),
-  item('c-4', {
-    snippet: 'Flagged: wrong conversion number.',
-    flaggedInaccurate: true,
-  }),
-  item('c-5', {
-    decisionId: 'd-other',
-    snippet: 'Belongs to another decision.',
-  }),
-];
-const gaps: Gap[] = [
-  {
-    id: 'g-1',
-    decisionId: 'd-test',
-    question: 'How many trials hit the limit before day 14?',
-  },
-];
-
-describe('generateOptions', () => {
-  it('F-10: returns 2–4 open top-level options with label, summary, pros, cons and a 0–100 score', () => {
-    const questions = [
-      'Should the trial use a usage limit or a 14-day time limit?',
-      'Build or buy an SSO integration?',
-      'How should we price the API add-on?',
-      'Ship the Salesforce sync this quarter?',
-      'Redesign the billing settings page',
-    ];
-    for (const q of questions) {
-      const opts = generateOptions(decision(q), items, gaps);
-      expect(opts.length).toBeGreaterThanOrEqual(2);
-      expect(opts.length).toBeLessThanOrEqual(4);
-      for (const o of opts) {
-        expect(o.parentId).toBeNull();
-        expect(o.state).toBe('open');
-        expect(o.decisionId).toBe('d-test');
-        expect(o.label).not.toBe('');
-        expect(o.summary).not.toBe('');
-        expect(o.pros.length).toBeGreaterThan(0);
-        expect(o.cons.length).toBeGreaterThan(0);
-        expect(o.score).toBeGreaterThanOrEqual(0);
-        expect(o.score).toBeLessThanOrEqual(100);
-      }
-      expect(new Set(opts.map((o) => o.id)).size).toBe(opts.length);
-    }
+describe('options', () => {
+  it('F-08: only this decision’s context that the PM hasn’t removed or marked wrong can be cited', () => {
+    expect(citableContext('d-trial', state().contextItems).map((c) => c.id)).toEqual(['c-1']);
   });
 
-  it('F-10: is deterministic for the same inputs', () => {
-    const d = decision('Should the trial use a usage limit or a 14-day time limit?');
-    expect(generateOptions(d, items, gaps)).toEqual(generateOptions(d, items, gaps));
+  it('F-10: sends the framing, trusted evidence, the gaps and their answers, and past decisions', async () => {
+    const ai = fakeAi();
+    await fetchOptions(ai, decision, state());
+    const [task, payload] = ai.run.mock.calls[0];
+    expect(task).toBe('options');
+    expect(payload.decision).toEqual({ question: decision.question, notes: 'Conversion slipped.', constraints: ['No new billing code'] });
+    expect(payload.evidence.map((e: { id: string }) => e.id)).toEqual(['c-1']);
+    expect(payload.gaps).toEqual([{ question: 'What conversion target?', answer: '15%' }]);
+    expect(payload.pastDecisions.length).toBeGreaterThan(0);
+    expect(payload.pastDecisions.every((d: { id: string }) => d.id !== 'd-trial')).toBe(true);
   });
 
-  it('F-10: cites only non-removed, non-flagged context for this decision', () => {
-    const opts = generateOptions(decision('Should the trial use a usage limit or a 14-day time limit?'), items, gaps);
-    const cited = opts.flatMap((o) => o.contextIds);
-    expect(cited.sort()).toEqual(['c-1', 'c-2']);
-    expect(citableContext('d-test', items).map((c) => c.id)).toEqual(['c-1', 'c-2']);
+  it('F-10: maps Claude’s branches to open top-level options with their ratings, evidence and linked decision', async () => {
+    const ai = fakeAi({
+      options: {
+        options: [
+          { label: 'Usage limit', summary: 's', pros: ['p'], cons: ['c'], score: 72, criteria: { impact: 4, effort: 2, risk: 2, evidence: 3 }, contextIds: ['c-1'], linkedDecisionId: 'd-pricing-seats' },
+          { label: 'Time limit', summary: 's', pros: [], cons: [], score: 40, criteria: { impact: 2, effort: 1, risk: 3, evidence: 1 }, contextIds: [], linkedDecisionId: null },
+        ],
+      },
+    });
+    const options = await fetchOptions(ai, decision, state());
+    expect(options.map((o) => [o.label, o.parentId, o.state, o.score])).toEqual([
+      ['Usage limit', null, 'open', 72],
+      ['Time limit', null, 'open', 40],
+    ]);
+    expect(options[0]).toMatchObject({ contextIds: ['c-1'], linkedDecisionId: 'd-pricing-seats', criteria: { impact: 4 } });
+    expect(options[1].linkedDecisionId).toBeUndefined();
   });
 
-  it('F-10: parses "X or Y?" questions into two branches plus a gather-evidence branch', () => {
-    expect(parseEitherOr('Should onboarding use a checklist or a guided tour?')).toEqual(['Checklist', 'Guided tour']);
-    expect(parseEitherOr('Charge per seat or per workspace for the Team plan?')).toEqual(['Per seat', 'Per workspace']);
-    expect(parseEitherOr('Ship dark mode or not?')).toBeNull();
-    const opts = generateOptions(decision('Should onboarding use a checklist or a guided tour?'), [], []);
-    expect(opts.map((o) => o.label)).toEqual(['Checklist', 'Guided tour', 'Gather more evidence first']);
+  it('F-10: new branches never take the id of an option the PM added', async () => {
+    const mine: OptionNode = { id: 'o-trial-1', decisionId: 'd-trial', parentId: null, label: 'Mine', summary: '', pros: [], cons: [], score: 0, contextIds: [], state: 'open' };
+    // The PM's own options use the o-user- prefix; anything else with a clashing id is replaced by the new set.
+    const userOwn = { ...mine, id: 'o-user-1' };
+    const options = await fetchOptions(fakeAi(), decision, state({ options: [userOwn] }));
+    expect(options.every((o) => o.id !== 'o-user-1')).toBe(true);
+    expect(new Set(options.map((o) => o.id)).size).toBe(options.length);
   });
 
-  it('F-10: picks build vs buy, pricing, now vs later and generic templates', () => {
-    expect(pickTemplate('Build or buy an SSO integration?')).toBe('build-vs-buy');
-    expect(pickTemplate('How should we price the API add-on?')).toBe('pricing');
-    expect(pickTemplate('Ship the Salesforce sync this quarter?')).toBe('now-vs-later');
-    expect(pickTemplate('Redesign the billing settings page')).toBe('generic');
-    const generic = generateOptions(decision('Redesign the billing settings page'), items, gaps);
-    expect(generic.some((o) => /evidence/i.test(o.label))).toBe(true);
-    const buy = generateOptions(decision('Build or buy an SSO integration?'), [], []);
-    expect(buy.map((o) => o.label)).toContain('Buy a vendor tool');
-  });
-
-  it('F-10: the gather-evidence branch names an open gap from the brief', () => {
-    const opts = generateOptions(decision('Redesign the billing settings page'), items, gaps);
-    const defer = opts.find((o) => o.label === 'Gather more evidence first')!;
-    expect(defer.pros.join(' ')).toContain('How many trials hit the limit before day 14?');
+  it('F-10: a failure comes back as an error, never a made-up set of options', async () => {
+    await expect(fetchOptions(fakeAi({ options: 'provider_busy' }), decision, state())).rejects.toMatchObject({ code: 'provider_busy' });
   });
 });

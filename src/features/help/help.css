@@ -1,26 +1,96 @@
 /* Help page. Semantic tokens only; one 880px breakpoint. */
 
 .help-search {
-  max-width: 560px;
+  max-width: none;
 }
 
 .help-topics {
   display: grid;
-  gap: 24px;
-  max-width: 880px;
+  gap: 20px;
+}
+
+/* Two ways to reach a person, as link cards above the answers. */
+.help-routes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.help-route {
+  display: grid;
+  gap: 4px;
+  padding: 20px 24px;
+  text-decoration: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.help-route:hover {
+  border-color: var(--line);
+}
+
+.help-route-title {
+  font-weight: 600;
+}
+
+.help-route-title::after {
+  content: ' →';
+}
+
+.help-route-text {
+  font-size: 14px;
+  color: var(--ink2);
+}
+
+.help-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  width: fit-content;
+  color: var(--ink2);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.help-back:hover {
+  color: var(--ink);
+}
+
+.help-form {
+  padding: 24px 28px 28px;
+}
+
+.help-note {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink2);
 }
 
 .help-topic h3 {
   margin: 0;
 }
 
+.help-topic .kicker {
+  padding-top: 16px;
+  padding-bottom: 8px;
+}
+
+.help-faq {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
 .help-faq summary {
   display: flex;
   align-items: center;
-  min-height: 44px;
-  font-weight: 600;
+  min-height: 48px;
+  font-weight: 500;
   cursor: pointer;
   list-style-position: inside;
+}
+
+.help-faq[open] {
+  padding-bottom: 16px;
 }
 
 .help-faq summary::-webkit-details-marker {
@@ -37,14 +107,12 @@
   margin: 0;
 }
 
-.help-forms {
-  align-items: start;
-}
-
 .help-status {
   margin: 0;
-  min-height: 1.5em;
-  font-weight: 600;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--chip-bg);
+  font-size: 14px;
 }
 
 .help-reports {
@@ -83,4 +151,14 @@
   padding: 8px 16px;
   border-left: 2px solid var(--card-border);
   color: var(--ink2);
+}
+
+@media (max-width: 880px) {
+  .help-routes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .help-form {
+    padding: 20px;
+  }
 }

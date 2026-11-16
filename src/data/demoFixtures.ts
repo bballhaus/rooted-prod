@@ -904,6 +904,7 @@ function plantedState(): AppState {
     outcomes,
     suggestions: [],
     messages: [],
+    insights: [],
     demo: true,
   };
 }

@@ -1,10 +1,12 @@
 // Core data objects, named after docs/product/features.md §6.
 // Everything in the prototype is fake data held in the client store.
 
-export type Provider = 'google' | 'slack';
+// How the PM signed in (decision 0015): an email link, Google or Slack.
+export type Provider = 'google' | 'slack' | 'email';
 
 export interface User {
-  id: string;
+  id: string; // the PM's id inside this workspace (their teammate id)
+  authId?: string; // their Supabase Auth user id, once really signed in
   name: string;
   email: string;
   role: string;
@@ -30,6 +32,10 @@ export interface Source {
   connected: boolean;
   connectedAt?: string;
   channels: Channel[]; // for google-drive these are folders
+  // Sample content for the demo (0009), read from src/data/slackCorpus.ts.
+  // A live source is a real connection, read on the server (0017).
+  sample?: boolean;
+  unavailable?: boolean; // not offered yet (Google Drive for real workspaces)
 }
 
 // Fake teammates, so the map can show who made each call (decision record 0005).
@@ -156,7 +162,7 @@ export interface SuggestedDecision {
   id: string;
   question: string;
   why: string;
-  evidence: { sourceLabel: string; author?: string; snippet: string }[];
+  evidence: { sourceLabel: string; author?: string; snippet: string; link?: string }[];
   suggestedAt: string;
   status: 'new' | 'started' | 'dismissed';
   decisionId?: string; // set once the PM starts it
@@ -175,19 +181,38 @@ export interface ChatMessage {
   role: 'user' | 'agent';
   text: string;
   citations?: Citation[];
-  sample?: boolean; // true when the scripted fallback answered, not the LLM
+  // The AI couldn't answer: `text` holds the error message and `retry` the
+  // question to ask again. Not part of the conversation sent to Claude.
+  failed?: boolean;
+  retry?: string;
+  failedCode?: string; // which error, so the chat only offers a retry that can work
   edited?: boolean;
   createdAt: string;
 }
 
 export interface WrongAnswerReport {
   id: string;
-  surface: 'brief' | 'gap' | 'option' | 'record' | 'chat' | 'link' | 'suggestion' | 'tag' | 'other';
+  surface: 'brief' | 'gap' | 'option' | 'record' | 'chat' | 'link' | 'suggestion' | 'tag' | 'insight' | 'other';
   targetId?: string;
   decisionId?: string;
   excerpt?: string; // what the agent said
   note: string; // what the PM says is wrong
   createdAt: string;
+}
+
+// F-R3-05 (0019): a pattern, trend or prediction Rooted found across the
+// decisions. It's Rooted's (✦) and stays editable and reportable (F-08, F-28).
+export interface Insight {
+  id: string;
+  kind: 'pattern' | 'trend' | 'prediction' | 'risk';
+  title: string;
+  detail: string;
+  decisionIds: string[]; // the decisions it rests on, all real ones
+  confidence?: 'low' | 'medium' | 'high'; // how sure Rooted is; predictions always have one
+  watchFor?: string; // predictions: what would confirm or rule it out
+  foundAt: string;
+  userEdited: boolean;
+  dismissed: boolean;
 }
 
 export interface AppState {
@@ -203,13 +228,18 @@ export interface AppState {
   outcomes: Outcome[];
   suggestions: SuggestedDecision[];
   messages: ChatMessage[];
+  insights: Insight[];
   // True when the planted demo workspace is loaded, so the UI can label it
   // as sample data rather than the PM's own decisions (0009).
   demo: boolean;
   // The PM's own workspace, kept aside while the demo is loaded so leaving the
   // demo brings it back (0009). Never set outside the demo.
   beforeDemo?: Workspace;
+  // Whose workspace this browser holds, kept through sign-out, so the same
+  // person comes back to it and anyone else starts fresh (0015).
+  lastUser?: User;
 }
 
-// Everything the PM owns in a workspace: what the demo swaps out and back in.
-export type Workspace = Omit<AppState, 'user' | 'sources' | 'demo' | 'beforeDemo'>;
+// Everything the PM owns in a workspace, sources included: what the demo
+// swaps out and back in.
+export type Workspace = Omit<AppState, 'user' | 'demo' | 'beforeDemo' | 'lastUser'>;
