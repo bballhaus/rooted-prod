@@ -13,6 +13,9 @@ class Settings:
     # Browser origins allowed to call the service. The first is where Slack's
     # install flow sends the PM back to.
     app_origins: tuple[str, ...]
+    # Optional: a pattern for more origins, such as the team's own Vercel deploy
+    # URLs, which change on every deploy. Matched against the whole origin.
+    app_origin_regex: str = ""
     # Spending across all users per UTC day. With open sign-up (0015), a new
     # account resets a per-user limit, so this cap is the real bound.
     daily_budget_usd: float = 5.0
@@ -34,6 +37,7 @@ class Settings:
             supabase_url=os.environ.get("SUPABASE_URL", "").rstrip("/"),
             supabase_anon_key=os.environ.get("SUPABASE_ANON_KEY", ""),
             app_origins=origins,
+            app_origin_regex=os.environ.get("APP_ORIGIN_REGEX", "").strip(),
             daily_budget_usd=float(os.environ.get("DAILY_BUDGET_USD", "5")),
             user_calls_per_window=int(os.environ.get("USER_CALLS_PER_WINDOW", "30")),
             window_seconds=int(os.environ.get("RATE_WINDOW_SECONDS", "600")),

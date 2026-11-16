@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from urllib.parse import parse_qs, urlparse
 
 import anthropic
@@ -9,7 +10,10 @@ import httpx
 import pytest
 
 from rooted_ai import slack
-from tests.conftest import AUTH, NOW, SETTINGS, reply
+from fastapi.testclient import TestClient
+
+from rooted_ai.server import Deps, create_app
+from tests.conftest import AUTH, NOW, SETTINGS, FakeClaude, FakeSlack, MemoryStore, reply
 
 DAY = "spend:2026-11-06"  # NOW, as a UTC day
 
@@ -300,3 +304,24 @@ def test_status_says_revoked_when_slack_revoked_it_since_the_last_visit(env):
     connect_slack(env)
     env.slack_api.handlers["conversations.list"] = lambda **_: slack.SlackError("token_revoked")
     assert env.client.get("/slack/status", headers=AUTH).json()["result"] == {"available": True, "connected": False, "revoked": True}
+
+
+def _preflight(client: TestClient, origin: str):
+    return client.options("/agent", headers={"Origin": origin, "Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "authorization,content-type"})
+
+
+def test_only_listed_origins_may_call_the_service(env):
+    assert _preflight(env.client, "https://rooted.example").headers.get("access-control-allow-origin") == "https://rooted.example"
+    assert _preflight(env.client, "https://rooted-prod-abc123-team.vercel.app").status_code == 400
+
+
+def test_an_origin_pattern_lets_the_teams_own_vercel_deploys_call_the_service():
+    settings = replace(SETTINGS, app_origin_regex=r"https://rooted-prod-[a-z0-9-]+-team\.vercel\.app")
+    deps = Deps(settings=settings, verify=lambda t: None, store=MemoryStore(), claude=FakeClaude(), slack_api=FakeSlack(), clock=lambda: NOW)
+    client = TestClient(create_app(deps))
+    ok = "https://rooted-prod-abc123-team.vercel.app"
+    assert _preflight(client, ok).headers.get("access-control-allow-origin") == ok
+    # Anchored: another team's lookalike, or a suffix trick, doesn't match.
+    assert _preflight(client, "https://rooted-prod-abc123-team.vercel.app.evil.example").status_code == 400
+    assert _preflight(client, "https://rooted-prod-abc123-other.vercel.app").status_code == 400
+    assert _preflight(client, "https://rooted.example").status_code == 200

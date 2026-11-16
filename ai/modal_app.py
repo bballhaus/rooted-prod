@@ -2,7 +2,7 @@
 
 A person deploys it (`modal deploy ai/modal_app.py`); agents don't. Secrets:
 - rooted-anthropic: ANTHROPIC_API_KEY
-- rooted-ai-config: SUPABASE_URL, SUPABASE_ANON_KEY, APP_ORIGINS, DAILY_BUDGET_USD
+- rooted-ai-config: SUPABASE_URL, SUPABASE_ANON_KEY, APP_ORIGINS, DAILY_BUDGET_USD, and optionally APP_ORIGIN_REGEX
 - rooted-slack: SLACK_CLIENT_ID, SLACK_CLIENT_SECRET, SLACK_STATE_SECRET, SLACK_REDIRECT_URI
 """
 

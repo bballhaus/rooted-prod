@@ -183,12 +183,25 @@
   border: 0;
 }
 
+.site-header .popover-panel .pill {
+  background: var(--chip-bg);
+  color: var(--ink);
+}
+
+.site-header .popover-panel .badge {
+  background: var(--alert);
+  color: var(--ground);
+}
+
 /* Popovers: the avatar menu and the inbox */
 .popover {
   position: relative;
 }
 
+/* Panels open from the wine header but sit on a light card, so they take back
+   the page's ink and their own pill and badge colors, not the header's cream. */
 .popover-panel {
+  color: var(--ink);
   position: absolute;
   right: 0;
   top: calc(100% + 8px);
