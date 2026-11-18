@@ -1,0 +1,3789 @@
+{
+  "meta": {
+    "title": "extraction",
+    "ranAt": "2026-11-18 01:31 UTC",
+    "modelUnderTest": "claude-sonnet-5-5",
+    "promptVersion": "77ca572b7f",
+    "commit": "a562323",
+    "judges": [
+      "claude-opus-5-5",
+      "claude-sonnet-5-5"
+    ],
+    "costUsd": 1.2839619999999998,
+    "costByRole": {
+      "under_test": 0.253088,
+      "judgeA": 0.7280159999999998,
+      "judgeB": 0.302858
+    },
+    "calls": 134,
+    "minutes": 1.5100326012333334
+  },
+  "analysis": {
+    "conversations": 50,
+    "usable": 50,
+    "gold": 54,
+    "recallA": {
+      "hit": 54,
+      "n": 54,
+      "rate": 1.0,
+      "wilson": [
+        0.9335864119091037,
+        1.0
+      ],
+      "bootstrap": [
+        1.0,
+        1.0
+      ]
+    },
+    "recallB": {
+      "hit": 54,
+      "n": 54,
+      "rate": 1.0,
+      "wilson": [
+        0.9335864119091037,
+        1.0
+      ]
+    },
+    "recallVisible": {
+      "hit": 46,
+      "n": 46,
+      "rate": 1.0,
+      "wilson": [
+        0.9229264369144198,
+        1.0
+      ]
+    },
+    "recallByRefs": {
+      "hit": 54,
+      "n": 54,
+      "rate": 1.0,
+      "wilson": [
+        0.9335864119091037,
+        1.0
+      ]
+    },
+    "accuracyA": {
+      "good": 36,
+      "n": 54,
+      "rate": 0.6666666666666666,
+      "wilson": [
+        0.5336096360112935,
+        0.7775858346250742
+      ],
+      "bootstrap": [
+        0.5370370370370371,
+        0.7962962962962963
+      ],
+      "mean": 4.092592592592593
+    },
+    "accuracyB": {
+      "good": 22,
+      "n": 54,
+      "rate": 0.4074074074074074,
+      "wilson": [
+        0.2867821208591458,
+        0.5403315065650943
+      ],
+      "mean": 3.3703703703703702
+    },
+    "precision": {
+      "matched": 54,
+      "n": 54,
+      "rate": 1.0,
+      "wilson": [
+        0.9335864119091037,
+        1.0
+      ],
+      "realButUntagged": 0
+    },
+    "noiseOnly": {
+      "conversations": 8,
+      "suggestions": 0
+    },
+    "agreement": {
+      "matchKappa": 1.0,
+      "matchAgree": 1.0,
+      "matchItems": 54,
+      "accurateKappa": 0.3720930232558139,
+      "accurateAgree": 0.6666666666666666,
+      "scoreWeightedKappa": 0.4159733777038268,
+      "scoreItems": 54
+    },
+    "byStyle": {
+      "buried": {
+        "matched": 9,
+        "n": 9,
+        "accurate": 8,
+        "rated": 9
+      },
+      "consensus": {
+        "matched": 8,
+        "n": 8,
+        "accurate": 4,
+        "rated": 8
+      },
+      "explicit": {
+        "matched": 7,
+        "n": 7,
+        "accurate": 2,
+        "rated": 7
+      },
+      "open": {
+        "matched": 6,
+        "n": 6,
+        "accurate": 6,
+        "rated": 6
+      },
+      "reaction": {
+        "matched": 7,
+        "n": 7,
+        "accurate": 7,
+        "rated": 7
+      },
+      "reversed": {
+        "matched": 9,
+        "n": 9,
+        "accurate": 9,
+        "rated": 9
+      },
+      "threaded": {
+        "matched": 8,
+        "n": 8,
+        "accurate": 0,
+        "rated": 8
+      }
+    },
+    "latency": {
+      "p50": 2.6100000000000003,
+      "p95": 5.400999999999998
+    },
+    "messages": {
+      "inSlack": 814,
+      "sentToClaude": 688
+    }
+  },
+  "conversations": [
+    {
+      "conversation": "conv-00",
+      "channel": "#general",
+      "sentToClaude": 9,
+      "inSlack": 9,
+      "ok": true,
+      "error": null,
+      "seconds": 2.0,
+      "suggestions": [],
+      "gold": [],
+      "matchedByRefs": {},
+      "judgeA": null,
+      "judgeB": null
+    },
+    {
+      "conversation": "conv-01",
+      "channel": "#eng",
+      "sentToClaude": 13,
+      "inSlack": 15,
+      "ok": true,
+      "error": null,
+      "seconds": 2.28,
+      "suggestions": [
+        {
+          "question": "Should we move docs to Mintlify or keep GitBook?",
+          "why": "Priya framed it as a call to make and then said 'decision: move to Mintlify', but Dana objected that a migration is a week the team doesn't have, and nothing is recorded yet.",
+          "refs": [
+            "C01BRIGHT:1792958632.590874",
+            "C01BRIGHT:1792959457.811252",
+            "C01BRIGHT:1792959849.854944"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g01-0",
+          "topic": "docs-platform",
+          "question": "Should we move docs to Mintlify or keep GitBook?",
+          "status": "decided",
+          "chosen": "move docs to Mintlify",
+          "options": [
+            "move docs to Mintlify",
+            "keep GitBook"
+          ],
+          "style": "explicit",
+          "key_ts": [
+            "1792958632.590874",
+            "1792961534.360008"
+          ],
+          "summary": "Decided to move docs to Mintlify rather than keep GitBook, because search in GitBook is bad and it shows in tickets.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g01-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g01-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It notes Priya's decision for Mintlify but frames it as contested, citing Dana's objection that came before the decision and ignoring the four checkmark approvals, and it omits the stated reason that GitBook search is bad and shows up in support tickets."
+          }
+        },
+        "goldReasons": {
+          "g01-0": "Suggestion 0 covers the same choice of moving docs to Mintlify versus keeping GitBook."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g01-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It is a real decision and identifies the topic, but it wrongly says nothing is recorded and frames it as unresolved after Dana's objection, omitting that Priya's decision was made with 4 checkmark reactions and the reason (bad search, shown in tickets), though Priya said she'd write it up."
+          }
+        },
+        "goldReasons": {
+          "g01-0": "Suggestion 0 is about the same choice, moving docs to Mintlify versus keeping GitBook."
+        }
+      }
+    },
+    {
+      "conversation": "conv-02",
+      "channel": "#ops",
+      "sentToClaude": 11,
+      "inSlack": 11,
+      "ok": true,
+      "error": null,
+      "seconds": 2.47,
+      "suggestions": [
+        {
+          "question": "Should we start a weekly on-call rotation for incidents?",
+          "why": "Marcus said two incidents sat for hours over the weekend and proposed a weekly rotation, and Ben and Rosa seemed to agree, but no decision is recorded.",
+          "refs": [
+            "C02BRIGHT:1793945032.572428",
+            "C02BRIGHT:1793945212.237081",
+            "C02BRIGHT:1793947961.823216"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g02-0",
+          "topic": "on-call",
+          "question": "Should we start a formal on-call rotation?",
+          "status": "decided",
+          "chosen": "start a weekly on-call rotation",
+          "options": [
+            "start a weekly on-call rotation",
+            "stay best-effort with no rotation"
+          ],
+          "style": "consensus",
+          "key_ts": [
+            "1793945032.572428",
+            "1793947961.823216"
+          ],
+          "summary": "The team agreed to start a weekly on-call rotation, because two incidents sat for hours over the weekend.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g02-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g02-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It gets the choice and the reason (two weekend incidents) right, but it says no decision is recorded even though Ben and Rosa agreed and Marcus committed to making the ticket, so it treats a decided question as open."
+          }
+        },
+        "goldReasons": {
+          "g02-0": "Suggestion 0 covers the same choice: starting a weekly on-call rotation."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g02-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "The choice and reason are correct, but it says no decision is recorded and treats the question as open, when Ben's +1, Rosa's sgtm and Marcus saying he'll make the ticket show the team agreed."
+          }
+        },
+        "goldReasons": {
+          "g02-0": "Suggestion 0 is about the same choice, starting a weekly on-call rotation, as the tagged decision."
+        }
+      }
+    },
+    {
+      "conversation": "conv-03",
+      "channel": "#sales",
+      "sentToClaude": 5,
+      "inSlack": 9,
+      "ok": true,
+      "error": null,
+      "seconds": 2.0,
+      "suggestions": [
+        {
+          "question": "Should we pay sales commission on bookings or on cash collected?",
+          "why": "Priya posted a poll in #sales asking exactly this, with options for cash collected or bookings, and no decision is recorded yet.",
+          "refs": [
+            "C03BRIGHT:1793530813.228664"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g03-0",
+          "topic": "commission",
+          "question": "Should sales commission be paid on bookings or on cash collected?",
+          "status": "decided",
+          "chosen": "pay commission on cash collected",
+          "options": [
+            "pay commission on cash collected",
+            "pay commission on bookings"
+          ],
+          "style": "threaded",
+          "key_ts": [
+            "1793530813.228664",
+            "1793531343.161598"
+          ],
+          "summary": "Polled the team; decided to pay commission on cash collected.",
+          "visible_to_reader": false
+        }
+      ],
+      "matchedByRefs": {
+        "g03-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g03-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It identifies the right choice but wrongly says no decision is recorded, when Priya closed the thread with the decision to pay commission on cash collected."
+          }
+        },
+        "goldReasons": {
+          "g03-0": "Suggestion 0 asks about the same choice of paying commission on bookings versus cash collected."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g03-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 2,
+            "reason": "It is a real team choice, but the suggestion claims no decision is recorded when Priya announced in the thread that commission will be paid on cash collected, so the status is wrong."
+          }
+        },
+        "goldReasons": {
+          "g03-0": "Suggestion 0 asks about the same choice, paying sales commission on bookings versus cash collected."
+        }
+      }
+    },
+    {
+      "conversation": "conv-04",
+      "channel": "#support",
+      "sentToClaude": 16,
+      "inSlack": 17,
+      "ok": true,
+      "error": null,
+      "seconds": 2.73,
+      "suggestions": [
+        {
+          "question": "Should we use Intercom or Zendesk for support?",
+          "why": "Priya says the team must decide by end of next week, Leo favors Intercom since in-app chat is where tickets start, and Marcus prefers staying on Zendesk because migrating macros is painful.",
+          "refs": [
+            "C04BRIGHT:1793967511.715092",
+            "C04BRIGHT:1793967795.598682",
+            "C04BRIGHT:1793969475.455907"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g04-0",
+          "topic": "support-tool",
+          "question": "Should we use Intercom or Zendesk for support?",
+          "status": "open",
+          "chosen": null,
+          "options": [
+            "switch to Intercom",
+            "stay on Zendesk"
+          ],
+          "style": "open",
+          "key_ts": [
+            "1793967511.715092",
+            "1793970196.618851"
+          ],
+          "summary": "Still open: switch to Intercom vs stay on Zendesk; to be settled at Thursday's sync.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g04-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g04-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "It correctly frames the open choice and both positions, but omits that Priya deferred it to Thursday's sync and Aisha's 62% in-app ticket data."
+          }
+        },
+        "goldReasons": {
+          "g04-0": "Suggestion 0 addresses the same Intercom vs Zendesk support tool choice."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g04-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "It correctly captures the question, the deadline, and both positions with their reasons, but omits that it was deferred to Thursday's sync with no decision yet and Aisha's 62% data point, though it does not claim a decision was made."
+          }
+        },
+        "goldReasons": {
+          "g04-0": "Suggestion 0 is about the same Intercom vs Zendesk support tool choice as the tagged decision."
+        }
+      }
+    },
+    {
+      "conversation": "conv-05",
+      "channel": "#sales",
+      "sentToClaude": 18,
+      "inSlack": 24,
+      "ok": true,
+      "error": null,
+      "seconds": 3.47,
+      "suggestions": [
+        {
+          "question": "Should we keep SSO on Enterprise only, or open it up to lower tiers?",
+          "why": "Leo says SSO stays Enterprise only as the main upgrade driver, backed by 4 of the last 5 enterprise deals needing SAML, but it isn't recorded as a decision with options or a review date.",
+          "refs": [
+            "C05BRIGHT:1792818321.534847"
+          ]
+        },
+        {
+          "question": "Should we build a native iOS app or go responsive web first?",
+          "why": "Priya posted a poll with these two options and asked for replies, but there's no sign of a conclusion or a recorded decision.",
+          "refs": [
+            "C05BRIGHT:1792822582.415255"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g05-0",
+          "topic": "sso",
+          "question": "Should SSO be Enterprise-only?",
+          "status": "decided",
+          "chosen": "keep SSO on Enterprise only",
+          "options": [
+            "keep SSO on Enterprise only",
+            "add SSO to the Team plan"
+          ],
+          "style": "buried",
+          "key_ts": [
+            "1792818321.534847"
+          ],
+          "summary": "Announced in passing: decided to keep SSO on Enterprise only, because it's our main reason to upgrade.",
+          "visible_to_reader": true
+        },
+        {
+          "id": "g05-1",
+          "topic": "mobile",
+          "question": "Should we build a native mobile app or go responsive web first?",
+          "status": "decided",
+          "chosen": "go responsive web first",
+          "options": [
+            "go responsive web first",
+            "build a native iOS app"
+          ],
+          "style": "threaded",
+          "key_ts": [
+            "1792822582.415255",
+            "1792823192.385189"
+          ],
+          "summary": "Polled the team; decided to go responsive web first.",
+          "visible_to_reader": false
+        }
+      ],
+      "matchedByRefs": {
+        "g05-0": true,
+        "g05-1": true
+      },
+      "judgeA": {
+        "matches": {
+          "g05-0": 0,
+          "g05-1": 1
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It correctly captures the decided choice to keep SSO Enterprise-only and the reason given, the upgrade driver backed by SAML demand in deals."
+          },
+          "1": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It names the right choice but wrongly claims there was no conclusion, when Priya closed the thread deciding on responsive web first."
+          }
+        },
+        "goldReasons": {
+          "g05-0": "Suggestion 0 covers the same choice of keeping SSO Enterprise-only.",
+          "g05-1": "Suggestion 1 covers the same choice of native iOS versus responsive web first."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g05-0": 0,
+          "g05-1": 1
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "It correctly identifies the Enterprise-only SSO choice, the rationale and the SAML evidence, and accurately says it's stated as settled, though framing it as an open question with lower tiers is slightly off and 'isn't recorded' is an inference."
+          },
+          "1": {
+            "real": true,
+            "accuracy": 2,
+            "reason": "It correctly names the options but wrongly claims there is no conclusion, when Priya explicitly announced in the thread that they'd go responsive web first after votes, so the status is wrong."
+          }
+        },
+        "goldReasons": {
+          "g05-0": "Suggestion 0 is about whether SSO stays Enterprise-only, the same choice as the tagged decision.",
+          "g05-1": "Suggestion 1 is about native iOS app versus responsive web first, the same choice as the tagged decision."
+        }
+      }
+    },
+    {
+      "conversation": "conv-06",
+      "channel": "#product",
+      "sentToClaude": 14,
+      "inSlack": 15,
+      "ok": true,
+      "error": null,
+      "seconds": 2.3,
+      "suggestions": [
+        {
+          "question": "Should we add a $9 starter plan for small teams?",
+          "why": "Marcus proposed it because small teams keep bouncing on price, and Rosa and Kenji agreed, but no decision is recorded and only a ticket was mentioned.",
+          "refs": [
+            "C06BRIGHT:1792846046.436282",
+            "C06BRIGHT:1792846363.867506",
+            "C06BRIGHT:1792846554.705360"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g06-0",
+          "topic": "starter-plan",
+          "question": "Should we add a cheaper starter plan?",
+          "status": "decided",
+          "chosen": "add a $9 starter plan",
+          "options": [
+            "add a $9 starter plan",
+            "keep Team as the cheapest plan"
+          ],
+          "style": "consensus",
+          "key_ts": [
+            "1792846046.436282",
+            "1792846554.705360"
+          ],
+          "summary": "The team agreed to add a $9 starter plan, because small teams keep bouncing on price.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g06-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g06-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It gets the choice and the price-bouncing reason right, but it wrongly says no decision was recorded when the team agreed and Marcus committed to making the ticket."
+          }
+        },
+        "goldReasons": {
+          "g06-0": "Suggestion 0 is about the same choice of adding a $9 starter plan for small teams."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g06-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It identifies the right choice and reason, but wrongly says no decision is recorded when Rosa's +1, Kenji's sgtm and Marcus making the ticket show the team agreed, so it treats a decided item as open."
+          }
+        },
+        "goldReasons": {
+          "g06-0": "Suggestion 0 is about the same choice, adding a $9 starter plan for small teams."
+        }
+      }
+    },
+    {
+      "conversation": "conv-07",
+      "channel": "#general",
+      "sentToClaude": 9,
+      "inSlack": 10,
+      "ok": true,
+      "error": null,
+      "seconds": 4.72,
+      "suggestions": [],
+      "gold": [],
+      "matchedByRefs": {},
+      "judgeA": null,
+      "judgeB": null
+    },
+    {
+      "conversation": "conv-08",
+      "channel": "#product",
+      "sentToClaude": 10,
+      "inSlack": 13,
+      "ok": true,
+      "error": null,
+      "seconds": 2.93,
+      "suggestions": [
+        {
+          "question": "Should we ship AI summaries as an opt-in beta, even though we haven't measured accuracy at scale?",
+          "why": "Priya proposed an opt-in beta and then called it a go after no objections, but nothing is recorded, and the accuracy caveat and the option of waiting or going broader are not written down.",
+          "refs": [
+            "C08BRIGHT:1792778046.343057",
+            "C08BRIGHT:1792779108.208857"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g08-0",
+          "topic": "ai-summaries",
+          "question": "Should AI summaries ship as an opt-in beta or to everyone?",
+          "status": "decided",
+          "chosen": "ship AI summaries as an opt-in beta",
+          "options": [
+            "ship AI summaries as an opt-in beta",
+            "ship AI summaries to everyone"
+          ],
+          "style": "reaction",
+          "key_ts": [
+            "1792778046.343057",
+            "1792779108.208857"
+          ],
+          "summary": "Proposed ship AI summaries as an opt-in beta; approved by reactions with no objections.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g08-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g08-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It correctly says Priya proposed the opt-in beta and called it a go with no objections, and it keeps the accuracy-at-scale caveat."
+          }
+        },
+        "goldReasons": {
+          "g08-0": "Suggestion 0 covers the same choice of shipping AI summaries as an opt-in beta."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g08-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "It correctly captures the opt-in beta proposal, the accuracy caveat, and the approval by no objections, though it frames the decision as unrecorded and slightly overlooks that six ✅ reactions explicitly approved it."
+          }
+        },
+        "goldReasons": {
+          "g08-0": "Suggestion 0 is about the same choice: shipping AI summaries as an opt-in beta."
+        }
+      }
+    },
+    {
+      "conversation": "conv-09",
+      "channel": "#data",
+      "sentToClaude": 17,
+      "inSlack": 22,
+      "ok": true,
+      "error": null,
+      "seconds": 2.41,
+      "suggestions": [
+        {
+          "question": "How long should we keep raw events: 90 days or a year?",
+          "why": "Priya said it must be decided by Friday, Sam favors 90 days on cost, Ben wants a year for year-over-year analysis, and Kenji put the cost at $1.1k vs $2.3k/mo.",
+          "refs": [
+            "C09BRIGHT:1793713370.529207",
+            "C09BRIGHT:1793713772.780619",
+            "C09BRIGHT:1793715752.575560"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g09-0",
+          "topic": "retention",
+          "question": "Should we keep raw events for 90 days or a year?",
+          "status": "open",
+          "chosen": null,
+          "options": [
+            "keep raw events for 90 days",
+            "keep raw events for a year"
+          ],
+          "style": "open",
+          "key_ts": [
+            "1793713370.529207",
+            "1793716508.022587"
+          ],
+          "summary": "Still open: keep raw events for 90 days vs keep raw events for a year; to be settled at Thursday's sync.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g09-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g09-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "It correctly captures the choice, the Friday deadline, both positions and Kenji's cost figures without calling it decided, but omits that Priya deferred it to Thursday's sync with no call yet."
+          }
+        },
+        "goldReasons": {
+          "g09-0": "Suggestion 0 covers the same choice of retaining raw events for 90 days versus a year."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g09-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "It correctly captures the options, Friday deadline, and the cost and analysis arguments, but omits that the question was deferred to Thursday's sync with no call made, though it doesn't claim a decision."
+          }
+        },
+        "goldReasons": {
+          "g09-0": "Suggestion 0 is about the same choice of keeping raw events for 90 days versus a year."
+        }
+      }
+    },
+    {
+      "conversation": "conv-10",
+      "channel": "#growth",
+      "sentToClaude": 14,
+      "inSlack": 16,
+      "ok": true,
+      "error": null,
+      "seconds": 1.75,
+      "suggestions": [
+        {
+          "question": "Should we translate the product into Spanish now, or wait for more demand data?",
+          "why": "Leo said the team will wait for demand data before translating, citing only 4% of signups from Spanish-speaking countries, and no decision is recorded.",
+          "refs": [
+            "C10BRIGHT:1793878253.217349"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g10-0",
+          "topic": "spanish",
+          "question": "Should we translate the app into Spanish this quarter?",
+          "status": "decided",
+          "chosen": "wait for demand data before translating",
+          "options": [
+            "wait for demand data before translating",
+            "translate the app into Spanish in Q1"
+          ],
+          "style": "buried",
+          "key_ts": [
+            "1793878253.217349"
+          ],
+          "summary": "Announced in passing: decided to wait for demand data before translating, because only 4% of signups are from Spanish-speaking countries.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g10-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g10-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It correctly states that the team decided to wait for demand data and cites the 4% signup reason; the question framing does not misstate the status, because the why says the decision was made."
+          }
+        },
+        "goldReasons": {
+          "g10-0": "Suggestion 0 addresses the same choice of whether to translate into Spanish now or wait for demand data."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g10-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It identifies the right choice and the 4% reason, but frames it as an open question and claims no decision is recorded when Leo announced the team decided to wait."
+          }
+        },
+        "goldReasons": {
+          "g10-0": "Suggestion 0 is about the same choice: whether to translate into Spanish now or wait for demand data."
+        }
+      }
+    },
+    {
+      "conversation": "conv-11",
+      "channel": "#launch-q1",
+      "sentToClaude": 14,
+      "inSlack": 16,
+      "ok": true,
+      "error": null,
+      "seconds": 2.18,
+      "suggestions": [
+        {
+          "question": "Should we launch on Feb 1, or keep an earlier date and cut scope?",
+          "why": "Priya proposed a Feb 1 launch because docs and billing need two more weeks, then called it a go after no objections, but nothing is recorded as a decision.",
+          "refs": [
+            "C11BRIGHT:1793012265.209568",
+            "C11BRIGHT:1793015555.300999",
+            "C11BRIGHT:1793014370.692530"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g11-0",
+          "topic": "launch-date",
+          "question": "Should v2 launch on Jan 15 or Feb 1?",
+          "status": "decided",
+          "chosen": "launch on Feb 1",
+          "options": [
+            "launch on Feb 1",
+            "launch on Jan 15"
+          ],
+          "style": "reaction",
+          "key_ts": [
+            "1793012265.209568",
+            "1793015555.300999"
+          ],
+          "summary": "Proposed launch on Feb 1; approved by reactions with no objections.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g11-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g11-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "It correctly captures Feb 1 as the decided date, the docs/billing reason, and the no-objections approval, but the 'cut scope' alternative is not in the channel and the four ✅ reactions are not mentioned."
+          }
+        },
+        "goldReasons": {
+          "g11-0": "Suggestion 0 covers the same choice of launching v2 on Feb 1 versus an earlier date."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g11-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It correctly captures Feb 1 launch, the docs/billing reason, and Priya's go call, but wrongly says nothing is recorded as decided and frames it as open with an invented 'cut scope' alternative, when the channel shows approval by reactions and no objections."
+          }
+        },
+        "goldReasons": {
+          "g11-0": "Suggestion 0 is about the same choice, launching on Feb 1 versus an earlier date."
+        }
+      }
+    },
+    {
+      "conversation": "conv-12",
+      "channel": "#support",
+      "sentToClaude": 23,
+      "inSlack": 27,
+      "ok": true,
+      "error": null,
+      "seconds": 2.71,
+      "suggestions": [
+        {
+          "question": "Should the integration read public channels only, or also private channels with admin opt-in?",
+          "why": "On Nov 8 Priya said private channels would be allowed with admin opt-in, then on Nov 10 reversed it to public only after a security review flagged private-channel access.",
+          "refs": [
+            "C12BRIGHT:1794119007.271419",
+            "C12BRIGHT:1794273563.265266"
+          ]
+        },
+        {
+          "question": "Who should get onboarding calls: only teams over 10 seats, or all new signups?",
+          "why": "Dana said calls will be limited to teams over 10 seats because support can't staff calls for the roughly 120 new teams a month.",
+          "refs": [
+            "C12BRIGHT:1794110342.626693"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g12-0",
+          "topic": "onboarding-call",
+          "question": "Should every new team get a free onboarding call?",
+          "status": "decided",
+          "chosen": "offer onboarding calls only to teams over 10 seats",
+          "options": [
+            "offer onboarding calls only to teams over 10 seats",
+            "offer an onboarding call to every new team"
+          ],
+          "style": "buried",
+          "key_ts": [
+            "1794110342.626693"
+          ],
+          "summary": "Announced in passing: decided to offer onboarding calls only to teams over 10 seats, because we can't staff calls for every signup.",
+          "visible_to_reader": true
+        },
+        {
+          "id": "g12-1",
+          "topic": "slack-scope",
+          "question": "Should the Slack integration read private channels?",
+          "status": "decided",
+          "chosen": "read public channels only",
+          "options": [
+            "read public channels only",
+            "allow private channels with admin opt-in"
+          ],
+          "style": "reversed",
+          "key_ts": [
+            "1794119007.271419",
+            "1794273563.265266"
+          ],
+          "summary": "First chose to allow private channels with admin opt-in, then reversed: decided to read public channels only instead.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g12-0": true,
+        "g12-1": true
+      },
+      "judgeA": {
+        "matches": {
+          "g12-0": 1,
+          "g12-1": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It correctly captures the initial admin opt-in choice, its reversal to public channels only, and the security-review reason, with correct dates."
+          },
+          "1": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It correctly states the decision to limit calls to teams over 10 seats because calls can't be staffed for about 120 new teams a month."
+          }
+        },
+        "goldReasons": {
+          "g12-0": "Suggestion 1 covers limiting onboarding calls to teams over 10 seats.",
+          "g12-1": "Suggestion 0 covers whether the Slack integration reads private channels or public only."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g12-0": 1,
+          "g12-1": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It correctly captures the reversal from private channels with admin opt-in to public only, with the security review as the reason, though the dates are unverifiable and the framing as a question does not obscure the outcome."
+          },
+          "1": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It correctly states the choice to limit onboarding calls to teams over 10 seats because of staffing limits at about 120 new teams a month."
+          }
+        },
+        "goldReasons": {
+          "g12-0": "Suggestion 1 is about the same choice of limiting onboarding calls to teams over 10 seats.",
+          "g12-1": "Suggestion 0 covers the same choice of whether the Slack integration reads private channels or only public ones."
+        }
+      }
+    },
+    {
+      "conversation": "conv-13",
+      "channel": "#growth",
+      "sentToClaude": 20,
+      "inSlack": 22,
+      "ok": true,
+      "error": null,
+      "seconds": 2.77,
+      "suggestions": [
+        {
+          "question": "Should we pay sales commission on bookings or on cash collected?",
+          "why": "Priya announced bookings as the decision on Nov 4, then reversed to cash collected on Nov 5 after two Q3 deals worth $40k never paid, so the final call and the pruned option aren't recorded.",
+          "refs": [
+            "C13BRIGHT:1793761157.061480",
+            "C13BRIGHT:1793899355.131670"
+          ]
+        },
+        {
+          "question": "Should we keep the 14-day free trial or change its length?",
+          "why": "Priya proposed keeping the 14-day trial because most conversions happen by day 9, then said 'ok no objections, it's a go', so it looks settled but isn't recorded.",
+          "refs": [
+            "C13BRIGHT:1793753109.562460",
+            "C13BRIGHT:1793757285.873085"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g13-0",
+          "topic": "trial-length",
+          "question": "Should the free trial be 14 or 30 days?",
+          "status": "decided",
+          "chosen": "keep the 14-day trial",
+          "options": [
+            "keep the 14-day trial",
+            "move to a 30-day trial"
+          ],
+          "style": "reaction",
+          "key_ts": [
+            "1793753109.562460",
+            "1793757285.873085"
+          ],
+          "summary": "Proposed keep the 14-day trial; approved by reactions with no objections.",
+          "visible_to_reader": true
+        },
+        {
+          "id": "g13-1",
+          "topic": "commission",
+          "question": "Should sales commission be paid on bookings or on cash collected?",
+          "status": "decided",
+          "chosen": "pay commission on cash collected",
+          "options": [
+            "pay commission on cash collected",
+            "pay commission on bookings"
+          ],
+          "style": "reversed",
+          "key_ts": [
+            "1793761157.061480",
+            "1793899355.131670"
+          ],
+          "summary": "First chose to pay commission on bookings, then reversed: decided to pay commission on cash collected instead.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g13-0": true,
+        "g13-1": true
+      },
+      "judgeA": {
+        "matches": {
+          "g13-0": 1,
+          "g13-1": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It correctly captures the initial bookings decision, the reversal to cash collected, and the reason ($40k in unpaid Q3 deals), and its dates match the timestamps."
+          },
+          "1": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It correctly states that keeping the 14-day trial was decided with no objections, and gives the day-9 conversion rationale."
+          }
+        },
+        "goldReasons": {
+          "g13-0": "Suggestion 1 covers the same choice about the length of the 14-day free trial.",
+          "g13-1": "Suggestion 0 covers the same choice between paying commission on bookings or on cash collected."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g13-0": 1,
+          "g13-1": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "It correctly captures the reversal from bookings to cash collected and the $40k reason, but the 'why' wrongly says the final call isn't recorded when the update clearly states cash collected."
+          },
+          "1": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It identifies the 14-day trial proposal and the reason, but wrongly frames it as 'looks settled but isn't recorded' and doesn't state the decision (keep 14 days) as decided, with reaction approval by 6 people and no objections."
+          }
+        },
+        "goldReasons": {
+          "g13-0": "Suggestion 1 is about keeping the 14-day trial versus changing its length, the same choice as the tagged trial decision.",
+          "g13-1": "Suggestion 0 is about paying commission on bookings versus cash collected, the same choice as the tagged commission decision."
+        }
+      }
+    },
+    {
+      "conversation": "conv-14",
+      "channel": "#sales",
+      "sentToClaude": 13,
+      "inSlack": 15,
+      "ok": true,
+      "error": null,
+      "seconds": 2.79,
+      "suggestions": [
+        {
+          "question": "Should SSO stay on Enterprise only, or should we add it to the Team plan?",
+          "why": "Priya framed two options and called it for Enterprise only, but Sam pushed for Team after two mid-size prospects asked, and nothing is recorded yet.",
+          "refs": [
+            "C14BRIGHT:1794291867.874976",
+            "C14BRIGHT:1794292302.723632",
+            "C14BRIGHT:1794292593.966355"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g14-0",
+          "topic": "sso",
+          "question": "Should SSO be Enterprise-only?",
+          "status": "decided",
+          "chosen": "keep SSO on Enterprise only",
+          "options": [
+            "keep SSO on Enterprise only",
+            "add SSO to the Team plan"
+          ],
+          "style": "explicit",
+          "key_ts": [
+            "1794291867.874976",
+            "1794292740.620572"
+          ],
+          "summary": "Decided to keep SSO on Enterprise only rather than add SSO to the Team plan, because it's our main reason to upgrade.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g14-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g14-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It correctly notes that Priya called the decision for Enterprise only, but by saying nothing is recorded and stressing Sam's pushback it implies the question is still open, and it omits her reason that SSO is the main upgrade driver and the 5 checkmark reactions confirming the call."
+          }
+        },
+        "goldReasons": {
+          "g14-0": "Suggestion 0 concerns the same choice of whether SSO stays Enterprise-only or is added to the Team plan."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g14-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It is a real decision and captures the options and Sam's dissent, but it wrongly says nothing is recorded yet and leaves it looking open, when Priya declared the decision to keep SSO on Enterprise only (5 checkmark reactions) and omits her reason that SSO is the main upgrade driver."
+          }
+        },
+        "goldReasons": {
+          "g14-0": "Suggestion 0 is about the same choice: whether SSO stays Enterprise-only or is added to the Team plan."
+        }
+      }
+    },
+    {
+      "conversation": "conv-15",
+      "channel": "#eng",
+      "sentToClaude": 16,
+      "inSlack": 18,
+      "ok": true,
+      "error": null,
+      "seconds": 2.51,
+      "suggestions": [
+        {
+          "question": "Should we limit API usage to 100 requests/min per key, and what other options should we weigh (higher limit, per-customer tiers, throttling instead of hard blocking)?",
+          "why": "Tom says the team is going to cap each key at 100 requests/min after a single key at 4k req/min caused the outage on the 3rd, and no decision is recorded for it.",
+          "refs": [
+            "C15BRIGHT:1793298908.372036"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g15-0",
+          "topic": "rate-limits",
+          "question": "What rate limit should the public API have?",
+          "status": "decided",
+          "chosen": "limit to 100 requests/min per key",
+          "options": [
+            "limit to 100 requests/min per key",
+            "allow 1,000 requests/min per key"
+          ],
+          "style": "buried",
+          "key_ts": [
+            "1793298908.372036"
+          ],
+          "summary": "Announced in passing: decided to limit to 100 requests/min per key, because one customer's script took us down last week.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g15-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g15-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It names the right choice and reason, but it frames an already-announced decision as an open question about whether to weigh other options, which garbles the status."
+          }
+        },
+        "goldReasons": {
+          "g15-0": "Suggestion 0 is about the same choice of a 100 requests/min per-key rate limit for the API."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g15-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "The cap and the outage reason are right, but it frames the question as open and says no decision is recorded, when Tom announced it as already decided."
+          }
+        },
+        "goldReasons": {
+          "g15-0": "Suggestion 0 is about the same choice: capping API usage at 100 requests/min per key."
+        }
+      }
+    },
+    {
+      "conversation": "conv-16",
+      "channel": "#watercooler",
+      "sentToClaude": 8,
+      "inSlack": 9,
+      "ok": true,
+      "error": null,
+      "seconds": 2.94,
+      "suggestions": [],
+      "gold": [],
+      "matchedByRefs": {},
+      "judgeA": null,
+      "judgeB": null
+    },
+    {
+      "conversation": "conv-17",
+      "channel": "#eng",
+      "sentToClaude": 16,
+      "inSlack": 16,
+      "ok": true,
+      "error": null,
+      "seconds": 2.28,
+      "suggestions": [
+        {
+          "question": "Should we migrate from Heroku to RDS in December, and what are the other options for cutting hosting cost?",
+          "why": "Tom says the team is going to migrate to RDS in December because the Heroku bill is up 40% since July (about $7.8k last month), and no decision is recorded for it.",
+          "refs": [
+            "C17BRIGHT:1793629923.247984"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g17-0",
+          "topic": "db-migration",
+          "question": "Should we move from Heroku Postgres to RDS?",
+          "status": "decided",
+          "chosen": "migrate to RDS in December",
+          "options": [
+            "migrate to RDS in December",
+            "stay on Heroku until after launch"
+          ],
+          "style": "buried",
+          "key_ts": [
+            "1793629923.247984"
+          ],
+          "summary": "Announced in passing: decided to migrate to RDS in December, because Heroku bill is up 40% since July.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g17-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g17-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "The why correctly states the decided choice (RDS in December) and the reason (Heroku bill up 40%), but the question's added 'other options for cutting hosting cost' wrongly hints the matter is still open."
+          }
+        },
+        "goldReasons": {
+          "g17-0": "Suggestion 0 is about the same choice of migrating from Heroku to RDS in December."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g17-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It captures the choice and the cost reason correctly, but it frames the migration as an open question with alternatives and says no decision is recorded, while Tom announced it as already decided."
+          }
+        },
+        "goldReasons": {
+          "g17-0": "Suggestion 0 is about the same choice, migrating from Heroku to RDS in December."
+        }
+      }
+    },
+    {
+      "conversation": "conv-18",
+      "channel": "#marketing",
+      "sentToClaude": 7,
+      "inSlack": 11,
+      "ok": true,
+      "error": null,
+      "seconds": 2.57,
+      "suggestions": [
+        {
+          "question": "Should we sponsor a SaaStr booth or run our own webinar series?",
+          "why": "Priya posted a poll in #marketing asking the team to pick between the two, and nothing is recorded for it yet.",
+          "refs": [
+            "C18BRIGHT:1793781583.185557"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g18-0",
+          "topic": "events",
+          "question": "Should we sponsor SaaStr or run our own webinar series?",
+          "status": "decided",
+          "chosen": "run our own webinar series",
+          "options": [
+            "run our own webinar series",
+            "sponsor a SaaStr booth"
+          ],
+          "style": "threaded",
+          "key_ts": [
+            "1793781583.185557",
+            "1793781963.227593"
+          ],
+          "summary": "Polled the team; decided to run our own webinar series.",
+          "visible_to_reader": false
+        }
+      ],
+      "matchedByRefs": {
+        "g18-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g18-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It identifies the right choice but treats the poll as unresolved, missing that Priya closed it by deciding to run their own webinar series."
+          }
+        },
+        "goldReasons": {
+          "g18-0": "Suggestion 0 is about the same choice between sponsoring SaaStr and running our own webinar series."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g18-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "The question is right, but the why says nothing is recorded and omits that Priya closed the poll and the team decided on its own webinar series, so the status is wrong."
+          }
+        },
+        "goldReasons": {
+          "g18-0": "Suggestion 0 is about the same choice, sponsoring SaaStr versus running a webinar series."
+        }
+      }
+    },
+    {
+      "conversation": "conv-19",
+      "channel": "#eng",
+      "sentToClaude": 12,
+      "inSlack": 18,
+      "ok": true,
+      "error": null,
+      "seconds": 3.49,
+      "suggestions": [
+        {
+          "question": "Should we hire a full-time designer or keep contractors through Q1?",
+          "why": "Priya framed it as a call to make and then posted 'ok decision' to hire, but Ben objected that budget is only approved through Q1 and nothing is recorded yet.",
+          "refs": [
+            "C19BRIGHT:1794234294.858919",
+            "C19BRIGHT:1794234531.261281",
+            "C19BRIGHT:1794234875.963305"
+          ]
+        },
+        {
+          "question": "Should we release weekly or every two weeks?",
+          "why": "Priya posted a poll with two options (move to every two weeks or stay weekly) and there's no sign of an outcome.",
+          "refs": [
+            "C19BRIGHT:1794231525.327838"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g19-0",
+          "topic": "release-cadence",
+          "question": "Should we release weekly or every two weeks?",
+          "status": "decided",
+          "chosen": "move to releases every two weeks",
+          "options": [
+            "move to releases every two weeks",
+            "stay on weekly releases"
+          ],
+          "style": "threaded",
+          "key_ts": [
+            "1794231525.327838",
+            "1794232348.317661"
+          ],
+          "summary": "Polled the team; decided to move to releases every two weeks.",
+          "visible_to_reader": false
+        },
+        {
+          "id": "g19-1",
+          "topic": "design-hire",
+          "question": "Should we hire a full-time designer or keep contractors?",
+          "status": "decided",
+          "chosen": "hire a full-time designer",
+          "options": [
+            "hire a full-time designer",
+            "keep contractors through Q1"
+          ],
+          "style": "explicit",
+          "key_ts": [
+            "1794234294.858919",
+            "1794236672.860938"
+          ],
+          "summary": "Decided to hire a full-time designer rather than keep contractors through Q1, because contractor handoffs are slowing every project.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g19-0": true,
+        "g19-1": true
+      },
+      "judgeA": {
+        "matches": {
+          "g19-0": 1,
+          "g19-1": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It notes Priya's decision to hire but frames it as unsettled because of Ben's objection, which actually came before the decision, and it omits the stated reason that contractor handoffs are slowing projects."
+          },
+          "1": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It identifies the right release-cadence poll but wrongly says there is no outcome, when Priya concluded in the thread that the team will move to releases every two weeks."
+          }
+        },
+        "goldReasons": {
+          "g19-0": "Suggestion 1 covers the same weekly-vs-biweekly release cadence choice.",
+          "g19-1": "Suggestion 0 covers the same full-time designer vs. contractors choice."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g19-0": 1,
+          "g19-1": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It is a real decision and the evidence mentions Priya's 'ok decision' to hire, but it frames it as contested and unrecorded without stating the chosen outcome or her contractor-handoff rationale, so the key element is garbled."
+          },
+          "1": {
+            "real": true,
+            "accuracy": 1,
+            "reason": "It claims there is no sign of an outcome, but Priya announced in the thread that they'd move to releases every two weeks, so the status is wrong."
+          }
+        },
+        "goldReasons": {
+          "g19-0": "Suggestion 1 is about the same weekly vs every-two-weeks release choice.",
+          "g19-1": "Suggestion 0 is about the same hire-designer vs keep-contractors choice."
+        }
+      }
+    },
+    {
+      "conversation": "conv-20",
+      "channel": "#growth",
+      "sentToClaude": 17,
+      "inSlack": 20,
+      "ok": true,
+      "error": null,
+      "seconds": 6.41,
+      "suggestions": [
+        {
+          "question": "Do we push dark mode to Q2 because Q1 is full with the launch?",
+          "why": "Priya proposed moving dark mode to Q2 and then said 'no objections, it's a go', but nothing is recorded with the reason or a review date.",
+          "refs": [
+            "C20BRIGHT:1794248081.877700",
+            "C20BRIGHT:1794251691.947830"
+          ]
+        },
+        {
+          "question": "Do we wait for demand data before translating the product into Spanish?",
+          "why": "Kenji argued for waiting because only 4% of signups come from Spanish-speaking countries, and the thread has no clear outcome.",
+          "refs": [
+            "C20BRIGHT:1794245087.529872"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g20-0",
+          "topic": "spanish",
+          "question": "Should we translate the app into Spanish this quarter?",
+          "status": "decided",
+          "chosen": "wait for demand data before translating",
+          "options": [
+            "wait for demand data before translating",
+            "translate the app into Spanish in Q1"
+          ],
+          "style": "consensus",
+          "key_ts": [
+            "1794245087.529872",
+            "1794245807.484797"
+          ],
+          "summary": "The team agreed to wait for demand data before translating, because only 4% of signups are from Spanish-speaking countries.",
+          "visible_to_reader": true
+        },
+        {
+          "id": "g20-1",
+          "topic": "dark-mode",
+          "question": "Should we build dark mode this quarter?",
+          "status": "decided",
+          "chosen": "push dark mode to Q2",
+          "options": [
+            "push dark mode to Q2",
+            "build dark mode in Q1"
+          ],
+          "style": "reaction",
+          "key_ts": [
+            "1794248081.877700",
+            "1794251691.947830"
+          ],
+          "summary": "Proposed push dark mode to Q2; approved by reactions with no objections.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g20-0": true,
+        "g20-1": true
+      },
+      "judgeA": {
+        "matches": {
+          "g20-0": 1,
+          "g20-1": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It gets the choice, the reason (Q1 is full with the launch) and the decided status from six ✅ reactions and 'it's a go' right."
+          },
+          "1": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It gets the choice and the 4% reason right but wrongly says there was no clear outcome, when Tom's +1, Leo's sgtm and Kenji making the ticket show the team agreed."
+          }
+        },
+        "goldReasons": {
+          "g20-0": "Suggestion 1 covers the same choice about waiting for demand data before translating into Spanish.",
+          "g20-1": "Suggestion 0 covers the same choice about pushing dark mode to Q2."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g20-0": 1,
+          "g20-1": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "The question, choice and reason (Q1 full with launch) are correct, but the why wrongly implies it is still unresolved, when the dark mode push to Q2 was approved by reactions and Priya's 'it's a go'; it only notes missing documentation."
+          },
+          "1": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "The choice and reason (4% of signups) are right, but it says the thread has no clear outcome when Tom +1'd, Leo said sgtm, and Kenji said he'd make the ticket, so it was decided."
+          }
+        },
+        "goldReasons": {
+          "g20-0": "Suggestion 1 is about the same choice of waiting for demand data before translating into Spanish.",
+          "g20-1": "Suggestion 0 is about the same choice of pushing dark mode to Q2."
+        }
+      }
+    },
+    {
+      "conversation": "conv-21",
+      "channel": "#product",
+      "sentToClaude": 11,
+      "inSlack": 13,
+      "ok": true,
+      "error": null,
+      "seconds": 2.6,
+      "suggestions": [
+        {
+          "question": "Should we build responsive web first for mobile instead of a native app?",
+          "why": "Marcus proposed going responsive web first because 70% of mobile sessions are quick checks, and Aisha, Ben and Marcus signaled agreement, but nothing is recorded.",
+          "refs": [
+            "C21BRIGHT:1793633301.709531",
+            "C21BRIGHT:1793633457.186850",
+            "C21BRIGHT:1793633599.642371"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g21-0",
+          "topic": "mobile",
+          "question": "Should we build a native mobile app or go responsive web first?",
+          "status": "decided",
+          "chosen": "go responsive web first",
+          "options": [
+            "go responsive web first",
+            "build a native iOS app"
+          ],
+          "style": "consensus",
+          "key_ts": [
+            "1793633301.709531",
+            "1793633599.642371"
+          ],
+          "summary": "The team agreed to go responsive web first, because 70% of mobile sessions are quick checks.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g21-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g21-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It correctly captures the responsive-web-first choice, the team agreement (+1, sgtm, ticket) and the 70% quick-checks rationale."
+          }
+        },
+        "goldReasons": {
+          "g21-0": "Suggestion 0 covers the same choice of going responsive web first instead of building a native mobile app."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g21-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "It correctly captures the responsive-web choice, the 70% quick-checks rationale, and the agreement from Aisha, Ben and Marcus, but frames it as not yet recorded rather than decided; Marcus making the ticket indicates it was settled, so the status is slightly understated."
+          }
+        },
+        "goldReasons": {
+          "g21-0": "Suggestion 0 concerns the same choice: responsive web first versus a native app for mobile."
+        }
+      }
+    },
+    {
+      "conversation": "conv-22",
+      "channel": "#marketing",
+      "sentToClaude": 11,
+      "inSlack": 13,
+      "ok": true,
+      "error": null,
+      "seconds": 2.76,
+      "suggestions": [
+        {
+          "question": "Should we sponsor a SaaStr booth or run our own webinar series?",
+          "why": "Priya framed it as a call between the two options, Dana shared a $45k booth quote, Tom favored the booth, and Priya then said the team is going with webinars but it isn't recorded yet.",
+          "refs": [
+            "C22BRIGHT:1794067746.670239",
+            "C22BRIGHT:1794067975.330365",
+            "C22BRIGHT:1794068121.700724"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g22-0",
+          "topic": "events",
+          "question": "Should we sponsor SaaStr or run our own webinar series?",
+          "status": "decided",
+          "chosen": "run our own webinar series",
+          "options": [
+            "run our own webinar series",
+            "sponsor a SaaStr booth"
+          ],
+          "style": "explicit",
+          "key_ts": [
+            "1794067746.670239",
+            "1794068318.937348"
+          ],
+          "summary": "Decided to run our own webinar series rather than sponsor a SaaStr booth, because webinars cost a fraction and we own the list.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g22-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g22-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "It correctly names the webinar series as the choice Priya announced, but it leaves out the rationale (a fraction of the cost and owning the list)."
+          }
+        },
+        "goldReasons": {
+          "g22-0": "Suggestion 0 covers the same choice between sponsoring a SaaStr booth and running a webinar series."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g22-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It is a real team choice with the correct options and context, but it wrongly says the decision isn't recorded yet when Priya clearly announced the decision with 3 checkmark reactions, and it omits the stated rationale (webinars cost a fraction and the team owns the list)."
+          }
+        },
+        "goldReasons": {
+          "g22-0": "Suggestion 0 is about the same choice, sponsoring a SaaStr booth versus running a webinar series."
+        }
+      }
+    },
+    {
+      "conversation": "conv-23",
+      "channel": "#launch-q1",
+      "sentToClaude": 15,
+      "inSlack": 18,
+      "ok": true,
+      "error": null,
+      "seconds": 2.65,
+      "suggestions": [
+        {
+          "question": "Should v2 launch on Jan 15 or Feb 1?",
+          "why": "Priya said the team has to decide by end of next week, with Ben favoring Feb 1 for docs and billing and Tom favoring Jan 15 for the conference.",
+          "refs": [
+            "C23BRIGHT:1793158712.844999",
+            "C23BRIGHT:1793159025.519141",
+            "C23BRIGHT:1793159414.045299"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g23-0",
+          "topic": "launch-date",
+          "question": "Should v2 launch on Jan 15 or Feb 1?",
+          "status": "open",
+          "chosen": null,
+          "options": [
+            "launch on Feb 1",
+            "launch on Jan 15"
+          ],
+          "style": "open",
+          "key_ts": [
+            "1793158712.844999",
+            "1793159909.276500"
+          ],
+          "summary": "Still open: launch on Feb 1 vs launch on Jan 15; to be settled at Thursday's sync.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g23-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g23-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "It correctly states the choice and both sides' reasons and implies the question is still open, but it omits that Priya explicitly deferred the call to Thursday's sync."
+          }
+        },
+        "goldReasons": {
+          "g23-0": "Suggestion 0 addresses the same choice of launching v2 on Jan 15 versus Feb 1."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g23-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "Correctly frames the open choice with Ben's and Tom's positions and the deadline, but omits that it was deferred to Thursday's sync with no call yet, and leaves out Dana's note that billing is ~60% done."
+          }
+        },
+        "goldReasons": {
+          "g23-0": "Suggestion 0 asks the same question about launching v2 on Jan 15 or Feb 1."
+        }
+      }
+    },
+    {
+      "conversation": "conv-24",
+      "channel": "#random",
+      "sentToClaude": 9,
+      "inSlack": 10,
+      "ok": true,
+      "error": null,
+      "seconds": 2.39,
+      "suggestions": [],
+      "gold": [],
+      "matchedByRefs": {},
+      "judgeA": null,
+      "judgeB": null
+    },
+    {
+      "conversation": "conv-25",
+      "channel": "#growth",
+      "sentToClaude": 22,
+      "inSlack": 27,
+      "ok": true,
+      "error": null,
+      "seconds": 3.55,
+      "suggestions": [
+        {
+          "question": "Should new workspaces start with sample data in onboarding, or keep the empty state?",
+          "why": "Priya called it for sample data because 48% stall at connect-a-source, but Ben objected that sample data might confuse people about what's real, and nothing is recorded yet.",
+          "refs": [
+            "C25BRIGHT:1793766165.761242",
+            "C25BRIGHT:1793768433.217952",
+            "C25BRIGHT:1793768844.009921"
+          ]
+        },
+        {
+          "question": "Should SSO be on the Team plan or stay Enterprise only?",
+          "why": "Priya decided to add SSO to Team on Nov 4 after two prospects asked, then reversed it on Nov 5 to keep it Enterprise only because 4 of the last 5 enterprise deals needed SAML, and neither is recorded.",
+          "refs": [
+            "C25BRIGHT:1793777848.211087",
+            "C25BRIGHT:1793897525.775864"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g25-0",
+          "topic": "sample-data",
+          "question": "Should new workspaces start with sample data?",
+          "status": "decided",
+          "chosen": "ship sample data in onboarding",
+          "options": [
+            "ship sample data in onboarding",
+            "keep the empty state"
+          ],
+          "style": "explicit",
+          "key_ts": [
+            "1793766165.761242",
+            "1793769462.427805"
+          ],
+          "summary": "Decided to ship sample data in onboarding rather than keep the empty state, because 48% stall at connect-a-source.",
+          "visible_to_reader": true
+        },
+        {
+          "id": "g25-1",
+          "topic": "sso",
+          "question": "Should SSO be Enterprise-only?",
+          "status": "decided",
+          "chosen": "keep SSO on Enterprise only",
+          "options": [
+            "keep SSO on Enterprise only",
+            "add SSO to the Team plan"
+          ],
+          "style": "reversed",
+          "key_ts": [
+            "1793777848.211087",
+            "1793897525.775864"
+          ],
+          "summary": "First chose to add SSO to the Team plan, then reversed: decided to keep SSO on Enterprise only instead.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g25-0": true,
+        "g25-1": true
+      },
+      "judgeA": {
+        "matches": {
+          "g25-0": 0,
+          "g25-1": 1
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "It correctly says Priya decided on sample data because 48% stall at connect-a-source, but framing Ben's earlier objection with 'but' slightly blurs that the decision came after and settled it."
+          },
+          "1": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It accurately captures the initial Team-plan decision, the reversal to Enterprise only, and the SAML reason for the final choice."
+          }
+        },
+        "goldReasons": {
+          "g25-0": "Suggestion 0 covers the same choice about starting new workspaces with sample data versus the empty state.",
+          "g25-1": "Suggestion 1 covers the same choice about SSO being on the Team plan versus Enterprise only."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g25-0": 0,
+          "g25-1": 1
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 2,
+            "reason": "It is a real decision, but it wrongly says nothing is recorded and frames it as contested, when Priya explicitly decided to ship sample data and the team confirmed with a check mark reaction."
+          },
+          "1": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It correctly captures the reversal and the reason (4 of 5 enterprise deals needed SAML), but does not state the final outcome as decided, framing it as an open question, and invents specific dates (Nov 4/5) not shown in the channel."
+          }
+        },
+        "goldReasons": {
+          "g25-0": "Suggestion 0 is about the same choice of sample data in onboarding versus the empty state.",
+          "g25-1": "Suggestion 1 covers the same SSO plan placement choice, including the reversal to Enterprise only."
+        }
+      }
+    },
+    {
+      "conversation": "conv-26",
+      "channel": "#eng",
+      "sentToClaude": 16,
+      "inSlack": 17,
+      "ok": true,
+      "error": null,
+      "seconds": 5.02,
+      "suggestions": [
+        {
+          "question": "Should we build simple feature flags in-house or buy LaunchDarkly?",
+          "why": "Priya first decided to buy LaunchDarkly, then reversed the next day to build in-house after customer calls, citing about $12k/yr, and neither version is recorded.",
+          "refs": [
+            "C26BRIGHT:1793072519.754521",
+            "C26BRIGHT:1793210005.972620"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g26-0",
+          "topic": "feature-flags",
+          "question": "Should we build feature flags in-house or buy LaunchDarkly?",
+          "status": "decided",
+          "chosen": "build simple flags in-house",
+          "options": [
+            "build simple flags in-house",
+            "buy LaunchDarkly"
+          ],
+          "style": "reversed",
+          "key_ts": [
+            "1793072519.754521",
+            "1793210005.972620"
+          ],
+          "summary": "First chose to buy LaunchDarkly, then reversed: decided to build simple flags in-house instead.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g26-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g26-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It correctly captures the initial LaunchDarkly decision, the reversal to building simple flags in-house as the final choice, and the reasons (customer calls, ~$12k/yr)."
+          }
+        },
+        "goldReasons": {
+          "g26-0": "Suggestion 0 covers the same build-vs-buy LaunchDarkly feature flag choice."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g26-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "It correctly captures the reversal from buy to build in-house, the customer calls and the ~$12k/yr cost, but says 'next day' (roughly accurate) and frames it as unrecorded rather than stating the final choice of in-house explicitly in the question."
+          }
+        },
+        "goldReasons": {
+          "g26-0": "Suggestion 0 is about the same build-in-house vs buy LaunchDarkly feature flag choice."
+        }
+      }
+    },
+    {
+      "conversation": "conv-27",
+      "channel": "#marketing",
+      "sentToClaude": 19,
+      "inSlack": 21,
+      "ok": true,
+      "error": null,
+      "seconds": 3.46,
+      "suggestions": [
+        {
+          "question": "Should we send a 3-email win-back sequence to the ~900 churned accounts, or skip win-back emails for now?",
+          "why": "Priya called it a decision with two options, but Rosa objected that the reasons for churn aren't fixed and the call rests on one past experience, so no reasons or review date were recorded.",
+          "refs": [
+            "C27BRIGHT:1793845426.609471",
+            "C27BRIGHT:1793847439.768970",
+            "C27BRIGHT:1793847812.377493"
+          ]
+        },
+        {
+          "question": "Should we ship AI summaries as an opt-in beta, given we haven't measured accuracy at scale?",
+          "why": "Priya proposed an opt-in beta and called it a go after no objections, but the accuracy concern is unresolved and there's no recorded outcome to check or review date.",
+          "refs": [
+            "C27BRIGHT:1793852149.367584",
+            "C27BRIGHT:1793855339.561136"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g27-0",
+          "topic": "win-back",
+          "question": "Should we send a win-back email sequence to churned users?",
+          "status": "decided",
+          "chosen": "send a 3-email win-back sequence",
+          "options": [
+            "send a 3-email win-back sequence",
+            "skip win-back emails for now"
+          ],
+          "style": "explicit",
+          "key_ts": [
+            "1793845426.609471",
+            "1793849367.668325"
+          ],
+          "summary": "Decided to send a 3-email win-back sequence rather than skip win-back emails for now, because it's cheap and worked at Rosa's last company.",
+          "visible_to_reader": true
+        },
+        {
+          "id": "g27-1",
+          "topic": "ai-summaries",
+          "question": "Should AI summaries ship as an opt-in beta or to everyone?",
+          "status": "decided",
+          "chosen": "ship AI summaries as an opt-in beta",
+          "options": [
+            "ship AI summaries as an opt-in beta",
+            "ship AI summaries to everyone"
+          ],
+          "style": "reaction",
+          "key_ts": [
+            "1793852149.367584",
+            "1793855339.561136"
+          ],
+          "summary": "Proposed ship AI summaries as an opt-in beta; approved by reactions with no objections.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g27-0": true,
+        "g27-1": true
+      },
+      "judgeA": {
+        "matches": {
+          "g27-0": 0,
+          "g27-1": 1
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It identifies the right choice and Rosa's objection but omits that Priya decided to send the 3-email sequence and wrongly claims no reasons were recorded, though she gave them (cheap, worked at Rosa's last company)."
+          },
+          "1": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It correctly says Priya proposed the opt-in beta and called it a go after no objections, matching the approved decision."
+          }
+        },
+        "goldReasons": {
+          "g27-0": "Suggestion 0 covers the same choice about sending a win-back sequence to churned users.",
+          "g27-1": "Suggestion 1 covers the same choice about shipping AI summaries as an opt-in beta."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g27-0": 0,
+          "g27-1": 1
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It is a real decision, but it omits that Priya decided to send the sequence (a clear final choice with stated rationale) and wrongly frames it as lacking reasons, even though she gave 'cheap and worked at Rosa's last company'."
+          },
+          "1": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "It correctly identifies the opt-in beta being approved with no objections and the unmeasured accuracy caveat, though it frames the matter as lacking an outcome or review date rather than stating it as decided."
+          }
+        },
+        "goldReasons": {
+          "g27-0": "Suggestion 0 is about the same win-back email sequence choice.",
+          "g27-1": "Suggestion 1 is about the same AI summaries opt-in beta choice."
+        }
+      }
+    },
+    {
+      "conversation": "conv-28",
+      "channel": "#eng",
+      "sentToClaude": 25,
+      "inSlack": 28,
+      "ok": true,
+      "error": null,
+      "seconds": 2.93,
+      "suggestions": [
+        {
+          "question": "Should we build feature flags in-house or buy LaunchDarkly?",
+          "why": "Priya says it has to be decided by the 20th, Aisha and Ben are on opposite sides, and Marcus put the LaunchDarkly cost at about $12k/yr; it's parked for Thursday's sync with no call yet.",
+          "refs": [
+            "C28BRIGHT:1793551343.211486",
+            "C28BRIGHT:1793551652.909432",
+            "C28BRIGHT:1793554240.771610"
+          ]
+        },
+        {
+          "question": "Should we move from weekly to biweekly releases?",
+          "why": "Priya posted a decision on Oct 31 to stay weekly, then on Nov 1 said they're moving to every two weeks after two rollbacks in October, so the earlier call looks reversed and nothing is recorded.",
+          "refs": [
+            "C28BRIGHT:1793406859.321832",
+            "C28BRIGHT:1793550313.028262"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g28-0",
+          "topic": "release-cadence",
+          "question": "Should we release weekly or every two weeks?",
+          "status": "decided",
+          "chosen": "move to releases every two weeks",
+          "options": [
+            "move to releases every two weeks",
+            "stay on weekly releases"
+          ],
+          "style": "reversed",
+          "key_ts": [
+            "1793406859.321832",
+            "1793550313.028262"
+          ],
+          "summary": "First chose to stay on weekly releases, then reversed: decided to move to releases every two weeks instead.",
+          "visible_to_reader": true
+        },
+        {
+          "id": "g28-1",
+          "topic": "feature-flags",
+          "question": "Should we build feature flags in-house or buy LaunchDarkly?",
+          "status": "open",
+          "chosen": null,
+          "options": [
+            "build simple flags in-house",
+            "buy LaunchDarkly"
+          ],
+          "style": "open",
+          "key_ts": [
+            "1793551343.211486",
+            "1793554779.892916"
+          ],
+          "summary": "Still open: build simple flags in-house vs buy LaunchDarkly; to be settled at Thursday's sync.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g28-0": true,
+        "g28-1": true
+      },
+      "judgeA": {
+        "matches": {
+          "g28-0": 1,
+          "g28-1": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It correctly describes the open feature-flag choice: the 20th deadline, the opposing views, the ~$12k/yr cost, and that it was deferred to Thursday's sync."
+          },
+          "1": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It correctly captures the reversal from weekly to biweekly releases, the final choice, and the rollback rationale, with dates that match the timestamps."
+          }
+        },
+        "goldReasons": {
+          "g28-0": "Suggestion 1 covers the same weekly-versus-biweekly release cadence choice.",
+          "g28-1": "Suggestion 0 covers the same build-in-house-versus-buy-LaunchDarkly feature flag choice."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g28-0": 1,
+          "g28-1": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "Correctly captures the open build-vs-buy question, the deadline, both sides, the cost, and that it is parked for Thursday's sync with no call yet."
+          },
+          "1": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "Correctly identifies the reversal to biweekly and the rollback reason, but saying 'looks reversed and nothing is recorded' hedges on a clearly stated decision and doesn't state plainly that it is decided."
+          }
+        },
+        "goldReasons": {
+          "g28-0": "Suggestion 1 is about the same weekly vs biweekly release cadence choice.",
+          "g28-1": "Suggestion 0 is about the same in-house vs LaunchDarkly feature flags choice."
+        }
+      }
+    },
+    {
+      "conversation": "conv-29",
+      "channel": "#eng",
+      "sentToClaude": 13,
+      "inSlack": 14,
+      "ok": true,
+      "error": null,
+      "seconds": 2.19,
+      "suggestions": [
+        {
+          "question": "Should we move our docs from GitBook to Mintlify?",
+          "why": "Sam said the team is going to move docs to Mintlify because GitBook search is poor and 14% of support tickets are 'can't find it in docs', but no decision, options, or review date are recorded.",
+          "refs": [
+            "C29BRIGHT:1793522618.100442"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g29-0",
+          "topic": "docs-platform",
+          "question": "Should we move docs to Mintlify or keep GitBook?",
+          "status": "decided",
+          "chosen": "move docs to Mintlify",
+          "options": [
+            "move docs to Mintlify",
+            "keep GitBook"
+          ],
+          "style": "buried",
+          "key_ts": [
+            "1793522618.100442"
+          ],
+          "summary": "Announced in passing: decided to move docs to Mintlify, because search in GitBook is bad and it shows in tickets.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g29-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g29-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "It correctly states that Sam announced the team is moving to Mintlify, citing poor GitBook search and the 14% ticket stat, though saying 'no decision… recorded' slightly blurs the fact that it was already decided."
+          }
+        },
+        "goldReasons": {
+          "g29-0": "Suggestion 0 covers the same choice of moving docs from GitBook to Mintlify."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g29-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "It correctly identifies the move to Mintlify, the GitBook search problem and the 14% ticket stat, though it frames the choice as having no decision recorded when Sam announced it as decided."
+          }
+        },
+        "goldReasons": {
+          "g29-0": "Suggestion 0 is about the same choice: moving docs from GitBook to Mintlify."
+        }
+      }
+    },
+    {
+      "conversation": "conv-30",
+      "channel": "#eng",
+      "sentToClaude": 25,
+      "inSlack": 27,
+      "ok": true,
+      "error": null,
+      "seconds": 2.9,
+      "suggestions": [
+        {
+          "question": "Are we staying on Zendesk or switching to Intercom for support?",
+          "why": "Priya said on Oct 24 the team would stay on Zendesk because migrating macros is painful, then on Oct 26 said they're switching to Intercom since 62% of tickets start from the in-app widget, so the choice is unrecorded and the reasons conflict.",
+          "refs": [
+            "C30BRIGHT:1792883723.193932",
+            "C30BRIGHT:1793058586.360011"
+          ]
+        },
+        {
+          "question": "Do we migrate from Heroku to RDS in December?",
+          "why": "Priya proposed the migration because the Heroku bill is up 40% since July, and then said 'ok no objections, it's a go', but no decision is recorded and no option was pruned.",
+          "refs": [
+            "C30BRIGHT:1792880177.405979",
+            "C30BRIGHT:1792881517.085664"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g30-0",
+          "topic": "db-migration",
+          "question": "Should we move from Heroku Postgres to RDS?",
+          "status": "decided",
+          "chosen": "migrate to RDS in December",
+          "options": [
+            "migrate to RDS in December",
+            "stay on Heroku until after launch"
+          ],
+          "style": "reaction",
+          "key_ts": [
+            "1792880177.405979",
+            "1792881517.085664"
+          ],
+          "summary": "Proposed migrate to RDS in December; approved by reactions with no objections.",
+          "visible_to_reader": true
+        },
+        {
+          "id": "g30-1",
+          "topic": "support-tool",
+          "question": "Should we use Intercom or Zendesk for support?",
+          "status": "decided",
+          "chosen": "switch to Intercom",
+          "options": [
+            "switch to Intercom",
+            "stay on Zendesk"
+          ],
+          "style": "reversed",
+          "key_ts": [
+            "1792883723.193932",
+            "1793058586.360011"
+          ],
+          "summary": "First chose to stay on Zendesk, then reversed: decided to switch to Intercom instead.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g30-0": true,
+        "g30-1": true
+      },
+      "judgeA": {
+        "matches": {
+          "g30-0": 1,
+          "g30-1": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "It correctly describes the reversal to Intercom and both reasons, but the open-ended question and the 'reasons conflict' framing blur the fact that the final decision is Intercom."
+          },
+          "1": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It correctly captures the December RDS migration, the 40% cost reason, and the approval with no objections."
+          }
+        },
+        "goldReasons": {
+          "g30-0": "Suggestion 1 covers the same Heroku-to-RDS migration choice.",
+          "g30-1": "Suggestion 0 covers the same Zendesk-versus-Intercom support tool choice."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g30-0": 1,
+          "g30-1": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It captures the reversal and reasons correctly, but wrongly calls the choice unrecorded/open when Priya clearly stated the final decision to switch to Intercom."
+          },
+          "1": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "The proposal, reason, and go-ahead are accurate, but it wrongly treats the matter as undecided when the team approved it via reactions and 'it's a go', and the 'no option was pruned' claim is off."
+          }
+        },
+        "goldReasons": {
+          "g30-0": "Suggestion 1 is about migrating from Heroku to RDS in December, the same choice as the tagged decision.",
+          "g30-1": "Suggestion 0 covers the Zendesk vs Intercom support tool choice, the same subject as the tag."
+        }
+      }
+    },
+    {
+      "conversation": "conv-31",
+      "channel": "#sales",
+      "sentToClaude": 14,
+      "inSlack": 16,
+      "ok": true,
+      "error": null,
+      "seconds": 4.87,
+      "suggestions": [
+        {
+          "question": "What annual discount should we offer: 15% or 20%?",
+          "why": "Priya first decided on 15% off annual to protect margin, then changed to 20% two days later to match both main competitors, and nothing is recorded yet.",
+          "refs": [
+            "C31BRIGHT:1792795080.210876",
+            "C31BRIGHT:1792937865.798077"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g31-0",
+          "topic": "annual-discount",
+          "question": "How big should the annual discount be?",
+          "status": "decided",
+          "chosen": "offer 20% off annual",
+          "options": [
+            "offer 20% off annual",
+            "offer 15% off annual"
+          ],
+          "style": "reversed",
+          "key_ts": [
+            "1792795080.210876",
+            "1792937865.798077"
+          ],
+          "summary": "First chose to offer 15% off annual, then reversed: decided to offer 20% off annual instead.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g31-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g31-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It correctly captures the reversal from 15% (margin) to 20% (matching competitors) as the final decision, with the right reasons for each."
+          }
+        },
+        "goldReasons": {
+          "g31-0": "Suggestion 0 concerns the same annual discount size choice between 15% and 20%."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g31-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It correctly captures the 15% to 20% reversal and the reasons, but says 'nothing is recorded yet' and frames the question as open, never stating that the final decision is 20%, so the final choice is missing."
+          }
+        },
+        "goldReasons": {
+          "g31-0": "Suggestion 0 is about the same choice, the size of the annual discount (15% vs 20%)."
+        }
+      }
+    },
+    {
+      "conversation": "conv-32",
+      "channel": "#ops",
+      "sentToClaude": 19,
+      "inSlack": 22,
+      "ok": true,
+      "error": null,
+      "seconds": 6.22,
+      "suggestions": [
+        {
+          "question": "Should we renew the office lease or go remote-first?",
+          "why": "Priya said the call is due by end of next week, Leo argued to drop the lease given under 30% use, Rosa wants to renew for onboarding, and Priya parked it for Thursday's sync.",
+          "refs": [
+            "C32BRIGHT:1793427487.954047",
+            "C32BRIGHT:1793427823.513463",
+            "C32BRIGHT:1793432111.352834"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g32-0",
+          "topic": "office",
+          "question": "Should we renew the office lease or go remote-first?",
+          "status": "open",
+          "chosen": null,
+          "options": [
+            "go remote-first and drop the lease",
+            "renew the office lease"
+          ],
+          "style": "open",
+          "key_ts": [
+            "1793427487.954047",
+            "1793432507.947690"
+          ],
+          "summary": "Still open: go remote-first and drop the lease vs renew the office lease; to be settled at Thursday's sync.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g32-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g32-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "It correctly captures the choice, both positions and that it is parked for Thursday's sync, but it omits Sam's 27% badge-occupancy data and never explicitly says no call has been made yet."
+          }
+        },
+        "goldReasons": {
+          "g32-0": "Suggestion 0 covers the same choice between renewing the office lease and going remote-first."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g32-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It correctly captures the question, both positions with their reasons, the deadline, and that it was parked for Thursday's sync with no decision made."
+          }
+        },
+        "goldReasons": {
+          "g32-0": "Suggestion 0 is about the same choice, renewing the office lease versus going remote-first."
+        }
+      }
+    },
+    {
+      "conversation": "conv-33",
+      "channel": "#growth",
+      "sentToClaude": 29,
+      "inSlack": 32,
+      "ok": true,
+      "error": null,
+      "seconds": 5.06,
+      "suggestions": [
+        {
+          "question": "Should every new team get a free onboarding call, or only teams over 10 seats?",
+          "why": "Priya says it has to be decided by end of next week, Ben wants calls only for teams over 10 seats because of staffing, Tom wants calls for everyone, and it's parked for Thursday's sync with no call yet.",
+          "refs": [
+            "C33BRIGHT:1793185238.203468",
+            "C33BRIGHT:1793185358.282338",
+            "C33BRIGHT:1793186491.231539"
+          ]
+        },
+        {
+          "question": "Should we ship sample data in onboarding to fix the drop-off at connect-a-source?",
+          "why": "Marcus says the team is going to ship sample data because 48% of new workspaces stall at step 3, and no decision on it is recorded.",
+          "refs": [
+            "C33BRIGHT:1793170346.748263"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g33-0",
+          "topic": "sample-data",
+          "question": "Should new workspaces start with sample data?",
+          "status": "decided",
+          "chosen": "ship sample data in onboarding",
+          "options": [
+            "ship sample data in onboarding",
+            "keep the empty state"
+          ],
+          "style": "buried",
+          "key_ts": [
+            "1793170346.748263"
+          ],
+          "summary": "Announced in passing: decided to ship sample data in onboarding, because 48% stall at connect-a-source.",
+          "visible_to_reader": true
+        },
+        {
+          "id": "g33-1",
+          "topic": "onboarding-call",
+          "question": "Should every new team get a free onboarding call?",
+          "status": "open",
+          "chosen": null,
+          "options": [
+            "offer onboarding calls only to teams over 10 seats",
+            "offer an onboarding call to every new team"
+          ],
+          "style": "open",
+          "key_ts": [
+            "1793185238.203468",
+            "1793187352.204503"
+          ],
+          "summary": "Still open: offer onboarding calls only to teams over 10 seats vs offer an onboarding call to every new team; to be settled at Thursday's sync.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g33-0": true,
+        "g33-1": true
+      },
+      "judgeA": {
+        "matches": {
+          "g33-0": 1,
+          "g33-1": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It correctly captures both options, their reasons, and the open status deferred to Thursday's sync."
+          },
+          "1": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "It correctly states the team is going to ship sample data because of the 48% stall, though the 'no decision on it is recorded' line slightly blurs that it was already decided."
+          }
+        },
+        "goldReasons": {
+          "g33-0": "Suggestion 1 covers the same choice of shipping sample data in onboarding.",
+          "g33-1": "Suggestion 0 covers the same choice of who gets a free onboarding call."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g33-0": 1,
+          "g33-1": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It correctly captures the open question, both positions with reasons, and the parking until Thursday's sync."
+          },
+          "1": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "The choice and the 48% reason are right, but it says no decision is recorded when Marcus announced the team is going to ship it, so the status is garbled."
+          }
+        },
+        "goldReasons": {
+          "g33-0": "Suggestion 1 is about the same choice of shipping sample data in onboarding.",
+          "g33-1": "Suggestion 0 is about the same free onboarding call choice."
+        }
+      }
+    },
+    {
+      "conversation": "conv-34",
+      "channel": "#support",
+      "sentToClaude": 16,
+      "inSlack": 18,
+      "ok": true,
+      "error": null,
+      "seconds": 2.62,
+      "suggestions": [
+        {
+          "question": "Should we switch our support tooling to Intercom?",
+          "why": "Leo proposed switching to Intercom because in-app chat is where tickets start, and several teammates replied with agreement but nothing was recorded.",
+          "refs": [
+            "C34BRIGHT:1793561017.762579",
+            "C34BRIGHT:1793561395.891183",
+            "C34BRIGHT:1793561632.224597"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g34-0",
+          "topic": "support-tool",
+          "question": "Should we use Intercom or Zendesk for support?",
+          "status": "decided",
+          "chosen": "switch to Intercom",
+          "options": [
+            "switch to Intercom",
+            "stay on Zendesk"
+          ],
+          "style": "consensus",
+          "key_ts": [
+            "1793561017.762579",
+            "1793561632.224597"
+          ],
+          "summary": "The team agreed to switch to Intercom, because in-app chat is where tickets start anyway.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g34-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g34-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It correctly captures Leo's proposal to switch to Intercom, the in-app chat rationale, and the team's agreement, which implies a decision was reached."
+          }
+        },
+        "goldReasons": {
+          "g34-0": "Suggestion 0 is about the same choice of switching support tooling to Intercom."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g34-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "It correctly captures Leo's Intercom proposal, the in-app chat reasoning, and the teammates' agreement, but frames it as unrecorded rather than stating that the team decided (Leo said he'd make the ticket), a minor status omission."
+          }
+        },
+        "goldReasons": {
+          "g34-0": "Suggestion 0 is about switching support tooling to Intercom, the same choice as the tagged Intercom vs Zendesk decision."
+        }
+      }
+    },
+    {
+      "conversation": "conv-35",
+      "channel": "#random",
+      "sentToClaude": 8,
+      "inSlack": 9,
+      "ok": true,
+      "error": null,
+      "seconds": 1.62,
+      "suggestions": [],
+      "gold": [],
+      "matchedByRefs": {},
+      "judgeA": null,
+      "judgeB": null
+    },
+    {
+      "conversation": "conv-36",
+      "channel": "#random",
+      "sentToClaude": 6,
+      "inSlack": 7,
+      "ok": true,
+      "error": null,
+      "seconds": 4.76,
+      "suggestions": [],
+      "gold": [],
+      "matchedByRefs": {},
+      "judgeA": null,
+      "judgeB": null
+    },
+    {
+      "conversation": "conv-37",
+      "channel": "#watercooler",
+      "sentToClaude": 8,
+      "inSlack": 8,
+      "ok": true,
+      "error": null,
+      "seconds": 4.72,
+      "suggestions": [],
+      "gold": [],
+      "matchedByRefs": {},
+      "judgeA": null,
+      "judgeB": null
+    },
+    {
+      "conversation": "conv-38",
+      "channel": "#ops",
+      "sentToClaude": 14,
+      "inSlack": 15,
+      "ok": true,
+      "error": null,
+      "seconds": 1.81,
+      "suggestions": [
+        {
+          "question": "Should we start a weekly on-call rotation for incidents?",
+          "why": "Priya proposed it after two incidents sat for hours over the weekend, then said no objections and called it a go, but no decision is recorded.",
+          "refs": [
+            "C38BRIGHT:1794302736.411428",
+            "C38BRIGHT:1794304857.216739"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g38-0",
+          "topic": "on-call",
+          "question": "Should we start a formal on-call rotation?",
+          "status": "decided",
+          "chosen": "start a weekly on-call rotation",
+          "options": [
+            "start a weekly on-call rotation",
+            "stay best-effort with no rotation"
+          ],
+          "style": "reaction",
+          "key_ts": [
+            "1794302736.411428",
+            "1794304857.216739"
+          ],
+          "summary": "Proposed start a weekly on-call rotation; approved by reactions with no objections.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g38-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g38-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It correctly captures the proposal, the reason (weekend incidents) and that it was approved with ✅ reactions and no objections."
+          }
+        },
+        "goldReasons": {
+          "g38-0": "Suggestion 0 concerns the same choice of starting a weekly on-call rotation."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g38-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "The question and the reason (two incidents sat over the weekend) are correct and the evidence shows the proposal and 'it's a go', but the 'why' claims no decision is recorded, which wrongly implies it is still open when the team decided it."
+          }
+        },
+        "goldReasons": {
+          "g38-0": "Suggestion 0 is about the same choice, starting a weekly on-call rotation."
+        }
+      }
+    },
+    {
+      "conversation": "conv-39",
+      "channel": "#eng",
+      "sentToClaude": 11,
+      "inSlack": 15,
+      "ok": true,
+      "error": null,
+      "seconds": 2.33,
+      "suggestions": [
+        {
+          "question": "Should we add a rate limit per API key, and if so, at what threshold (e.g. 100 requests/min)?",
+          "why": "Sam proposed capping at 100 requests/min per key after one customer's script took the service down last week, and several teammates replied with agreement (+1, sgtm) but nothing is recorded.",
+          "refs": [
+            "C39BRIGHT:1793681204.780030",
+            "C39BRIGHT:1793681436.325655",
+            "C39BRIGHT:1793684543.593505"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g39-0",
+          "topic": "rate-limits",
+          "question": "What rate limit should the public API have?",
+          "status": "decided",
+          "chosen": "limit to 100 requests/min per key",
+          "options": [
+            "limit to 100 requests/min per key",
+            "allow 1,000 requests/min per key"
+          ],
+          "style": "consensus",
+          "key_ts": [
+            "1793681204.780030",
+            "1793684797.899704"
+          ],
+          "summary": "The team agreed to limit to 100 requests/min per key, because one customer's script took us down last week.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g39-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g39-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "The why captures the 100 req/min-per-key proposal, the outage reason and the team's agreement, but the question hedges the threshold as an open example rather than the settled choice."
+          }
+        },
+        "goldReasons": {
+          "g39-0": "Suggestion 0 covers the same choice: a per-key API rate limit of 100 requests/min."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g39-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It correctly identifies the rate-limit choice and reason, but frames it as an open question with the threshold only an example, when the team agreed on 100 requests/min per key and Sam said he'd make the ticket."
+          }
+        },
+        "goldReasons": {
+          "g39-0": "Suggestion 0 is about the same choice: a per-key API rate limit at 100 requests/min."
+        }
+      }
+    },
+    {
+      "conversation": "conv-40",
+      "channel": "#ops",
+      "sentToClaude": 18,
+      "inSlack": 22,
+      "ok": true,
+      "error": null,
+      "seconds": 2.57,
+      "suggestions": [
+        {
+          "question": "Should we start a formal weekly on-call rotation, or stay best-effort with no rotation?",
+          "why": "Priya Raman posted a poll in #ops laying out these two options, and nothing is recorded for it yet.",
+          "refs": [
+            "C40BRIGHT:1793301880.405277"
+          ]
+        },
+        {
+          "question": "Should we push dark mode to Q2 so Q1 stays focused on the launch?",
+          "why": "Sam Ortiz proposed moving dark mode to Q2 because Q1 is already full with the launch, and others replied with agreement (+1, sgtm).",
+          "refs": [
+            "C40BRIGHT:1793303981.588021",
+            "C40BRIGHT:1793304311.681024",
+            "C40BRIGHT:1793304544.304168"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g40-0",
+          "topic": "on-call",
+          "question": "Should we start a formal on-call rotation?",
+          "status": "decided",
+          "chosen": "start a weekly on-call rotation",
+          "options": [
+            "start a weekly on-call rotation",
+            "stay best-effort with no rotation"
+          ],
+          "style": "threaded",
+          "key_ts": [
+            "1793301880.405277",
+            "1793302516.372852"
+          ],
+          "summary": "Polled the team; decided to start a weekly on-call rotation.",
+          "visible_to_reader": false
+        },
+        {
+          "id": "g40-1",
+          "topic": "dark-mode",
+          "question": "Should we build dark mode this quarter?",
+          "status": "decided",
+          "chosen": "push dark mode to Q2",
+          "options": [
+            "push dark mode to Q2",
+            "build dark mode in Q1"
+          ],
+          "style": "consensus",
+          "key_ts": [
+            "1793303981.588021",
+            "1793304544.304168"
+          ],
+          "summary": "The team agreed to push dark mode to Q2, because Q1 is already full with the launch.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g40-0": true,
+        "g40-1": true
+      },
+      "judgeA": {
+        "matches": {
+          "g40-0": 0,
+          "g40-1": 1
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It identifies the right choice and options but presents it as open, missing that Priya announced the weekly rotation in the thread."
+          },
+          "1": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It correctly captures the choice to push dark mode to Q2, the reason (Q1 full with launch), and the team's agreement."
+          }
+        },
+        "goldReasons": {
+          "g40-0": "Suggestion 0 covers the same on-call rotation poll.",
+          "g40-1": "Suggestion 1 covers pushing dark mode to Q2."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g40-0": 0,
+          "g40-1": 1
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 2,
+            "reason": "The on-call rotation is a real decision, but the suggestion says nothing is recorded and omits that votes were tallied in the thread and Priya announced the team will start a weekly rotation, so it wrongly presents a decided matter as open."
+          },
+          "1": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It correctly captures the proposal to push dark mode to Q2 because Q1 is full with the launch, with agreement from others, and Sam making the ticket confirms the outcome."
+          }
+        },
+        "goldReasons": {
+          "g40-0": "Suggestion 0 is about the same on-call rotation choice as the tagged decision.",
+          "g40-1": "Suggestion 1 covers the same choice of pushing dark mode to Q2."
+        }
+      }
+    },
+    {
+      "conversation": "conv-41",
+      "channel": "#design",
+      "sentToClaude": 17,
+      "inSlack": 23,
+      "ok": true,
+      "error": null,
+      "seconds": 2.43,
+      "suggestions": [
+        {
+          "question": "Should the Slack integration read private channels, or stay with public channels only?",
+          "why": "Priya posted a poll offering public-only versus private channels with admin opt-in, and no decision is recorded yet.",
+          "refs": [
+            "C41BRIGHT:1793575214.755427"
+          ]
+        },
+        {
+          "question": "Should we hire a full-time designer instead of continuing with design contractors?",
+          "why": "Aisha said the team is going to hire a full-time designer because contractor handoffs slow projects, and that contractors cost about $31k last quarter, but no decision or option comparison is recorded.",
+          "refs": [
+            "C41BRIGHT:1793568838.603403"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g41-0",
+          "topic": "design-hire",
+          "question": "Should we hire a full-time designer or keep contractors?",
+          "status": "decided",
+          "chosen": "hire a full-time designer",
+          "options": [
+            "hire a full-time designer",
+            "keep contractors through Q1"
+          ],
+          "style": "buried",
+          "key_ts": [
+            "1793568838.603403"
+          ],
+          "summary": "Announced in passing: decided to hire a full-time designer, because contractor handoffs are slowing every project.",
+          "visible_to_reader": true
+        },
+        {
+          "id": "g41-1",
+          "topic": "slack-scope",
+          "question": "Should the Slack integration read private channels?",
+          "status": "decided",
+          "chosen": "read public channels only",
+          "options": [
+            "read public channels only",
+            "allow private channels with admin opt-in"
+          ],
+          "style": "threaded",
+          "key_ts": [
+            "1793575214.755427",
+            "1793575947.202363"
+          ],
+          "summary": "Polled the team; decided to read public channels only.",
+          "visible_to_reader": false
+        }
+      ],
+      "matchedByRefs": {
+        "g41-0": true,
+        "g41-1": true
+      },
+      "judgeA": {
+        "matches": {
+          "g41-0": 1,
+          "g41-1": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It identifies the right choice but treats it as open, missing that Priya closed the poll by deciding on public channels only."
+          },
+          "1": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "It correctly captures the decision to hire a full-time designer and the handoff reason, though saying 'no decision is recorded' slightly muddies the decided status."
+          }
+        },
+        "goldReasons": {
+          "g41-0": "Suggestion 1 is about hiring a full-time designer instead of continuing with contractors.",
+          "g41-1": "Suggestion 0 is about whether the Slack integration should read private channels."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g41-0": 1,
+          "g41-1": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 2,
+            "reason": "It is a real product choice, but it cites only the poll question and says no decision is recorded, when Priya announced the team will read public channels only after the thread votes."
+          },
+          "1": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It captures the choice and the reason (handoffs slow projects, $31k cost) but wrongly says no decision is recorded, when Aisha announced the team is going to hire a full-time designer."
+          }
+        },
+        "goldReasons": {
+          "g41-0": "Suggestion 1 is about the same choice, hiring a full-time designer versus continuing with contractors.",
+          "g41-1": "Suggestion 0 is about the same choice, whether the Slack integration reads private channels."
+        }
+      }
+    },
+    {
+      "conversation": "conv-42",
+      "channel": "#eng",
+      "sentToClaude": 13,
+      "inSlack": 16,
+      "ok": true,
+      "error": null,
+      "seconds": 2.43,
+      "suggestions": [
+        {
+          "question": "Should we move our docs from GitBook to Mintlify?",
+          "why": "Kenji said GitBook search is bad and shows up in tickets, and a few teammates replied with agreement, so a move looks like it's on the table.",
+          "refs": [
+            "C42BRIGHT:1792891647.514867",
+            "C42BRIGHT:1792891860.659896",
+            "C42BRIGHT:1792892590.523521"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g42-0",
+          "topic": "docs-platform",
+          "question": "Should we move docs to Mintlify or keep GitBook?",
+          "status": "decided",
+          "chosen": "move docs to Mintlify",
+          "options": [
+            "move docs to Mintlify",
+            "keep GitBook"
+          ],
+          "style": "consensus",
+          "key_ts": [
+            "1792891647.514867",
+            "1792892590.523521"
+          ],
+          "summary": "The team agreed to move docs to Mintlify, because search in GitBook is bad and it shows in tickets.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g42-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g42-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It gets the choice and the GitBook search reason right, but it calls the move merely 'on the table' even though the team agreed and Kenji said he'd make the ticket, so the decided status is wrong."
+          }
+        },
+        "goldReasons": {
+          "g42-0": "Suggestion 0 covers the same choice of moving the docs from GitBook to Mintlify."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g42-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "It correctly identifies the choice and the reason (GitBook search is bad and shows in tickets), but it frames the move as merely 'on the table' when the team agreed (+1, sgtm) and Kenji said he'd make the ticket, so it understates that it was decided."
+          }
+        },
+        "goldReasons": {
+          "g42-0": "Suggestion 0 is about the same choice, moving docs from GitBook to Mintlify."
+        }
+      }
+    },
+    {
+      "conversation": "conv-43",
+      "channel": "#random",
+      "sentToClaude": 8,
+      "inSlack": 11,
+      "ok": true,
+      "error": null,
+      "seconds": 1.82,
+      "suggestions": [],
+      "gold": [],
+      "matchedByRefs": {},
+      "judgeA": null,
+      "judgeB": null
+    },
+    {
+      "conversation": "conv-44",
+      "channel": "#data",
+      "sentToClaude": 12,
+      "inSlack": 16,
+      "ok": true,
+      "error": null,
+      "seconds": 2.51,
+      "suggestions": [
+        {
+          "question": "Should we use Amplitude or self-hosted PostHog for product analytics?",
+          "why": "Priya first announced Amplitude on Nov 4 for the sales team's charts, then on Nov 6 said they're self-hosting PostHog instead after seeing a ~$38k/yr quote, and neither is recorded.",
+          "refs": [
+            "C44BRIGHT:1793835979.937960",
+            "C44BRIGHT:1793956389.400889"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g44-0",
+          "topic": "analytics",
+          "question": "Which analytics tool should we use, PostHog or Amplitude?",
+          "status": "decided",
+          "chosen": "self-host PostHog",
+          "options": [
+            "self-host PostHog",
+            "go with Amplitude"
+          ],
+          "style": "reversed",
+          "key_ts": [
+            "1793835979.937960",
+            "1793956389.400889"
+          ],
+          "summary": "First chose to go with Amplitude, then reversed: decided to self-host PostHog instead.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g44-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g44-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It correctly captures the reversal from Amplitude to self-hosted PostHog, the ~$38k/yr cost reason and the dates, with supporting evidence."
+          }
+        },
+        "goldReasons": {
+          "g44-0": "Suggestion 0 covers the same Amplitude vs. self-hosted PostHog analytics choice."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g44-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "It captures the Amplitude-to-PostHog reversal and the $38k quote reason correctly, but the phrasing 'neither is recorded' leaves the final status ambiguous, and the dates (Nov 4/6) are not verifiable from the channel."
+          }
+        },
+        "goldReasons": {
+          "g44-0": "Suggestion 0 is about the same choice, Amplitude versus self-hosted PostHog for analytics."
+        }
+      }
+    },
+    {
+      "conversation": "conv-45",
+      "channel": "#support",
+      "sentToClaude": 7,
+      "inSlack": 14,
+      "ok": true,
+      "error": null,
+      "seconds": 1.97,
+      "suggestions": [
+        {
+          "question": "Should every new team get a free onboarding call, or only teams over 10 seats?",
+          "why": "Priya posted a poll in #support laying out two options: calls only for teams over 10 seats, or a call for every new team.",
+          "refs": [
+            "C45BRIGHT:1792982154.439928"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g45-0",
+          "topic": "onboarding-call",
+          "question": "Should every new team get a free onboarding call?",
+          "status": "decided",
+          "chosen": "offer onboarding calls only to teams over 10 seats",
+          "options": [
+            "offer onboarding calls only to teams over 10 seats",
+            "offer an onboarding call to every new team"
+          ],
+          "style": "threaded",
+          "key_ts": [
+            "1792982154.439928",
+            "1792982844.017940"
+          ],
+          "summary": "Polled the team; decided to offer onboarding calls only to teams over 10 seats.",
+          "visible_to_reader": false
+        }
+      ],
+      "matchedByRefs": {
+        "g45-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g45-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It frames the choice correctly but omits that Priya closed the poll and decided on calls only for teams over 10 seats, leaving the outcome unstated."
+          }
+        },
+        "goldReasons": {
+          "g45-0": "Suggestion 0 covers the same choice about whether every new team gets an onboarding call or only teams over 10 seats."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g45-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It correctly identifies the choice and the two options from Priya's poll, but frames it as still open and omits that the team voted and Priya announced the decision to offer calls only to teams over 10 seats."
+          }
+        },
+        "goldReasons": {
+          "g45-0": "Suggestion 0 is about the same choice: whether every new team gets a free onboarding call or only teams over 10 seats."
+        }
+      }
+    },
+    {
+      "conversation": "conv-46",
+      "channel": "#marketing",
+      "sentToClaude": 11,
+      "inSlack": 12,
+      "ok": true,
+      "error": null,
+      "seconds": 5.68,
+      "suggestions": [
+        {
+          "question": "Should we run our own webinar series instead of paying for a booth at the event?",
+          "why": "Rosa said the team is going to run its own webinars because they cost a fraction and the team owns the list, after a $45k booth quote came back.",
+          "refs": [
+            "C46BRIGHT:1793930405.183329"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g46-0",
+          "topic": "events",
+          "question": "Should we sponsor SaaStr or run our own webinar series?",
+          "status": "decided",
+          "chosen": "run our own webinar series",
+          "options": [
+            "run our own webinar series",
+            "sponsor a SaaStr booth"
+          ],
+          "style": "buried",
+          "key_ts": [
+            "1793930405.183329"
+          ],
+          "summary": "Announced in passing: decided to run our own webinar series, because webinars cost a fraction and we own the list.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g46-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g46-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It correctly states that the team decided to run its own webinars, with the right reasons (lower cost, owning the list) and the $45k booth quote as context."
+          }
+        },
+        "goldReasons": {
+          "g46-0": "Suggestion 0 covers the same choice of running an in-house webinar series versus paying for an event booth."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g46-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "It correctly captures the choice, the reason (cost, owning the list) and the $45k quote, but phrases it as a question without stating it was decided and doesn't name SaaStr."
+          }
+        },
+        "goldReasons": {
+          "g46-0": "Suggestion 0 is about the same choice, running own webinars versus paying for a booth (sponsoring the event)."
+        }
+      }
+    },
+    {
+      "conversation": "conv-47",
+      "channel": "#design",
+      "sentToClaude": 15,
+      "inSlack": 16,
+      "ok": true,
+      "error": null,
+      "seconds": 2.17,
+      "suggestions": [
+        {
+          "question": "Should we hire a full-time designer or keep contractors through Q1?",
+          "why": "Priya framed these as the two options and then announced the call, while Sam pushed back that budget is only approved through Q1 and Tom noted about $31k spent on contractors last quarter.",
+          "refs": [
+            "C47BRIGHT:1794240769.512538",
+            "C47BRIGHT:1794245146.404771",
+            "C47BRIGHT:1794244342.629469"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g47-0",
+          "topic": "design-hire",
+          "question": "Should we hire a full-time designer or keep contractors?",
+          "status": "decided",
+          "chosen": "hire a full-time designer",
+          "options": [
+            "hire a full-time designer",
+            "keep contractors through Q1"
+          ],
+          "style": "explicit",
+          "key_ts": [
+            "1794240769.512538",
+            "1794245146.404771"
+          ],
+          "summary": "Decided to hire a full-time designer rather than keep contractors through Q1, because contractor handoffs are slowing every project.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g47-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g47-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It identifies the right choice and says a call was announced, but the why never states the outcome (hire a full-time designer) or the reason (contractor handoffs slowing projects), and it frames Sam's earlier preference as pushback on the decision."
+          }
+        },
+        "goldReasons": {
+          "g47-0": "Suggestion 0 covers the same choice between hiring a full-time designer and keeping contractors through Q1."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g47-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 4,
+            "reason": "It correctly frames the options, cites Sam's budget pushback and Tom's cost data, and notes the call was announced, but it does not state the chosen outcome (hire) or Priya's stated reason (contractor handoffs slowing projects) explicitly."
+          }
+        },
+        "goldReasons": {
+          "g47-0": "Suggestion 0 addresses the same choice of hiring a full-time designer versus keeping contractors."
+        }
+      }
+    },
+    {
+      "conversation": "conv-48",
+      "channel": "#growth",
+      "sentToClaude": 7,
+      "inSlack": 10,
+      "ok": true,
+      "error": null,
+      "seconds": 4.69,
+      "suggestions": [
+        {
+          "question": "Should onboarding ship sample data, or keep the empty state?",
+          "why": "On Oct 24 Priya said the team would keep the empty state, then on Oct 26 reversed to sample data after the funnel showed 48% of new workspaces stall at step 3, and neither call is recorded.",
+          "refs": [
+            "C48BRIGHT:1792879504.820567",
+            "C48BRIGHT:1792975791.501255"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g48-0",
+          "topic": "sample-data",
+          "question": "Should new workspaces start with sample data?",
+          "status": "decided",
+          "chosen": "ship sample data in onboarding",
+          "options": [
+            "ship sample data in onboarding",
+            "keep the empty state"
+          ],
+          "style": "reversed",
+          "key_ts": [
+            "1792879504.820567",
+            "1792975791.501255"
+          ],
+          "summary": "First chose to keep the empty state, then reversed: decided to ship sample data in onboarding instead.",
+          "visible_to_reader": true
+        }
+      ],
+      "matchedByRefs": {
+        "g48-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g48-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 5,
+            "reason": "It captures the reversal from the empty state to the final choice of sample data, with the funnel stall rationale and both supporting quotes."
+          }
+        },
+        "goldReasons": {
+          "g48-0": "Suggestion 0 covers the same choice of whether new workspaces start with sample data or the empty state."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g48-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It correctly captures the reversal and the 48% funnel reason, but it frames the question as open and says neither call is recorded, and it never states that the final decision is to ship sample data, which the channel shows as decided."
+          }
+        },
+        "goldReasons": {
+          "g48-0": "Suggestion 0 is about the same choice, whether onboarding ships sample data or keeps the empty state."
+        }
+      }
+    },
+    {
+      "conversation": "conv-49",
+      "channel": "#design",
+      "sentToClaude": 7,
+      "inSlack": 11,
+      "ok": true,
+      "error": null,
+      "seconds": 1.65,
+      "suggestions": [
+        {
+          "question": "Should we build dark mode in Q1, or push it to Q2?",
+          "why": "Priya ran a poll in #design with two options, build in Q1 or push to Q2, and no decision has been recorded yet.",
+          "refs": [
+            "C49BRIGHT:1794264252.229869"
+          ]
+        }
+      ],
+      "gold": [
+        {
+          "id": "g49-0",
+          "topic": "dark-mode",
+          "question": "Should we build dark mode this quarter?",
+          "status": "decided",
+          "chosen": "push dark mode to Q2",
+          "options": [
+            "push dark mode to Q2",
+            "build dark mode in Q1"
+          ],
+          "style": "threaded",
+          "key_ts": [
+            "1794264252.229869",
+            "1794264917.026239"
+          ],
+          "summary": "Polled the team; decided to push dark mode to Q2.",
+          "visible_to_reader": false
+        }
+      ],
+      "matchedByRefs": {
+        "g49-0": true
+      },
+      "judgeA": {
+        "matches": {
+          "g49-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 3,
+            "reason": "It identifies the right choice but wrongly says no decision was recorded, when Priya closed the poll in the thread by pushing dark mode to Q2."
+          }
+        },
+        "goldReasons": {
+          "g49-0": "Suggestion 0 is about the same dark mode Q1 vs Q2 choice."
+        }
+      },
+      "judgeB": {
+        "matches": {
+          "g49-0": 0
+        },
+        "rated": {
+          "0": {
+            "real": true,
+            "accuracy": 2,
+            "reason": "The choice is real, but the suggestion says no decision has been recorded when Priya announced in the thread that dark mode is pushed to Q2, and it ignores the thread votes and Q1 capacity reasoning."
+          }
+        },
+        "goldReasons": {
+          "g49-0": "Suggestion 0 is about the same choice, building dark mode in Q1 versus pushing it to Q2, so it matches despite the status error."
+        }
+      }
+    }
+  ]
+}

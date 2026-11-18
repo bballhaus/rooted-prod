@@ -373,9 +373,9 @@ def markdown(meta: dict[str, Any], a: dict[str, Any], rows: list[dict[str, Any]]
         "Expect real Slack to score lower.",
         "- The tagging rule (a team choice between real alternatives, made or explicitly pending) is this test's working "
         "definition only. What counts as a decision is still an open team question.",
-        "- The extraction is the production `spotDecisions` task as it stands: it asks for \"choices the team seems to be "
-        "facing\", up to 3 per read, and isn't asked to say whether or how a choice was settled. Accuracy here checks that "
-        "anyway, because the card asks whether the summaries are accurate.",
+        "- The extraction is the production `spotDecisions` task as it stands: up to 3 choices per read, each with a "
+        "question and a why that says whether the team settled it. Check the prompt version above against "
+        "`rooted_ai/tasks.py` when comparing reports.",
         "- The judges are LLMs standing in for human reviewers. Their agreement (κ) is reported so the ratings can be "
         "weighed; before relying on this for a decision, have two people rate a sample of the same items and compare.",
         "- Intervals: Wilson treats every decision as independent; the bootstrap resamples whole conversations, since "
