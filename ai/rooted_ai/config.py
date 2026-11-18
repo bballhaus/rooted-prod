@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
 
 
@@ -10,8 +11,8 @@ from dataclasses import dataclass
 class Settings:
     supabase_url: str
     supabase_anon_key: str
-    # Browser origins allowed to call the service. The first is where Slack's
-    # install flow sends the PM back to.
+    # Browser origins allowed to call the service. Slack's install flow sends
+    # the PM back to the one they started from, or the first if that's unknown.
     app_origins: tuple[str, ...]
     # Optional: a pattern for more origins, such as the team's own Vercel deploy
     # URLs, which change on every deploy. Matched against the whole origin.
@@ -25,6 +26,10 @@ class Settings:
     slack_client_secret: str = ""
     slack_state_secret: str = ""
     slack_redirect_uri: str = ""  # this service's /slack/callback URL
+
+    def allows_origin(self, origin: str) -> bool:
+        """The same rule the CORS middleware applies: listed, or matching the whole pattern."""
+        return origin in self.app_origins or bool(self.app_origin_regex and re.fullmatch(self.app_origin_regex, origin))
 
     @property
     def slack_configured(self) -> bool:

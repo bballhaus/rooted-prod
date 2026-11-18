@@ -228,6 +228,29 @@ def test_slack_install_round_trip(env):
     assert env.client.get("/slack/status", headers=AUTH).json()["result"]["connected"] is True
 
 
+def test_slack_sends_people_back_to_the_rooted_site_they_started_from():
+    # A teammate on the new domain must come back to the new domain, signed in,
+    # not to whichever origin happens to be listed first.
+    settings = replace(SETTINGS, app_origins=("https://old.example", "https://rooted.example"), app_origin_regex=r"https://rooted-[a-z0-9]+\.vercel\.app")
+    deps = Deps(settings=settings, verify=lambda t: "user-a" if t == "good-token" else None, store=MemoryStore(), claude=FakeClaude(), slack_api=FakeSlack(), clock=lambda: NOW)
+    client = TestClient(create_app(deps))
+
+    def back_to(origin: str | None) -> str:
+        headers = {**AUTH, **({"Origin": origin} if origin else {})}
+        state = parse_qs(urlparse(client.post("/slack/install", headers=headers).json()["result"]["url"]).query)["state"][0]
+        res = client.get("/slack/callback", params={"code": "abc", "state": state}, follow_redirects=False)
+        return res.headers["location"].split("/onboarding")[0]
+
+    assert back_to("https://rooted.example") == "https://rooted.example"
+    assert back_to("https://rooted-abc123.vercel.app") == "https://rooted-abc123.vercel.app"
+    # An origin the service doesn't serve, or none at all, falls back to the first.
+    assert back_to("https://evil.example") == "https://old.example"
+    assert back_to(None) == "https://old.example"
+    # A cancelled or forged callback can't pick where it goes either.
+    forged = client.get("/slack/callback", params={"code": "abc", "state": "eyJvIjoiaHR0cHM6Ly9ldmlsLmV4YW1wbGUifQ.bad"}, follow_redirects=False)
+    assert forged.headers["location"].startswith("https://old.example/onboarding")
+
+
 def test_someone_else_cant_finish_an_install_they_didnt_start(env):
     # The attacker starts an install and gets a victim to approve it on Slack.
     attacker = {"Authorization": "Bearer other-token"}

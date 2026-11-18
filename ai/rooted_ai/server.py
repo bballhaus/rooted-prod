@@ -205,14 +205,17 @@ def create_app(deps: Deps) -> FastAPI:
             return user_id
         if not deps.settings.slack_configured:
             return fail(503, "slack_not_configured")
-        return JSONResponse({"ok": True, "result": {"url": slack.install_url(deps.settings, user_id, deps.clock())}})
+        # Remember which Rooted site this came from, so Slack's callback returns there.
+        origin = request.headers.get("origin", "")
+        origin = origin if deps.settings.allows_origin(origin) else ""
+        return JSONResponse({"ok": True, "result": {"url": slack.install_url(deps.settings, user_id, deps.clock(), origin)}})
 
     @app.get("/slack/callback")
     def slack_callback(code: str = "", state: str = "", error: str = "") -> RedirectResponse:
         # Stores nothing: whoever's browser lands here isn't proven to be the
         # person who started the install. The app finishes it, signed in, at
         # /slack/complete.
-        back = f"{deps.settings.app_origins[0] if deps.settings.app_origins else ''}/onboarding"
+        back = f"{slack.return_origin(deps.settings, state, deps.clock())}/onboarding"
         if error:
             return RedirectResponse(f"{back}?slack=cancelled", status_code=302)
         if not code or not state:

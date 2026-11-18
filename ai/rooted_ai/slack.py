@@ -62,13 +62,14 @@ def _sign(settings: Settings, payload: bytes) -> str:
     return base64.urlsafe_b64encode(hmac.new(settings.slack_state_secret.encode(), payload, hashlib.sha256).digest()).decode().rstrip("=")
 
 
-def make_state(settings: Settings, user_id: str, now: float) -> str:
-    payload = base64.urlsafe_b64encode(json.dumps({"u": user_id, "e": int(now) + STATE_SECONDS, "n": secrets.token_hex(8)}).encode()).decode()
+def make_state(settings: Settings, user_id: str, now: float, origin: str = "") -> str:
+    """Signed, so the callback can trust the origin in it as much as the user id."""
+    claims = {"u": user_id, "e": int(now) + STATE_SECONDS, "n": secrets.token_hex(8), "o": origin}
+    payload = base64.urlsafe_b64encode(json.dumps(claims).encode()).decode()
     return f"{payload}.{_sign(settings, payload.encode())}"
 
 
-def read_state(settings: Settings, state: str, now: float) -> str | None:
-    """The user id the state was made for, or None if it's forged or expired."""
+def _claims(settings: Settings, state: str, now: float) -> dict[str, Any] | None:
     try:
         payload, sig = state.split(".", 1)
         if not hmac.compare_digest(sig, _sign(settings, payload.encode())):
@@ -76,18 +77,33 @@ def read_state(settings: Settings, state: str, now: float) -> str | None:
         data = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
     except (ValueError, json.JSONDecodeError):
         return None
-    if int(data.get("e", 0)) < now:
+    if not isinstance(data, dict) or int(data.get("e", 0)) < now:
         return None
-    return str(data.get("u")) or None
+    return data
 
 
-def install_url(settings: Settings, user_id: str, now: float) -> str:
+def read_state(settings: Settings, state: str, now: float) -> str | None:
+    """The user id the state was made for, or None if it's forged or expired."""
+    data = _claims(settings, state, now)
+    return (str(data.get("u")) or None) if data else None
+
+
+def return_origin(settings: Settings, state: str, now: float) -> str:
+    """The Rooted site the install started from, if it's one this service serves; else the first listed."""
+    data = _claims(settings, state, now) or {}
+    origin = str(data.get("o") or "")
+    if origin and settings.allows_origin(origin):
+        return origin
+    return settings.app_origins[0] if settings.app_origins else ""
+
+
+def install_url(settings: Settings, user_id: str, now: float, origin: str = "") -> str:
     query = urlencode(
         {
             "client_id": settings.slack_client_id,
             "scope": ",".join(SCOPES),
             "redirect_uri": settings.slack_redirect_uri,
-            "state": make_state(settings, user_id, now),
+            "state": make_state(settings, user_id, now, origin),
         }
     )
     return f"https://slack.com/oauth/v2/authorize?{query}"
