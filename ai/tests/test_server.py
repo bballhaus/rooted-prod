@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from urllib.parse import parse_qs, urlparse
 
 import anthropic
@@ -9,7 +10,10 @@ import httpx
 import pytest
 
 from rooted_ai import slack
-from tests.conftest import AUTH, NOW, SETTINGS, reply
+from fastapi.testclient import TestClient
+
+from rooted_ai.server import Deps, create_app
+from tests.conftest import AUTH, NOW, SETTINGS, FakeClaude, FakeSlack, MemoryStore, reply
 
 DAY = "spend:2026-11-06"  # NOW, as a UTC day
 
@@ -193,6 +197,35 @@ def test_a_slack_brief_reads_only_allowed_public_channels_and_links_what_it_cite
     assert "joined" not in sent and "deploy done" not in sent  # system and bot posts left out
 
 
+def test_a_slack_read_includes_thread_replies_where_decisions_often_land(env):
+    connect_slack(env)
+    history = env.slack_api.handlers["conversations.history"]
+
+    def with_thread(channel, **kw):
+        body = history(channel=channel, **kw)
+        if channel == "C1":
+            body["messages"][0] = {**body["messages"][0], "thread_ts": "1793990000.000100", "reply_count": 2}
+        return body
+
+    env.slack_api.handlers["conversations.history"] = with_thread
+    env.slack_api.handlers["conversations.replies"] = lambda channel, ts, **_: {
+        "ok": True,
+        "messages": [
+            {"ts": ts, "user": "U1", "text": "Seats confuse buyers"},  # Slack repeats the parent first
+            {"ts": "1793990005.000100", "thread_ts": ts, "user": "U2", "text": "ok, we'll price per workspace"},
+            {"ts": "1793990006.000100", "thread_ts": ts, "bot_id": "B1", "text": "reminder bot"},
+        ],
+    }
+    env.claude.answers.append(reply({"items": [{"ref": "C1:1793990005.000100", "group": "Outcome"}], "gaps": []}))
+    payload = {"decision": {"question": "Per seat?"}, "source": {"kind": "slack", "channelIds": ["C1"]}}
+    res = env.client.post("/agent", json={"task": "brief", "payload": payload}, headers=AUTH).json()
+    sent = env.claude.calls[0]["messages"][0]["content"]
+    assert "we'll price per workspace" in sent and "reminder bot" not in sent
+    assert sent.count("Seats confuse buyers") == 1  # the parent isn't sent twice
+    assert '"replyTo": "C1:1793990000.000100"' in sent  # Claude can tell it's a reply, and to what
+    assert res["result"]["items"][0]["author"] == "Dev Patel"
+
+
 def test_a_revoked_slack_token_says_so(env):
     connect_slack(env)
     env.slack_api.handlers["conversations.list"] = lambda **_: slack.SlackError("token_revoked")
@@ -222,6 +255,46 @@ def test_slack_install_round_trip(env):
     assert done == {"ok": True, "result": {"connected": True, "teamName": "Acme"}}
     assert env.store.get("slack-team:T9")["token"] == "xoxb-new"
     assert env.client.get("/slack/status", headers=AUTH).json()["result"]["connected"] is True
+
+
+def test_slack_sends_people_back_to_the_rooted_site_they_started_from():
+    # A teammate on the new domain must come back to the new domain, signed in,
+    # not to whichever origin happens to be listed first.
+    settings = replace(SETTINGS, app_origins=("https://old.example", "https://rooted.example"), app_origin_regex=r"https://rooted-[a-z0-9]+\.vercel\.app")
+    deps = Deps(settings=settings, verify=lambda t: "user-a" if t == "good-token" else None, store=MemoryStore(), claude=FakeClaude(), slack_api=FakeSlack(), clock=lambda: NOW)
+    client = TestClient(create_app(deps))
+
+    def back_to(origin: str | None) -> str:
+        headers = {**AUTH, **({"Origin": origin} if origin else {})}
+        state = parse_qs(urlparse(client.post("/slack/install", headers=headers).json()["result"]["url"]).query)["state"][0]
+        res = client.get("/slack/callback", params={"code": "abc", "state": state}, follow_redirects=False)
+        return res.headers["location"].split("/onboarding")[0]
+
+    assert back_to("https://rooted.example") == "https://rooted.example"
+    # A pattern match may call the API, but never receives Slack's code: an
+    # outsider could claim a hostname the pattern matches.
+    assert back_to("https://rooted-abc123.vercel.app") == "https://old.example"
+    # An origin the service doesn't serve, or none at all, falls back to the first.
+    assert back_to("https://evil.example") == "https://old.example"
+    assert back_to(None) == "https://old.example"
+    # A cancelled or forged callback can't pick where it goes either.
+    forged = client.get("/slack/callback", params={"code": "abc", "state": "eyJvIjoiaHR0cHM6Ly9ldmlsLmV4YW1wbGUifQ.bad"}, follow_redirects=False)
+    assert forged.headers["location"].startswith("https://old.example/onboarding")
+
+
+def test_an_attacker_cant_steer_a_victims_slack_code_to_a_lookalike_deploy():
+    # The attacker claims a hostname the deploy pattern matches, starts an
+    # install from it, and gets a victim to approve on Slack. The victim's code
+    # must not be sent to the attacker's site.
+    settings = replace(SETTINGS, app_origin_regex=r"https://rooted-prod-[a-z0-9-]+-team\.vercel\.app")
+    deps = Deps(settings=settings, verify=lambda t: "attacker" if t == "attacker-token" else None, store=MemoryStore(), claude=FakeClaude(), slack_api=FakeSlack(), clock=lambda: NOW)
+    client = TestClient(create_app(deps))
+    lookalike = "https://rooted-prod-x-team.vercel.app"
+    res = client.post("/slack/install", headers={"Authorization": "Bearer attacker-token", "Origin": lookalike})
+    state = parse_qs(urlparse(res.json()["result"]["url"]).query)["state"][0]
+    back = client.get("/slack/callback", params={"code": "victim-code", "state": state}, follow_redirects=False)
+    assert not back.headers["location"].startswith(lookalike)
+    assert back.headers["location"].startswith("https://rooted.example/onboarding")
 
 
 def test_someone_else_cant_finish_an_install_they_didnt_start(env):
@@ -300,3 +373,24 @@ def test_status_says_revoked_when_slack_revoked_it_since_the_last_visit(env):
     connect_slack(env)
     env.slack_api.handlers["conversations.list"] = lambda **_: slack.SlackError("token_revoked")
     assert env.client.get("/slack/status", headers=AUTH).json()["result"] == {"available": True, "connected": False, "revoked": True}
+
+
+def _preflight(client: TestClient, origin: str):
+    return client.options("/agent", headers={"Origin": origin, "Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "authorization,content-type"})
+
+
+def test_only_listed_origins_may_call_the_service(env):
+    assert _preflight(env.client, "https://rooted.example").headers.get("access-control-allow-origin") == "https://rooted.example"
+    assert _preflight(env.client, "https://rooted-prod-abc123-team.vercel.app").status_code == 400
+
+
+def test_an_origin_pattern_lets_the_teams_own_vercel_deploys_call_the_service():
+    settings = replace(SETTINGS, app_origin_regex=r"https://rooted-prod-[a-z0-9-]+-team\.vercel\.app")
+    deps = Deps(settings=settings, verify=lambda t: None, store=MemoryStore(), claude=FakeClaude(), slack_api=FakeSlack(), clock=lambda: NOW)
+    client = TestClient(create_app(deps))
+    ok = "https://rooted-prod-abc123-team.vercel.app"
+    assert _preflight(client, ok).headers.get("access-control-allow-origin") == ok
+    # Anchored: another team's lookalike, or a suffix trick, doesn't match.
+    assert _preflight(client, "https://rooted-prod-abc123-team.vercel.app.evil.example").status_code == 400
+    assert _preflight(client, "https://rooted-prod-abc123-other.vercel.app").status_code == 400
+    assert _preflight(client, "https://rooted.example").status_code == 200

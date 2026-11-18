@@ -24,7 +24,7 @@ from .limits import Limits, Store, cost_usd, worst_case_usd
 from .tasks import SLACK_TASKS, TASKS, BadAnswer, BadPayload
 
 MAX_BODY_BYTES = 512_000
-REVOKED = ("invalid_auth", "token_revoked", "account_inactive")
+REVOKED = slack.REVOKED
 
 
 @dataclass
@@ -51,6 +51,7 @@ def create_app(deps: Deps) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(deps.settings.app_origins),
+        allow_origin_regex=deps.settings.app_origin_regex or None,
         allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["authorization", "content-type"],
     )
@@ -204,14 +205,18 @@ def create_app(deps: Deps) -> FastAPI:
             return user_id
         if not deps.settings.slack_configured:
             return fail(503, "slack_not_configured")
-        return JSONResponse({"ok": True, "result": {"url": slack.install_url(deps.settings, user_id, deps.clock())}})
+        # Remember which Rooted site this came from, so Slack's callback returns
+        # there. Exact listed origins only (see slack.return_origin).
+        origin = request.headers.get("origin", "")
+        origin = origin if origin in deps.settings.app_origins else ""
+        return JSONResponse({"ok": True, "result": {"url": slack.install_url(deps.settings, user_id, deps.clock(), origin)}})
 
     @app.get("/slack/callback")
     def slack_callback(code: str = "", state: str = "", error: str = "") -> RedirectResponse:
         # Stores nothing: whoever's browser lands here isn't proven to be the
         # person who started the install. The app finishes it, signed in, at
         # /slack/complete.
-        back = f"{deps.settings.app_origins[0] if deps.settings.app_origins else ''}/onboarding"
+        back = f"{slack.return_origin(deps.settings, state, deps.clock())}/onboarding"
         if error:
             return RedirectResponse(f"{back}?slack=cancelled", status_code=302)
         if not code or not state:

@@ -15,6 +15,7 @@ export interface AuthIdentity {
 
 export type AuthErrorCode =
   | 'invalid_email'
+  | 'email_not_allowed'
   | 'rate_limited'
   | 'network'
   | 'provider_unavailable'
@@ -38,6 +39,8 @@ export interface AuthClient {
 // What the person sees for each failure. Plain, with what to do next.
 export const AUTH_ERROR_MESSAGE: Record<AuthErrorCode, string> = {
   invalid_email: 'That email address doesn’t look right. Check it and try again.',
+  email_not_allowed:
+    'Rooted can’t send a sign-in email to that address yet. Continue with Google or Slack instead, or ask the Rooted team to add you.',
   rate_limited: 'Too many sign-in emails were sent just now. Wait a few minutes, then try again.',
   network: 'Rooted couldn’t reach the sign-in service. Check your connection and try again.',
   provider_unavailable: 'That sign-in option isn’t available right now. Try another one, or email.',
@@ -65,6 +68,8 @@ export function errorCodeOf(error: Pick<AuthError, 'message'> & { status?: numbe
   // Checked before validation_failed: Supabase reports a disabled provider that way too.
   if (code === 'provider_disabled' || message.includes('provider is not enabled') || message.includes('unsupported provider'))
     return 'provider_unavailable';
+  if (code === 'email_address_not_authorized' || code === 'otp_disabled' || message.includes('not authorized'))
+    return 'email_not_allowed';
   if (code === 'email_address_invalid' || code === 'validation_failed' || message.includes('invalid email'))
     return 'invalid_email';
   if (code === 'otp_expired' || message.includes('expired')) return 'link_expired';

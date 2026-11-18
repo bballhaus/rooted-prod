@@ -1,0 +1,3 @@
+# Link-check settings, read by `lychee` locally and in CI.
+# Root-relative links like /favicon.svg are files Vite serves from public/.
+root_dir = "public"

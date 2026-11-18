@@ -31,6 +31,9 @@ describe('errorCodeOf', () => {
     [{ message: 'Unsupported provider: provider is not enabled' }, 'provider_unavailable'],
     [{ message: 'Email link is invalid or has expired', code: 'otp_expired' }, 'link_expired'],
     [{ message: 'invalid request: both auth code and code verifier should be non-empty' }, 'other_browser'],
+    // Supabase's built-in mailer only sends to the project team's own addresses.
+    [{ message: 'Email address "sam@acme.test" not authorized', code: 'email_address_not_authorized' }, 'email_not_allowed'],
+    [{ message: 'Signups not allowed for otp', code: 'otp_disabled' }, 'email_not_allowed'],
     [{ message: 'Failed to fetch', status: 0 }, 'network'],
     [{ message: 'Database error saving new user', status: 500 }, 'unknown'],
   ] as const)('maps %o to %s', (error, code) => {

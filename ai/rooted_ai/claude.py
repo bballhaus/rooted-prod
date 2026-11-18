@@ -36,10 +36,13 @@ def make_client() -> anthropic.Anthropic:
     return anthropic.Anthropic(timeout=50.0, max_retries=1)
 
 
-def ask(client: anthropic.Anthropic, *, system: str, user: str, schema: dict[str, Any], effort: str, max_tokens: int) -> ModelAnswer:
+def ask(
+    client: anthropic.Anthropic, *, system: str, user: str, schema: dict[str, Any], effort: str, max_tokens: int, model: str = MODEL
+) -> ModelAnswer:
+    # Only the evals (ai/evals) pass a model: they judge answers with a different one.
     try:
         response = client.beta.messages.create(
-            model=MODEL,
+            model=model,
             max_tokens=max_tokens,
             betas=[FALLBACK_BETA],
             fallbacks="default",
