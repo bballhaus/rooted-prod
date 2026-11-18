@@ -193,6 +193,35 @@ def test_a_slack_brief_reads_only_allowed_public_channels_and_links_what_it_cite
     assert "joined" not in sent and "deploy done" not in sent  # system and bot posts left out
 
 
+def test_a_slack_read_includes_thread_replies_where_decisions_often_land(env):
+    connect_slack(env)
+    history = env.slack_api.handlers["conversations.history"]
+
+    def with_thread(channel, **kw):
+        body = history(channel=channel, **kw)
+        if channel == "C1":
+            body["messages"][0] = {**body["messages"][0], "thread_ts": "1793990000.000100", "reply_count": 2}
+        return body
+
+    env.slack_api.handlers["conversations.history"] = with_thread
+    env.slack_api.handlers["conversations.replies"] = lambda channel, ts, **_: {
+        "ok": True,
+        "messages": [
+            {"ts": ts, "user": "U1", "text": "Seats confuse buyers"},  # Slack repeats the parent first
+            {"ts": "1793990005.000100", "thread_ts": ts, "user": "U2", "text": "ok, we'll price per workspace"},
+            {"ts": "1793990006.000100", "thread_ts": ts, "bot_id": "B1", "text": "reminder bot"},
+        ],
+    }
+    env.claude.answers.append(reply({"items": [{"ref": "C1:1793990005.000100", "group": "Outcome"}], "gaps": []}))
+    payload = {"decision": {"question": "Per seat?"}, "source": {"kind": "slack", "channelIds": ["C1"]}}
+    res = env.client.post("/agent", json={"task": "brief", "payload": payload}, headers=AUTH).json()
+    sent = env.claude.calls[0]["messages"][0]["content"]
+    assert "we'll price per workspace" in sent and "reminder bot" not in sent
+    assert sent.count("Seats confuse buyers") == 1  # the parent isn't sent twice
+    assert '"replyTo": "C1:1793990000.000100"' in sent  # Claude can tell it's a reply, and to what
+    assert res["result"]["items"][0]["author"] == "Dev Patel"
+
+
 def test_a_revoked_slack_token_says_so(env):
     connect_slack(env)
     env.slack_api.handlers["conversations.list"] = lambda **_: slack.SlackError("token_revoked")

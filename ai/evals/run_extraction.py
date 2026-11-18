@@ -336,7 +336,7 @@ def markdown(meta: dict[str, Any], a: dict[str, Any], rows: list[dict[str, Any]]
     lines += [
         "",
         f"Rooted's reader sent Claude {a['messages']['sentToClaude']} of the {a['messages']['inSlack']} messages in these channels: it drops bot posts "
-        "and join messages, `conversations.history` doesn't return thread replies, and it reads text only, not reactions. "
+        "and join messages, reads replies in up to 25 recent threads, and reads text only, not reactions. "
         f"Extraction latency p50 {a['latency']['p50']:.1f}s, p95 {a['latency']['p95']:.1f}s.",
         "",
         "## Misses and inaccurate summaries (primary judge, up to 10)",

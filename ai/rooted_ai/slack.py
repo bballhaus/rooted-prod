@@ -27,6 +27,11 @@ STATE_SECONDS = 600
 DAYS_BACK = 30
 PER_CHANNEL = 200
 MAX_MESSAGES = 400
+# Threads whose replies are read, most recent first. conversations.history
+# doesn't return replies, and decisions are often settled in them; each thread
+# is one more rate-limited call, so the number is capped.
+MAX_THREADS = 25
+PER_THREAD = 50
 
 
 class SlackError(Exception):
@@ -123,7 +128,9 @@ def list_channels(api: SlackApi, token: str) -> list[dict[str, Any]]:
 
 
 def gather(api: SlackApi, token: str, channel_ids: list[str], clock: Callable[[], float] = time.time) -> list[dict[str, Any]]:
-    """Recent messages from the allowed public channels, newest first, as task messages.
+    """Recent messages from the allowed public channels, and replies in their most
+    recent threads, newest first, as task messages. A reply carries replyTo, the
+    ref of the message it answers.
 
     Channel ids not in the workspace's public list are ignored, so the app
     can't steer the bot to a private channel.
@@ -133,6 +140,24 @@ def gather(api: SlackApi, token: str, channel_ids: list[str], clock: Callable[[]
     oldest = str(clock() - DAYS_BACK * 86400)
     names: dict[str, str] = {}
     out: list[dict[str, Any]] = []
+    threads: list[tuple[str, dict[str, Any]]] = []  # (parent ts, channel)
+
+    def keep(m: dict[str, Any], channel: dict[str, Any], reply_to: str | None) -> None:
+        # Skip joins, bot posts and other system messages; keep what people wrote.
+        if m.get("subtype") or not str(m.get("text", "")).strip() or m.get("bot_id"):
+            return
+        out.append(
+            {
+                "ref": f"{channel['id']}:{m['ts']}",
+                "source": channel["name"],
+                "author": _name(api, token, m.get("user"), names),
+                "date": datetime.fromtimestamp(float(m["ts"]), tz=timezone.utc).strftime("%Y-%m-%d"),
+                "text": str(m["text"])[:6000],
+                "link": None,
+                "replyTo": reply_to,
+            }
+        )
+
     for i, channel in enumerate(allowed):
         try:
             if not channel["isMember"]:
@@ -145,19 +170,20 @@ def gather(api: SlackApi, token: str, channel_ids: list[str], clock: Callable[[]
                 break
             raise
         for m in body.get("messages", []):
-            # Skip joins, bot posts and other system messages; keep what people wrote.
-            if m.get("subtype") or not str(m.get("text", "")).strip() or m.get("bot_id"):
-                continue
-            out.append(
-                {
-                    "ref": f"{channel['id']}:{m['ts']}",
-                    "source": channel["name"],
-                    "author": _name(api, token, m.get("user"), names),
-                    "date": datetime.fromtimestamp(float(m["ts"]), tz=timezone.utc).strftime("%Y-%m-%d"),
-                    "text": str(m["text"])[:6000],
-                    "link": None,
-                }
-            )
+            keep(m, channel, None)
+            if m.get("reply_count") and m.get("thread_ts", m["ts"]) == m["ts"]:
+                threads.append((m["ts"], channel))
+    threads.sort(key=lambda t: float(t[0]), reverse=True)
+    for parent, channel in threads[:MAX_THREADS]:
+        try:
+            body = api.call("conversations.replies", token, channel=channel["id"], ts=parent, limit=PER_THREAD)
+        except SlackError as e:
+            if e.code == "slack_rate_limited":
+                break  # keep the threads already read
+            raise
+        for m in body.get("messages", []):
+            if m["ts"] != parent:  # Slack repeats the parent first
+                keep(m, channel, f"{channel['id']}:{parent}")
     out.sort(key=lambda m: float(m["ref"].split(":", 1)[1]), reverse=True)
     return out[:MAX_MESSAGES]
 

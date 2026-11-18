@@ -79,7 +79,7 @@ def test_test3_tags_point_at_real_messages_and_rooted_reads_what_a_person_can():
             assert set(g.key_ts) <= all_ts
             if g.visible_to_reader:
                 assert f"{conv.channel_id}:{g.key_ts[0]}" in read
-        # Rooted's reader drops bots and joins, and never sees thread replies.
+        # Rooted's reader drops bots and joins.
         texts = {m["text"] for m in run_extraction.read_like_rooted(conv)}
         assert not any(m["text"] in texts for m in conv.messages if m.get("subtype"))
         assert len(human_view(conv)) == len(conv.messages) + sum(len(r) for r in conv.replies.values())
@@ -238,3 +238,12 @@ def test_test3_says_right_only_with_confidence_and_agreeing_judges():
     assert a["recallA"]["bootstrap"] == (1.0, 1.0)
     report = run_extraction.markdown(meta, a, rows)
     assert "**Right at the point estimate, not yet with confidence" in report
+
+
+def test_rooted_now_reads_the_thread_reply_where_a_poll_was_settled():
+    threaded = [(c, g) for c in build() for g in c.gold if g.style == "threaded"]
+    assert threaded
+    for conv, g in threaded:
+        read = {m["ref"]: m for m in run_extraction.read_like_rooted(conv)}
+        outcome = read[f"{conv.channel_id}:{g.key_ts[-1]}"]
+        assert outcome["replyTo"] == f"{conv.channel_id}:{g.key_ts[0]}"

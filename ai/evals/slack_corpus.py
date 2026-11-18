@@ -126,7 +126,7 @@ class Gold:
     style: str
     key_ts: list[str]  # messages a person would point to
     summary: str  # the human-written tag
-    visible_to_reader: bool = True  # False when the outcome is only in thread replies
+    visible_to_reader: bool = True  # False when the outcome is only in thread replies (which Rooted read from 2026-11-18)
 
 
 @dataclass
@@ -300,8 +300,8 @@ def build(n: int = 50, seed: int = SEED) -> list[Conversation]:
 class FakeSlackWorkspace:
     """Answers the Web API calls rooted_ai.slack makes, from one conversation.
 
-    Like the real conversations.history, it returns only top-level messages,
-    newest first; thread replies are only in conversations.replies.
+    Like the real API, conversations.history returns only top-level messages,
+    newest first, and conversations.replies returns a thread, parent first.
     """
 
     def __init__(self, conv: Conversation) -> None:
@@ -314,7 +314,9 @@ class FakeSlackWorkspace:
             oldest = float(params.get("oldest", 0))
             return {"ok": True, "messages": [m for m in reversed(self.conv.messages) if float(m["ts"]) >= oldest], "has_more": False}
         if method == "conversations.replies":
-            return {"ok": True, "messages": self.conv.replies.get(params.get("ts", ""), [])}
+            ts = params.get("ts", "")
+            parent = [m for m in self.conv.messages if m["ts"] == ts]
+            return {"ok": True, "messages": parent + self.conv.replies.get(ts, [])}  # like Slack: the parent first
         if method == "users.info":
             uid = params.get("user", "")
             return {"ok": True, "user": {"id": uid, "real_name": USERS.get(uid, "Someone"), "name": USERS.get(uid, "someone").split()[0].lower()}}
