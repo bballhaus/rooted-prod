@@ -126,7 +126,7 @@ class Gold:
     style: str
     key_ts: list[str]  # messages a person would point to
     summary: str  # the human-written tag
-    visible_to_reader: bool = True  # False when the outcome is only in thread replies (which Rooted read from 2026-11-18)
+    visible_to_reader: bool = True  # False when the outcome is only in thread replies (read since decision 0021)
 
 
 @dataclass

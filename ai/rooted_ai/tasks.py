@@ -460,8 +460,8 @@ def build_spot(p: dict[str, Any]) -> str:
             "A message with replyTo is a reply in the thread of that ref.\n"
             "For each: question (how the PM might phrase it); why (one or two sentences on what the messages show, "
             "saying plainly whether the team settled it and on what, going by the latest word if they changed course, "
-            "or that it's still open); and evidenceRefs (the refs of the messages where it came up and, if it was "
-            "settled, where). Only raise what the messages actually show; it's fine to return none.",
+            "or that it's still open); and evidenceRefs (at most 3 refs: where it was settled first, if it was, then "
+            "where it came up). Only raise what the messages actually show; it's fine to return none.",
         ]
     )
 
@@ -533,8 +533,8 @@ def build_patterns(p: dict[str, Any]) -> str:
             "For each: title (one short sentence), detail (two or three sentences on what you saw and why it matters), "
             "decisionIds (the ids of the decisions it rests on: at least two for a pattern, trend or risk, at least "
             "one for a prediction), confidence (low, medium or high: for a pattern or prediction, low when fewer than "
-            "3 of its decisions have a logged outcome and medium below 6; for a trend, the same by number of "
-            "decisions), and watchFor (for a prediction; otherwise an empty string).\n"
+            "3 of its decisions have a logged outcome (a too-early outcome doesn't count) and medium below 6; for a "
+            "trend, the same by number of decisions; a risk isn't limited this way), and watchFor (for a prediction; otherwise an empty string).\n"
             "Base every insight only on these decisions and counts. Don't tell the PM what to decide. With little "
             "history, return fewer insights with low confidence rather than stretching; none is fine.",
         ]
