@@ -258,15 +258,16 @@ tags = Scenario(
     criteria=(("relevant", "Every tag would help find this decision later and none is off-topic."),),
 )
 
+# Complete records, as the app sends them: a rationale for every decided one and an owner.
 HISTORY = [
-    {"id": "h1", "question": "Onboarding: checklist or video?", "date": "2026-05-04", "status": "decided", "goal": "Activation", "chosen": "Checklist experiment", "notTaken": ["Product video"], "outcome": {"result": "worked", "summary": "Activation up 9 points."}},
-    {"id": "h2", "question": "Onboarding: sample data for new workspaces?", "date": "2026-06-20", "status": "decided", "goal": "Activation", "chosen": "Two-week sample-data experiment", "notTaken": ["Build full demo workspace"], "outcome": {"result": "worked", "summary": "Setup completion up 12%."}},
-    {"id": "h3", "question": "Pricing: annual discount size?", "date": "2026-06-02", "status": "decided", "goal": "Revenue", "chosen": "18% off annual", "outcome": {"result": "mixed", "summary": "Cash up, but small teams still churn on price."}},
-    {"id": "h4", "question": "Pricing: per-seat or flat team price?", "date": "2026-08-14", "status": "decided", "goal": "Revenue", "chosen": "Keep per-seat", "outcome": {"result": "did-not-work", "summary": "Small-team win rate kept falling."}},
-    {"id": "h5", "question": "Pricing: add a starter plan?", "date": "2026-11-10", "status": "open", "goal": "Revenue"},
-    {"id": "h6", "question": "Release cadence: weekly or biweekly?", "date": "2026-08-05", "status": "decided", "goal": "Quality", "chosen": "Weekly behind flags", "reviewDate": "2026-10-05"},
-    {"id": "h7", "question": "Which error tracker?", "date": "2026-08-22", "status": "decided", "goal": "Quality", "chosen": "Sentry", "reviewDate": "2026-10-22"},
-    {"id": "h8", "question": "Onboarding: shorten signup form?", "date": "2026-09-30", "status": "decided", "goal": "Activation", "chosen": "Quick A/B test of a 3-field form", "reviewDate": "2026-12-01"},
+    {"id": "h1", "question": "Onboarding: checklist or video?", "date": "2026-05-04", "status": "decided", "goal": "Activation", "owner": "Priya Raman", "rationale": "Checklist is cheap to test; video completion was low in the pilot.", "chosen": "Checklist experiment", "notTaken": ["Product video"], "outcome": {"result": "worked", "summary": "Activation up 9 points."}},
+    {"id": "h2", "question": "Onboarding: sample data for new workspaces?", "date": "2026-06-20", "status": "decided", "goal": "Activation", "owner": "Priya Raman", "rationale": "Most new workspaces stall before connecting data.", "chosen": "Two-week sample-data experiment", "notTaken": ["Build full demo workspace"], "outcome": {"result": "worked", "summary": "Setup completion up 12%."}},
+    {"id": "h3", "question": "Pricing: annual discount size?", "date": "2026-06-02", "status": "decided", "goal": "Revenue", "owner": "Tom Becker", "rationale": "Matches competitors and helps cash flow.", "chosen": "18% off annual", "outcome": {"result": "mixed", "summary": "Cash up, but small teams still churn on price."}},
+    {"id": "h4", "question": "Pricing: per-seat or flat team price?", "date": "2026-08-14", "status": "decided", "goal": "Revenue", "owner": "Tom Becker", "rationale": "Per-seat scales with bigger customers.", "chosen": "Keep per-seat", "outcome": {"result": "did-not-work", "summary": "Small-team win rate kept falling."}},
+    {"id": "h5", "question": "Pricing: add a starter plan?", "date": "2026-11-10", "status": "open", "goal": "Revenue", "owner": "Priya Raman"},
+    {"id": "h6", "question": "Release cadence: weekly or biweekly?", "date": "2026-08-05", "status": "decided", "goal": "Quality", "owner": "Marcus Lee", "rationale": "Smaller releases cut rollback time.", "chosen": "Weekly behind flags", "reviewDate": "2026-10-05"},
+    {"id": "h7", "question": "Which error tracker?", "date": "2026-08-22", "status": "decided", "goal": "Quality", "owner": "Marcus Lee", "rationale": "Best fit for our stack, and the team knows it.", "chosen": "Sentry", "reviewDate": "2026-10-22"},
+    {"id": "h8", "question": "Onboarding: shorten signup form?", "date": "2026-09-30", "status": "decided", "goal": "Activation", "owner": "Dana Okafor", "rationale": "Shorter forms tested well in two usability sessions.", "chosen": "Quick A/B test of a 3-field form", "reviewDate": "2026-12-01"},
 ]
 patterns = Scenario(
     id="find-patterns",
