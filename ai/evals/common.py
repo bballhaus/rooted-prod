@@ -32,11 +32,21 @@ def prompt_version() -> str:
     return hashlib.sha256((AI_DIR / "rooted_ai" / "tasks.py").read_bytes()).hexdigest()[:10]
 
 
+def eval_version() -> str:
+    """A short hash of the eval code (scenarios, checks, corpus, scoring), which can change without the prompts."""
+    h = hashlib.sha256()
+    for path in sorted((AI_DIR / "evals").glob("*.py")):
+        h.update(path.name.encode() + path.read_bytes())
+    return h.hexdigest()[:10]
+
+
 def git_commit() -> str:
     if os.environ.get("ROOTED_EVAL_COMMIT"):  # set by modal_run.py, where there's no git checkout
         return os.environ["ROOTED_EVAL_COMMIT"]
     try:
-        return subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=AI_DIR, capture_output=True, text=True, check=True).stdout.strip()
+        head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=AI_DIR, capture_output=True, text=True, check=True).stdout.strip()
+        dirty = subprocess.run(["git", "status", "--porcelain", "--", "."], cwd=AI_DIR, capture_output=True, text=True, check=True).stdout.strip()
+        return head + ("-dirty" if dirty else "")
     except (OSError, subprocess.CalledProcessError):
         return "unknown"
 
@@ -47,6 +57,7 @@ def header(title: str, extra: dict[str, Any]) -> dict[str, Any]:
         "ranAt": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         "modelUnderTest": MODEL,
         "promptVersion": prompt_version(),
+        "evalVersion": eval_version(),
         "commit": git_commit(),
         **extra,
     }

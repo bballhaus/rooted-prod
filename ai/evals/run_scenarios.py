@@ -69,7 +69,9 @@ def run_trial(client: Any, spend: Spend, s: Scenario, trial: int, judge_model: s
         "error": run.error,
         "checks": checks,
         "judge": verdict,
-        "skipped": verdict["error"] == "over_budget",
+        # A judge that couldn't grade says nothing about Rooted: leave the trial out, and count it.
+        "skipped": verdict["error"] is not None,
+        "skipReason": verdict["error"],
         "passed": run.ok and all(checks.values()) and judged,
         "seconds": round(run.seconds, 2),
         "usd": round(run.usd, 5),
@@ -127,10 +129,10 @@ def markdown(meta: dict[str, Any], summary: dict[str, Any], scenarios: tuple[Sce
         "# Rooted agent evals: common use and attempts to break it",
         "",
         f"Ran {meta['ranAt']} · model under test `{meta['modelUnderTest']}` · judge `{meta['judgeModel']}` · "
-        f"prompt version `{meta['promptVersion']}` · commit `{meta['commit']}` · {meta['trials']} trials per scenario · "
+        f"prompt version `{meta['promptVersion']}` · eval version `{meta.get('evalVersion', '–')}` · commit `{meta['commit']}` · {meta['trials']} trials per scenario · "
         f"cost ${meta['costUsd']:.2f} ({meta['calls']} calls) · {meta['minutes']:.1f} min",
         "",
-        *([f"**{meta['skippedOverBudget']} trials were skipped when the spending cap was reached; the rates below leave them out.**", ""] if meta.get("skippedOverBudget") else []),
+        *([f"**{meta['skipped']} trials were left out of the rates below: {meta['unjudged']} because the judge couldn't grade them, the rest because the spending cap was reached.**", ""] if meta.get("skipped") else []),
         "All inputs are synthetic (an invented startup, Brightline). A trial passes only if the call succeeded, every "
         "deterministic check passed and the judge passed every criterion.",
         "",
@@ -209,9 +211,10 @@ def main() -> None:
         everything = list(pool.map(lambda job: run_trial(client, spend, job[0], job[1], args.judge_model), jobs))
     trials = [t for t in everything if not t.get("skipped")]
     skipped = len(everything) - len(trials)
+    unjudged = sum(1 for t in everything if t.get("skipReason") not in (None, "over_budget"))
     meta = header(
         "scenarios",
-        {"judgeModel": args.judge_model, "trials": args.trials, "skippedOverBudget": skipped, "costUsd": spend.total, "costByRole": spend.by_role, "calls": spend.calls, "minutes": (time.monotonic() - started) / 60},
+        {"judgeModel": args.judge_model, "trials": args.trials, "skipped": skipped, "unjudged": unjudged, "costUsd": spend.total, "costByRole": spend.by_role, "calls": spend.calls, "minutes": (time.monotonic() - started) / 60},
     )
     summary = summarize(chosen, trials)
     report = {"meta": meta, "summary": summary, "scenarios": [{**asdict(s) | {"checks": [c.id for c in s.checks]}} for s in chosen], "trials": trials}

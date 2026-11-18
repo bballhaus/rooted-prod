@@ -136,7 +136,9 @@ def _verdict_of(row: dict[str, Any], role: str) -> dict[str, Any]:
 
 
 def analyse(rows: list[dict[str, Any]]) -> dict[str, Any]:
-    usable = [r for r in rows if r["ok"] and "error" not in (r["judgeA"] or {}) and "error" not in (r["judgeB"] or {})]
+    # A failed extraction stays in: its tagged decisions count as missed. Only
+    # rows a judge couldn't grade, or the spending cap cut short, are left out.
+    usable = [r for r in rows if r["error"] != "over_budget" and "error" not in (r["judgeA"] or {}) and "error" not in (r["judgeB"] or {})]
 
     def recall(rs: list[dict[str, Any]], role: str, only: Any = None) -> tuple[int, int]:
         hit = n = 0
@@ -270,23 +272,32 @@ STYLE_NOTES = {
 def markdown(meta: dict[str, Any], a: dict[str, Any], rows: list[dict[str, Any]]) -> str:
     rec, acc, ag = a["recallA"], a["accuracyA"], a["agreement"]
     h1 = rec["rate"] >= TARGET
-    h1_sure = rec["bootstrap"][0] >= TARGET
+    # "With confidence" takes the lower of the two lower bounds: a bootstrap over
+    # a few identical conversations can shrink to a single point.
+    h1_sure = min(rec["bootstrap"][0], rec["wilson"][0]) >= TARGET
     h2 = acc["rate"] >= TARGET
-    h2_sure = acc["bootstrap"][0] >= TARGET
+    h2_sure = min(acc["bootstrap"][0], acc["wilson"][0]) >= TARGET
     trust = ag["accurateKappa"] >= 0.4 and ag["matchKappa"] >= 0.4
-    verdict = "Right" if h1 and h2 else "Not yet"
+    if h1_sure and h2_sure and trust:
+        verdict = "Right"
+    elif h1 and h2:
+        verdict = "Right at the point estimate, not yet with confidence" + ("" if trust else " (and the judges disagree too much to rely on)")
+    else:
+        verdict = "Not yet"
     lines = [
         "# Test 3 (feasibility): AI pulls accurate decisions from Slack",
         "",
-        f"Ran {meta['ranAt']} · extraction `{meta['modelUnderTest']}` via `spotDecisions` (prompt version `{meta['promptVersion']}`, "
+        f"Ran {meta['ranAt']} · extraction `{meta['modelUnderTest']}` via `spotDecisions` (prompt version `{meta['promptVersion']}`, eval version `{meta.get('evalVersion', '–')}`, "
         f"commit `{meta['commit']}`) · judges `{meta['judges'][0]}` (primary) and `{meta['judges'][1]}` · "
         f"{a['conversations']} conversations, {a['gold']} tagged decisions · cost ${meta['costUsd']:.2f} · {meta['minutes']:.1f} min",
         "",
         "## Verdict",
         "",
-        f"**{verdict}.** The card says we're right if 70% or more of decisions match and reviewers rate the summaries accurate.",
+        f"**{verdict}.** The card says we're right if 70% or more of decisions match and reviewers rate the summaries accurate. "
+        "Both rates are measured against this test's working definition of a decision (see Method and limits), which "
+        "doesn't settle the team's open question of what counts as one.",
         "",
-        "| Hypothesis | Result | 95% CI (bootstrap over conversations) | Met at the point estimate | Met with confidence (CI above 70%) |",
+        "| Hypothesis | Result | 95% CI (bootstrap over conversations) | Met at the point estimate | Met with confidence (bootstrap and Wilson lower bounds above 70%) |",
         "|---|---|---|---|---|",
         f"| ≥70% of tagged decisions matched | {stats.pct(rec['rate'])} ({rec['hit']}/{rec['n']}) | {stats.interval(rec['bootstrap'])} | {'yes' if h1 else 'no'} | {'yes' if h1_sure else 'no'} |",
         f"| ≥70% of matched summaries rated accurate (4–5 of 5) | {stats.pct(acc['rate'])} ({acc['good']}/{acc['n']}) | {stats.interval(acc['bootstrap'])} | {'yes' if h2 else 'no'} | {'yes' if h2_sure else 'no'} |",
@@ -368,7 +379,7 @@ def markdown(meta: dict[str, Any], a: dict[str, Any], rows: list[dict[str, Any]]
         "- The judges are LLMs standing in for human reviewers. Their agreement (κ) is reported so the ratings can be "
         "weighed; before relying on this for a decision, have two people rate a sample of the same items and compare.",
         "- Intervals: Wilson treats every decision as independent; the bootstrap resamples whole conversations, since "
-        "decisions in one channel aren't independent. The bootstrap is the one to use for the verdict.",
+        "decisions in one channel aren't independent. The verdict is \"Right\" only when both lower bounds clear 70% and the judges agree at least moderately (κ ≥ 0.4).",
         "",
     ]
     return "\n".join(lines)

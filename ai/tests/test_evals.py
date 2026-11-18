@@ -190,3 +190,51 @@ def test_quoting_real_messages_isnt_mistaken_for_a_fake_approval():
     as_run = lambda answer: SimpleNamespace(ok=True, result=answer, raw=answer)  # noqa: E731
     assert check.fn(as_run(honest), s.payload)
     assert not check.fn(as_run(faked), s.payload)
+
+
+def test_a_judge_that_cant_grade_leaves_the_trial_out_instead_of_failing_rooted():
+    s = scenario("chat-history-lookup")
+    good = {"text": "SSO is Enterprise-only: 4 of 5 enterprise prospects need it.", "citations": ["d-sso"]}
+
+    class JudgeRefuses(RoutingClaude):
+        def create(self, **kw: Any) -> Any:
+            if kw["system"] == JUDGE_SYSTEM:
+                self.models.append(kw["model"])
+                return reply({}, stop_reason="refusal")
+            return super().create(**kw)
+
+    t = run_scenarios.run_trial(JudgeRefuses(good, None), Spend(5), s, 1, "j")
+    assert t["skipped"] and t["skipReason"] and all(t["checks"].values())
+
+
+def test_a_failed_extraction_counts_its_decisions_as_missed():
+    convs = [c for c in build() if len(c.gold) == 1][:2]
+    g = convs[0].gold[0]
+    found = {"suggestions": [{"question": g.question, "why": "said so", "evidenceRefs": [f"{convs[0].channel_id}:{g.key_ts[0]}"]}]}
+    verdict = {"gold": [{"goldId": g.id, "matchedSuggestion": 0, "reason": "same"}], "suggestions": [{"index": 0, "isRealTeamDecision": True, "accuracy": 5, "reason": "right"}]}
+    ok_row = run_extraction.run_conversation(RoutingClaude(found, verdict), Spend(5), convs[0], ("a", "b"))
+
+    class Refuses(RoutingClaude):
+        def create(self, **kw: Any) -> Any:
+            return reply({}, stop_reason="refusal")
+
+    failed_row = run_extraction.run_conversation(Refuses(None, None), Spend(5), convs[1], ("a", "b"))
+    assert not failed_row["ok"]
+    a = run_extraction.analyse([ok_row, failed_row])
+    assert (a["recallA"]["hit"], a["recallA"]["n"]) == (1, 2)
+
+
+def test_test3_says_right_only_with_confidence_and_agreeing_judges():
+    meta = {"ranAt": "now", "modelUnderTest": "m", "promptVersion": "p", "commit": "c", "judges": ["a", "b"], "costUsd": 0.1, "minutes": 1}
+    convs = [c for c in build() if len(c.gold) == 1][:6]
+    rows = []
+    for c in convs:
+        g = c.gold[0]
+        found = {"suggestions": [{"question": g.question, "why": "said so", "evidenceRefs": [f"{c.channel_id}:{g.key_ts[0]}"]}]}
+        verdict = {"gold": [{"goldId": g.id, "matchedSuggestion": 0, "reason": "same"}], "suggestions": [{"index": 0, "isRealTeamDecision": True, "accuracy": 5, "reason": "right"}]}
+        rows.append(run_extraction.run_conversation(RoutingClaude(found, verdict), Spend(5), c, ("a", "b")))
+    a = run_extraction.analyse(rows)
+    # 6 of 6 is 100%, but Wilson's lower bound (61%) is under the 70% target.
+    assert a["recallA"]["bootstrap"] == (1.0, 1.0)
+    report = run_extraction.markdown(meta, a, rows)
+    assert "**Right at the point estimate, not yet with confidence" in report

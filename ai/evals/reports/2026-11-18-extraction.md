@@ -4,7 +4,7 @@ Ran 2026-11-18 01:31 UTC · extraction `claude-sonnet-5-5` via `spotDecisions` (
 
 ## Verdict
 
-**Not yet.** The card says we're right if 70% or more of decisions match and reviewers rate the summaries accurate.
+**Not yet.** The card says we're right if 70% or more of decisions match and reviewers rate the summaries accurate. Both rates are measured against this test's working definition of a decision (see Method and limits), which doesn't settle the team's open question of what counts as one.
 
 | Hypothesis | Result | 95% CI (bootstrap over conversations) | Met at the point estimate | Met with confidence (CI above 70%) |
 |---|---|---|---|---|
