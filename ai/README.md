@@ -23,6 +23,8 @@ ai/.venv/bin/python -m pytest ai
 
 The tests fake Claude and Slack, so they cost nothing and need no secrets.
 
+To score what the agent actually says, with real Claude calls on synthetic data, run the evals in [`evals/`](evals/README.md).
+
 ## Deploy it (a person does this)
 
 1. **Create the secrets in Modal.** Values never go in the repo or chat.

@@ -26,6 +26,7 @@ Rooted is a decision record, so the team keeps its own here. One file per decisi
 | [0018](0018-empty-workspace-for-real-users.md) | Real people start with an empty workspace; the sample company is the demo | Decided 2026-11-13 |
 | [0019](0019-tree-map-and-patterns.md) | The map opens as a tree, Needs you stays open, and patterns come forward from R3 | Decided 2026-11-13 |
 | [0020](0020-sonnet-for-the-agent.md) | Run the agent on Claude Sonnet 5.5, not Opus 5.5 | Decided 2026-11-13 (supersedes 0016's model choice) |
+| [0021](0021-read-slack-thread-replies.md) | Read replies in Slack threads, not just the channel's top level | Decided 2026-11-17 (amends 0017's reading rules) |
 
 ## Open decisions
 
@@ -35,7 +36,7 @@ Raise these with the team. Agents don't settle them.
 |---|---|
 | Revisit the one-model choice | 0020 moved every task to Claude Sonnet 5.5 for speed. Whether light tasks (tags, chat) should run on Haiku 5.5 is still open; decide with quality numbers. |
 | MVP context source: Slack or meeting transcripts | Story map picks Slack; the parking lot still asks. |
-| What counts as a decision, and the minimum decision record | Parking lot: "answer first." Spotting decisions in Slack (0016) uses a provisional, neutral prompt ("choices the team seems to be facing", up to 3) that doesn't settle it. |
-| Consent from teammates whose Slack messages Rooted reads | Rooted reads only public channels the installing PM allows, and a workspace admin may have to approve the app (0017). Colleagues aren't asked or told yet. Decide before outside testers. |
+| What counts as a decision, and the minimum decision record | Parking lot: "answer first." Spotting decisions in Slack (0016) uses a provisional, neutral prompt that doesn't settle it: up to 3 "choices the team discussed", each saying whether the team settled it (going by the latest word) or it's still open, a change made after Test 3 in the evals. Test 3 tags decisions with its own working definition, for that test only. |
+| Consent from teammates whose Slack messages Rooted reads | Rooted reads only public channels the installing PM allows, and a workspace admin may have to approve the app (0017). Since 0021 it reads thread replies in those channels too. Colleagues aren't asked or told yet. Decide before outside testers. |
 | Lead story: context gathering or option mapping and scoring | Value proposition and landing page disagree. The prototype shows rough ratings (0004) without settling it. |
 | Activation target: 2 decisions by day 7, or 3+ in 2 weeks | Opportunity tree and funnel disagree. |

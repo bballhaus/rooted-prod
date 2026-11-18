@@ -24,7 +24,7 @@ from .limits import Limits, Store, cost_usd, worst_case_usd
 from .tasks import SLACK_TASKS, TASKS, BadAnswer, BadPayload
 
 MAX_BODY_BYTES = 512_000
-REVOKED = ("invalid_auth", "token_revoked", "account_inactive")
+REVOKED = slack.REVOKED
 
 
 @dataclass
