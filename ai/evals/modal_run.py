@@ -45,7 +45,7 @@ def run(which: str, max_usd: float, commit: str) -> dict[str, str]:
 @app.local_entrypoint()
 def main(which: str = "both", max_usd: float = 15.0) -> None:
     commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=AI, capture_output=True, text=True).stdout.strip() or "unknown"
-    if subprocess.run(["git", "status", "--porcelain", "--", "."], cwd=AI, capture_output=True, text=True).stdout.strip():
+    if subprocess.run(["git", "status", "--porcelain", "--", ".", ":(exclude)evals/reports"], cwd=AI, capture_output=True, text=True).stdout.strip():
         commit += "-dirty"
     out = AI / "evals" / "reports"
     out.mkdir(parents=True, exist_ok=True)

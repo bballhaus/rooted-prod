@@ -45,7 +45,7 @@ def git_commit() -> str:
         return os.environ["ROOTED_EVAL_COMMIT"]
     try:
         head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=AI_DIR, capture_output=True, text=True, check=True).stdout.strip()
-        dirty = subprocess.run(["git", "status", "--porcelain", "--", "."], cwd=AI_DIR, capture_output=True, text=True, check=True).stdout.strip()
+        dirty = subprocess.run(["git", "status", "--porcelain", "--", ".", ":(exclude)evals/reports"], cwd=AI_DIR, capture_output=True, text=True, check=True).stdout.strip()
         return head + ("-dirty" if dirty else "")
     except (OSError, subprocess.CalledProcessError):
         return "unknown"
