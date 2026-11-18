@@ -8,7 +8,7 @@ import { AgentProvider, useAgent } from '../features/agent/AgentContext';
 import { AgentLauncher, AgentPanel } from '../features/agent/AgentPanel';
 import { InboxRow } from '../features/dashboard/InboxRow';
 import { inboxItems, localToday } from '../store/dashboard';
-import { useStore } from '../store/store';
+import { initialsOf, useStore } from '../store/store';
 import { useTheme } from '../theme';
 import { BellIcon, IconMoon, IconSun, SearchIcon, SparkIcon } from './icons';
 import { Popover } from './Popover';
@@ -197,9 +197,10 @@ function ProfileMenu() {
   const navigate = useNavigate();
   const auth = useAuth();
   const { theme, toggle } = useTheme();
-  const me = state.teammates.find((t) => t.id === state.user?.id);
-  const initials = me?.initials ?? state.user?.name.slice(0, 2).toUpperCase() ?? '?';
   if (!state.user) return null;
+  // The account is always the signed-in person, even inside the demo, where the
+  // sample company's PM (their teammate entry on the map) has another name.
+  const initials = initialsOf(state.user.name);
   return (
     <Popover
       label="Your account"

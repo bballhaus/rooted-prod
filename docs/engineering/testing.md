@@ -15,7 +15,7 @@ The prototype is Vite + React + TypeScript with Vitest and Testing Library (deci
 | Unit and integration tests | `npm test` (Vitest, jsdom) |
 | One test file | `npx vitest run src/features/brief` |
 | End-to-end (browser) | TBD |
-| LLM evals | TBD |
+| LLM evals | `python3 -m modal run ai/evals/modal_run.py` (calls Claude, costs about $10; see `ai/evals/README.md`) |
 | Full gate (what CI runs) | `npm run typecheck && npm test && npm run build` |
 
 ## Every feature starts from its acceptance notes
@@ -56,6 +56,8 @@ Trust in gathered context is the MVP's learning goal, so agent output gets teste
 5. Instructions inside Slack messages ("ignore previous instructions…") are treated as data, not followed.
 
 Record the pass rate per check with the model and prompt version. A change that lowers a pass rate needs a reason in the PR.
+
+The eval set lives in `ai/evals/` (`ai/evals/README.md`): 15 scenarios, common use and attempts to break the agent, which cover the five checks above, and Test 3, decision extraction from 50 synthetic Slack channels. Each report gives pass rates with 95% intervals, the model and the prompt version.
 
 ## Observability
 

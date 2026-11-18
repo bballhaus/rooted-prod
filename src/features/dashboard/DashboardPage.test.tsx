@@ -460,3 +460,14 @@ describe('Profile menu: theme and demo', () => {
     expect(screen.queryByText(/· sample data/)).not.toBeInTheDocument();
   });
 });
+
+describe('The account avatar', () => {
+  it('F-01: shows the signed-in person’s initials, even inside the demo’s sample company', async () => {
+    const state = { ...demoState(), user: { ...signedInState().user!, name: 'Shirley Zhang' } };
+    const { user } = renderApp('/', state);
+    const account = screen.getByRole('button', { name: 'Your account' });
+    expect(account).toHaveTextContent('SZ');
+    await user.click(account);
+    expect(screen.getByText('Shirley Zhang')).toBeInTheDocument();
+  });
+});

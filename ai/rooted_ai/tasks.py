@@ -81,6 +81,7 @@ class Message(Strict):
     date: str = ""
     text: str = Field(max_length=6000)
     link: str | None = None
+    replyTo: str | None = None  # the ref of the message this replies to, in a thread
 
 
 class Evidence(Strict):
@@ -153,7 +154,8 @@ def build_chat(p: dict[str, Any]) -> str:
             data("conversation", c.history),
             data("question", c.question),
             "Answer the question from the decisions and context given. If they don't cover it, say so and suggest "
-            "what to check. Keep it under 120 words. In citations, list the ids of the decisions your answer relies on.",
+            "what to check. Keep it under 120 words. In citations, list only the ids of decisions the answer's facts "
+            "come from. If no decision answers the question, leave citations empty, even if you mention a related one.",
         ]
     )
 
@@ -453,10 +455,13 @@ def build_spot(p: dict[str, Any]) -> str:
         [
             data("messages", [m.model_dump(exclude={"link"}) for m in s.messages]),
             data("decisions_already_recorded", s.existingDecisions),
-            "Point out up to 3 choices the team seems to be facing in these messages that aren't already recorded. "
-            "For each: question (how the PM might phrase it), why (one sentence on what in the messages suggests it), "
-            "and evidenceRefs (the refs of the messages that show it). Only raise what the messages actually show; "
-            "it's fine to return none.",
+            "Point out up to 3 choices the team discussed in these messages that aren't in decisions_already_recorded. "
+            "That list is what's logged in Rooted; a choice missing from it may still have been settled in the messages. "
+            "A message with replyTo is a reply in the thread of that ref.\n"
+            "For each: question (how the PM might phrase it); why (one or two sentences on what the messages show, "
+            "saying plainly whether the team settled it and on what, going by the latest word if they changed course, "
+            "or that it's still open); and evidenceRefs (at most 3 refs: where it was settled first, if it was, then "
+            "where it came up). Only raise what the messages actually show; it's fine to return none.",
         ]
     )
 
@@ -527,16 +532,30 @@ def build_patterns(p: dict[str, Any]) -> str:
             "decisions, a bet that rests on one earlier call).\n"
             "For each: title (one short sentence), detail (two or three sentences on what you saw and why it matters), "
             "decisionIds (the ids of the decisions it rests on: at least two for a pattern, trend or risk, at least "
-            "one for a prediction), confidence (low, medium or high; low when it rests on few decisions or "
-            "outcomes), and watchFor (for a prediction; otherwise an empty string).\n"
+            "one for a prediction), confidence (low, medium or high: for a pattern or prediction, low when fewer than "
+            "3 of its decisions have a logged outcome (a too-early outcome doesn't count) and medium below 6; for a "
+            "trend, the same by number of decisions; a risk isn't limited this way), and watchFor (for a prediction; otherwise an empty string).\n"
             "Base every insight only on these decisions and counts. Don't tell the PM what to decide. With little "
             "history, return fewer insights with low confidence rather than stretching; none is fine.",
         ]
     )
 
 
+def cap_confidence(confidence: str, kind: str, ids: list[str], outcomes: set[str]) -> str:
+    """Confidence can't outrun the evidence: patterns and predictions rest on logged
+    outcomes, trends on decisions over time. Risks (often about missing outcomes) aren't capped."""
+    if kind == "risk":
+        return confidence
+    n = len(ids) if kind == "trend" else sum(1 for i in ids if i in outcomes)
+    ceiling = "low" if n < 3 else "medium" if n < 6 else "high"
+    return min(confidence, ceiling, key=CONFIDENCE.index)
+
+
 def check_patterns(a: dict[str, Any], p: dict[str, Any]) -> dict[str, Any]:
     known = {d["id"] for d in p.get("decisions", []) if isinstance(d, dict) and "id" in d}
+    outcomes = {
+        d["id"] for d in p.get("decisions", []) if isinstance(d, dict) and isinstance(d.get("outcome"), dict) and d["outcome"].get("result") not in (None, "too-early")
+    }
     out = []
     for i in a.get("insights", []):
         kind = i.get("kind") if i.get("kind") in INSIGHT_KINDS else None
@@ -544,7 +563,7 @@ def check_patterns(a: dict[str, Any], p: dict[str, Any]) -> dict[str, Any]:
         ids = [x for x in dict.fromkeys(i.get("decisionIds", [])) if x in known]
         if not kind or not title or len(ids) < (1 if kind == "prediction" else 2):
             continue  # an insight that doesn't rest on enough real decisions is dropped
-        confidence = i.get("confidence") if i.get("confidence") in CONFIDENCE else "low"
+        confidence = cap_confidence(i.get("confidence") if i.get("confidence") in CONFIDENCE else "low", kind, ids, outcomes)
         watch = str(i.get("watchFor", "")).strip() if kind == "prediction" else ""
         out.append({"kind": kind, "title": title, "detail": str(i.get("detail", "")).strip(), "decisionIds": ids[:8], "confidence": confidence, "watchFor": watch})
         if len(out) == 6:

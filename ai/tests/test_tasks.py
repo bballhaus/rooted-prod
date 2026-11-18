@@ -111,10 +111,31 @@ def test_patterns_rest_on_real_decisions_and_predictions_say_what_to_watch():
     out = TASKS["findPatterns"].check(answer, payload)
     assert out == {
         "insights": [
-            {"kind": "pattern", "title": "Pricing calls stick", "detail": "d", "decisionIds": ["a", "b"], "confidence": "high", "watchFor": ""},
+            # "high" is held to "low": a and b have no logged outcomes (see the next test).
+            {"kind": "pattern", "title": "Pricing calls stick", "detail": "d", "decisionIds": ["a", "b"], "confidence": "low", "watchFor": ""},
             {"kind": "prediction", "title": "Seats come up again", "detail": "d", "decisionIds": ["c"], "confidence": "low", "watchFor": "Expansion revenue"},
         ]
     }
+
+
+def test_confidence_cant_outrun_the_evidence_it_rests_on():
+    # The evals found patterns resting on two logged outcomes rated "medium";
+    # the prompt says thin evidence means low, so the check holds it there.
+    worked = {"result": "worked", "summary": ""}
+    decisions = [{"id": f"d{i}", "question": f"Q{i}", **({"outcome": worked} if i < 7 else {})} for i in range(9)]
+    payload = {"today": "2026-11-13", "decisions": decisions}
+
+    def confidence(kind, ids, said="high"):
+        answer = {"insights": [{"kind": kind, "title": "t", "detail": "", "decisionIds": ids, "confidence": said, "watchFor": "w"}]}
+        return TASKS["findPatterns"].check(answer, payload)["insights"][0]["confidence"]
+
+    assert confidence("pattern", ["d0", "d1"]) == "low"  # two outcomes
+    assert confidence("pattern", ["d0", "d1", "d7", "d8"]) == "low"  # still two outcomes, two open decisions
+    assert confidence("pattern", ["d0", "d1", "d2"]) == "medium"
+    assert confidence("pattern", ["d0", "d1", "d2"], said="low") == "low"  # never raised
+    assert confidence("prediction", ["d0", "d1", "d2", "d3", "d4", "d5"]) == "high"
+    assert confidence("trend", ["d7", "d8", "d0"]) == "medium"  # a trend rests on dates, not outcomes
+    assert confidence("risk", ["d7", "d8"]) == "high"  # a risk can be about missing outcomes
 
 
 def test_patterns_are_capped_at_six():
