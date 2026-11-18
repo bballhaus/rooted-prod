@@ -37,7 +37,7 @@ The tests fake Claude and Slack, so they cost nothing and need no secrets.
      SLACK_REDIRECT_URI=https://<workspace>--rooted-ai-web.modal.run/slack/callback
    ```
 
-   `APP_ORIGINS` lists the exact site addresses that may call the service. Vercel also gives every deploy its own address (`rooted-prod-<id>-<team>.vercel.app`), which changes each time. To let those call it too, add `APP_ORIGIN_REGEX`, matched against the whole address. For example, `APP_ORIGIN_REGEX='https://rooted-prod-[a-z0-9-]+-nommi-cs278\.vercel\.app'`.
+   `APP_ORIGINS` lists the exact site addresses that may call the service. Vercel also gives every deploy its own address (`rooted-prod-<id>-<team>.vercel.app`), which changes each time. To let those call it too, add `APP_ORIGIN_REGEX`, matched against the whole address. For example, `APP_ORIGIN_REGEX='https://rooted-prod-[a-z0-9-]+-nommi-cs278\.vercel\.app'`. Slack connect only ever returns to an exact `APP_ORIGINS` address (the one you started from, or the first), never a pattern match, because an outsider could create a lookalike address; connect Slack from a listed address.
 
 2. **Deploy:** `python3 -m modal deploy ai/modal_app.py`. Modal prints the service URL.
 3. **Point the app at it:** set `VITE_AI_URL` to that URL in `.env.local` and in Vercel (Production and Preview), then redeploy the site.

@@ -242,13 +242,30 @@ def test_slack_sends_people_back_to_the_rooted_site_they_started_from():
         return res.headers["location"].split("/onboarding")[0]
 
     assert back_to("https://rooted.example") == "https://rooted.example"
-    assert back_to("https://rooted-abc123.vercel.app") == "https://rooted-abc123.vercel.app"
+    # A pattern match may call the API, but never receives Slack's code: an
+    # outsider could claim a hostname the pattern matches.
+    assert back_to("https://rooted-abc123.vercel.app") == "https://old.example"
     # An origin the service doesn't serve, or none at all, falls back to the first.
     assert back_to("https://evil.example") == "https://old.example"
     assert back_to(None) == "https://old.example"
     # A cancelled or forged callback can't pick where it goes either.
     forged = client.get("/slack/callback", params={"code": "abc", "state": "eyJvIjoiaHR0cHM6Ly9ldmlsLmV4YW1wbGUifQ.bad"}, follow_redirects=False)
     assert forged.headers["location"].startswith("https://old.example/onboarding")
+
+
+def test_an_attacker_cant_steer_a_victims_slack_code_to_a_lookalike_deploy():
+    # The attacker claims a hostname the deploy pattern matches, starts an
+    # install from it, and gets a victim to approve on Slack. The victim's code
+    # must not be sent to the attacker's site.
+    settings = replace(SETTINGS, app_origin_regex=r"https://rooted-prod-[a-z0-9-]+-team\.vercel\.app")
+    deps = Deps(settings=settings, verify=lambda t: "attacker" if t == "attacker-token" else None, store=MemoryStore(), claude=FakeClaude(), slack_api=FakeSlack(), clock=lambda: NOW)
+    client = TestClient(create_app(deps))
+    lookalike = "https://rooted-prod-x-team.vercel.app"
+    res = client.post("/slack/install", headers={"Authorization": "Bearer attacker-token", "Origin": lookalike})
+    state = parse_qs(urlparse(res.json()["result"]["url"]).query)["state"][0]
+    back = client.get("/slack/callback", params={"code": "victim-code", "state": state}, follow_redirects=False)
+    assert not back.headers["location"].startswith(lookalike)
+    assert back.headers["location"].startswith("https://rooted.example/onboarding")
 
 
 def test_someone_else_cant_finish_an_install_they_didnt_start(env):

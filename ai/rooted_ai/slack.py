@@ -89,10 +89,15 @@ def read_state(settings: Settings, state: str, now: float) -> str | None:
 
 
 def return_origin(settings: Settings, state: str, now: float) -> str:
-    """The Rooted site the install started from, if it's one this service serves; else the first listed."""
+    """The Rooted site the install started from, if it's listed exactly in APP_ORIGINS; else the first listed.
+
+    Never a pattern match: the person who starts an install chooses this origin,
+    and the Slack code is sent there. A pattern can match a hostname an outsider
+    can claim (a lookalike Vercel project), which would hand them a victim's code.
+    """
     data = _claims(settings, state, now) or {}
     origin = str(data.get("o") or "")
-    if origin and settings.allows_origin(origin):
+    if origin in settings.app_origins:
         return origin
     return settings.app_origins[0] if settings.app_origins else ""
 

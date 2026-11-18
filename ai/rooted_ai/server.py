@@ -205,9 +205,10 @@ def create_app(deps: Deps) -> FastAPI:
             return user_id
         if not deps.settings.slack_configured:
             return fail(503, "slack_not_configured")
-        # Remember which Rooted site this came from, so Slack's callback returns there.
+        # Remember which Rooted site this came from, so Slack's callback returns
+        # there. Exact listed origins only (see slack.return_origin).
         origin = request.headers.get("origin", "")
-        origin = origin if deps.settings.allows_origin(origin) else ""
+        origin = origin if origin in deps.settings.app_origins else ""
         return JSONResponse({"ok": True, "result": {"url": slack.install_url(deps.settings, user_id, deps.clock(), origin)}})
 
     @app.get("/slack/callback")
