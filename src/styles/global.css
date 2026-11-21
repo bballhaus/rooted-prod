@@ -447,14 +447,21 @@ a.pill {
 
 .input,
 .textarea,
-/* Our own chevron, drawn in tokens, with room so the value never runs into it. */
 .select {
   width: 100%;
   min-height: 48px;
-  padding: 0 44px 0 18px;
+  padding: 0 18px;
   border-radius: 999px;
   border: 1px solid var(--input-border);
   background-color: var(--input-bg);
+  color: var(--ink);
+  font: inherit;
+}
+
+/* Selects only: our own chevron, drawn in tokens, with room so the value
+   never runs into it. Text fields have none, so they don't look like menus. */
+.select {
+  padding-right: 44px;
   background-image:
     linear-gradient(45deg, transparent 50%, var(--ink2) 50%),
     linear-gradient(135deg, var(--ink2) 50%, transparent 50%);
@@ -463,8 +470,6 @@ a.pill {
     right 17px center;
   background-size: 5px 5px;
   background-repeat: no-repeat;
-  color: var(--ink);
-  font: inherit;
   appearance: none;
   cursor: pointer;
 }

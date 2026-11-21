@@ -19,6 +19,8 @@ def test_chat_names_decisions_by_their_question_never_their_id():
     payload = {"question": "Missing?", "decisions": [{"id": "d-pricing-seats", "question": "Per seat?"}, {"id": "d-pricing-seats-v2", "question": "Again?"}]}
     out = TASKS["chat"].check({"text": "See (d-pricing-seats) and `d-pricing-seats-v2`; not xd-pricing-seats.", "citations": []}, payload)
     assert out["text"] == "See “Per seat?” and “Again?”; not xd-pricing-seats."
+    ends = TASKS["chat"].check({"text": "It builds on d-pricing-seats.", "citations": []}, payload)
+    assert ends["text"] == "It builds on “Per seat?”"
 
 
 def test_chat_sends_the_decision_in_scope_with_its_options():

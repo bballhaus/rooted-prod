@@ -75,7 +75,7 @@ function Shell() {
               <SearchBox />
               <div className="row header-actions">
                 <Link to="/decisions/new" className="btn header-new">
-                  New decision
+                  New<span className="header-new-more"> decision</span>
                 </Link>
                 <InboxMenu />
                 <ProfileMenu />

@@ -173,7 +173,8 @@ def check_chat(a: dict[str, Any], p: dict[str, Any]) -> dict[str, Any]:
     # The PM never sees ids: any that slip into the text become the decision's question.
     for i in sorted(questions, key=len, reverse=True):
         if questions[i]:
-            text = re.sub(rf"[`\"“(\[]?(?<![\w-]){re.escape(i)}(?![\w-])[`\"”)\]]?", f"“{questions[i]}”", text)
+            stop = r"\.?" if questions[i][-1] in "?.!" else ""
+            text = re.sub(rf"[`\"“(\[]?(?<![\w-]){re.escape(i)}(?![\w-])[`\"”)\]]?{stop}", f"“{questions[i]}”", text)
     return {"text": text, "citations": citations}
 
 

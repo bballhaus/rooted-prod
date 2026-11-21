@@ -73,6 +73,15 @@ describe('Patterns and trends (F-R3-05)', () => {
     expect(rooted().getByRole('status')).toHaveTextContent('Your decisions have changed since Rooted looked');
   });
 
+  it('F-R3-05: planted future directions don’t make fresh insights look out of date', () => {
+    const state = demo();
+    const future = state.decisions.find((d) => d.createdAt > new Date().toISOString());
+    expect(future).toBeTruthy(); // the demo plants some ahead of today
+    const insight = { id: 'i-1', kind: 'trend' as const, title: 'Fresh.', detail: '', decisionIds: [state.decisions[0].id], foundAt: new Date().toISOString(), userEdited: false, dismissed: false };
+    renderApp('/patterns', { ...state, insights: [insight] });
+    expect(rooted().queryByText(/have changed since Rooted looked/)).not.toBeInTheDocument();
+  });
+
   it('F-R3-05: fresh insights carry no out-of-date note', () => {
     const state = demo();
     // Found after every decision and outcome in the workspace.

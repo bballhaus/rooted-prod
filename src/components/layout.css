@@ -446,6 +446,29 @@
   .header-new {
     padding: 0 14px;
   }
+
+  /* Touch screens have no "/" key to hint at. */
+  .header-search-key {
+    display: none;
+  }
+}
+
+/* Phones: wordmark, New and the icons share one row, so the header is
+   three short rows (actions, search, Decisions/Patterns), not four. */
+@media (max-width: 480px) {
+  /* Hidden visually only, so the link is still named "New decision". */
+  .header-new-more {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .header-actions {
+    gap: 4px;
+  }
 }
 
 .inbox-sample {

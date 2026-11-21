@@ -75,7 +75,8 @@ describe('chat payload', () => {
     const ai = fakeAi({ chat: { text: 'See d-onboarding-checklist and (d-onboarding-checklist).', citations: [] } });
     const answer = await askAgent(ai, 'Any related past decisions?', {}, s);
     const q = s.decisions.find((d) => d.id === 'd-onboarding-checklist')!.question;
-    expect(answer.text).toBe(`See “${q}” and “${q}”.`);
+    // The question keeps its own "?" without a full stop doubled after it.
+    expect(answer.text).toBe(`See “${q}” and “${q}”`);
     expect(answer.text).not.toContain('d-onboarding');
   });
 });
@@ -88,7 +89,7 @@ describe('withoutIds', () => {
 
   it('replaces the longest matching id, with any quotes or backticks around it', () => {
     expect(withoutIds('`d-pricing-seats-v2` then "d-pricing-seats".', { decisions })).toBe(
-      '“Per seat, again?” then “Per seat?”.',
+      '“Per seat, again?” then “Per seat?”',
     );
   });
 
