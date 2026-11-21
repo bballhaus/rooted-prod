@@ -23,6 +23,12 @@ def test_chat_names_decisions_by_their_question_never_their_id():
     assert ends["text"] == "It builds on “Per seat?”"
 
 
+def test_chat_drops_a_bracket_only_when_it_closes_around_the_id():
+    payload = {"question": "?", "decisions": [{"id": "d-1", "question": "Per seat?"}]}
+    out = TASKS["chat"].check({"text": "(see d-1) for details", "citations": []}, payload)
+    assert out["text"] == "(see “Per seat?”) for details"
+
+
 def test_chat_keeps_a_backslash_in_a_question_as_text():
     payload = {"question": "?", "decisions": [{"id": "d-1", "question": r"Ship \d or \1?"}]}
     out = TASKS["chat"].check({"text": "See d-1", "citations": []}, payload)

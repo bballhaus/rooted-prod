@@ -82,10 +82,12 @@ export function withoutIds(text: string, state: Pick<AppState, 'decisions'>): st
   for (const d of [...state.decisions].sort((a, b) => b.id.length - a.id.length)) {
     if (!out.includes(d.id)) continue;
     const id = d.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    // The id with any quotes, brackets or backticks around it, and a full stop
-    // after it when the question already ends in its own "?" or ".".
+    // The id, or the id inside a matching pair of quotes, brackets or backticks,
+    // and a full stop after it when the question already ends in "?" or ".".
     const stop = /[?.!]$/.test(d.question) ? '\\.?' : '';
-    const wrapped = new RegExp(`[\`"“(\\[]?(?<![\\w-])${id}(?![\\w-])[\`"”)\\]]?${stop}`, 'g');
+    const bare = `(?<![\\w-])${id}(?![\\w-])`;
+    const pairs = ['``', '""', '“”', '()', '[]'].map(([a, b]) => `\\${a}${bare}\\${b}`).join('|');
+    const wrapped = new RegExp(`(?:${pairs}|${bare})${stop}`, 'g');
     // A function, so "$&" or "$1" in a question is kept as text, not read as a pattern.
     out = out.replace(wrapped, () => `“${d.question}”`);
   }

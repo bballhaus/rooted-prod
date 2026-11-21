@@ -59,6 +59,20 @@ describe('Outcome', () => {
     expect(screen.queryByText(/We'll ask what happened/)).not.toBeInTheDocument();
   });
 
+  it('F-16: editing a “too early” outcome keeps the ask-again date already picked', async () => {
+    const { user } = renderApp('/decisions/d-onboarding-checklist');
+    await user.click(within(section()).getByRole('radio', { name: 'Too early to tell' }));
+    const recheck = within(section()).getByLabelText('When should Rooted ask again?');
+    await user.clear(recheck);
+    await user.type(recheck, '2027-02-15');
+    await user.click(within(section()).getByRole('button', { name: 'Save outcome' }));
+    await user.click(within(section()).getByRole('button', { name: 'Edit outcome' }));
+    expect(within(section()).getByLabelText('When should Rooted ask again?')).toHaveValue('2027-02-15');
+    await user.type(within(section()).getByLabelText('What happened'), 'Still ramping.');
+    await user.click(within(section()).getByRole('button', { name: 'Save outcome' }));
+    expect(stored().decisions.find((d) => d.id === 'd-onboarding-checklist')!.reviewDate).toBe('2027-02-15');
+  });
+
   it('F-16: once an outcome is logged, the record stops saying Rooted will ask', async () => {
     const { user } = renderApp('/decisions/d-onboarding-checklist');
     expect(screen.getByText('Rooted will ask what happened on the review date.')).toBeInTheDocument();

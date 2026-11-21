@@ -98,6 +98,11 @@ describe('withoutIds', () => {
     expect(withoutIds('See d-x', { decisions: odd })).toBe('See “Charge $& or $1?”');
   });
 
+  it('drops a bracket or quote only when it closes around the id', () => {
+    expect(withoutIds('(see d-pricing-seats) for details.', { decisions })).toBe('(see “Per seat?”) for details.');
+    expect(withoutIds('[d-pricing-seats] next', { decisions })).toBe('“Per seat?” next');
+  });
+
   it('leaves words that only contain an id alone', () => {
     expect(withoutIds('xd-pricing-seats and d-pricing-seats-v3', { decisions })).toBe('xd-pricing-seats and d-pricing-seats-v3');
   });

@@ -176,7 +176,10 @@ def check_chat(a: dict[str, Any], p: dict[str, Any]) -> dict[str, Any]:
             stop = r"\.?" if questions[i][-1] in "?.!" else ""
             # A function, so a backslash in the question is kept as text, not read as an escape.
             named = f"“{questions[i]}”"
-            text = re.sub(rf"[`\"“(\[]?(?<![\w-]){re.escape(i)}(?![\w-])[`\"”)\]]?{stop}", lambda _m, n=named: n, text)
+            bare = rf"(?<![\w-]){re.escape(i)}(?![\w-])"
+            # The id, or the id inside a matching pair of quotes or brackets.
+            pairs = "|".join(re.escape(a) + bare + re.escape(b) for a, b in ["``", '""', "“”", "()", "[]"])
+            text = re.sub(rf"(?:{pairs}|{bare}){stop}", lambda _m, n=named: n, text)
     return {"text": text, "citations": citations}
 
 

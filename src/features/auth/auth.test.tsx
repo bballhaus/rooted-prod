@@ -48,14 +48,28 @@ describe('Sign in', () => {
   });
 
   it('F-01: back from a provider without a session, it says sign-in didn’t finish', async () => {
-    localStorage.setItem('rooted-signing-in', '1');
+    localStorage.setItem('rooted-signing-in', 'google');
     renderApp('/signin', { ...seedState(), user: null }, { auth: fakeAuth(null) });
     expect(await screen.findByRole('alert')).toHaveTextContent('Sign-in didn’t finish');
     expect(localStorage.getItem('rooted-signing-in')).toBeNull();
   });
 
+  it('F-01: waiting for an email link isn’t a sign-in that didn’t finish, and opening it still goes to setup', async () => {
+    const auth = fakeAuth(null);
+    const { user } = renderApp('/signin', { ...seedState(), user: null }, { auth });
+    await user.type(screen.getByLabelText('Work email'), 'sam@startup.example');
+    await user.click(screen.getByRole('button', { name: 'Email me a sign-in link' }));
+    // Switching tabs remounts the form, as a reload would.
+    await user.click(screen.getByRole('tab', { name: 'Request access' }));
+    await user.click(screen.getByRole('tab', { name: 'Sign in' }));
+    expect(screen.queryByText(/Sign-in didn’t finish/)).not.toBeInTheDocument();
+    expect(localStorage.getItem('rooted-signing-in')).toBe('email');
+    await act(async () => auth.emit({ authId: 'auth-sam', email: 'sam@startup.example', name: 'Sam Rivera', provider: 'email' }));
+    expect(screen.getByRole('heading', { name: 'Choose what Rooted can see' })).toBeInTheDocument();
+  });
+
   it('F-01: arriving from sign-in with the demo left loaded starts in the PM’s own workspace', async () => {
-    localStorage.setItem('rooted-signing-in', '1');
+    localStorage.setItem('rooted-signing-in', 'google');
     const me = signedInState().user!;
     const state = { ...seedState(), user: null, lastUser: me, demo: true, beforeDemo: undefined };
     renderApp('/signin', state, { auth: fakeAuth(identityFor(me)) });

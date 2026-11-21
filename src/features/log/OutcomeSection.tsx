@@ -19,7 +19,12 @@ export function OutcomeSection({ decision }: { decision: Decision }) {
   const [summary, setSummary] = useState(existing?.summary ?? '');
   const [metrics, setMetrics] = useState(existing?.metrics ?? '');
   const [error, setError] = useState('');
-  const [recheck, setRecheck] = useState(() => addDaysIso(today, 30));
+  // Editing a "too early" outcome keeps the date already picked; otherwise 30 days out.
+  const [recheck, setRecheck] = useState(() =>
+    existing?.result === 'too-early' && decision.reviewDate && decision.reviewDate > today
+      ? decision.reviewDate
+      : addDaysIso(today, 30),
+  );
   const [recheckError, setRecheckError] = useState('');
   const uid = useId();
 
