@@ -86,7 +86,8 @@ export function withoutIds(text: string, state: Pick<AppState, 'decisions'>): st
     // after it when the question already ends in its own "?" or ".".
     const stop = /[?.!]$/.test(d.question) ? '\\.?' : '';
     const wrapped = new RegExp(`[\`"“(\\[]?(?<![\\w-])${id}(?![\\w-])[\`"”)\\]]?${stop}`, 'g');
-    out = out.replace(wrapped, `“${d.question}”`);
+    // A function, so "$&" or "$1" in a question is kept as text, not read as a pattern.
+    out = out.replace(wrapped, () => `“${d.question}”`);
   }
   return out;
 }

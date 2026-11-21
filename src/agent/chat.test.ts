@@ -93,6 +93,11 @@ describe('withoutIds', () => {
     );
   });
 
+  it('keeps "$&" and "$1" in a question as text', () => {
+    const odd = [{ id: 'd-x', question: 'Charge $& or $1?' }] as AppState['decisions'];
+    expect(withoutIds('See d-x', { decisions: odd })).toBe('See “Charge $& or $1?”');
+  });
+
   it('leaves words that only contain an id alone', () => {
     expect(withoutIds('xd-pricing-seats and d-pricing-seats-v3', { decisions })).toBe('xd-pricing-seats and d-pricing-seats-v3');
   });

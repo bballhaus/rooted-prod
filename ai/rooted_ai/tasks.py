@@ -174,7 +174,9 @@ def check_chat(a: dict[str, Any], p: dict[str, Any]) -> dict[str, Any]:
     for i in sorted(questions, key=len, reverse=True):
         if questions[i]:
             stop = r"\.?" if questions[i][-1] in "?.!" else ""
-            text = re.sub(rf"[`\"“(\[]?(?<![\w-]){re.escape(i)}(?![\w-])[`\"”)\]]?{stop}", f"“{questions[i]}”", text)
+            # A function, so a backslash in the question is kept as text, not read as an escape.
+            named = f"“{questions[i]}”"
+            text = re.sub(rf"[`\"“(\[]?(?<![\w-]){re.escape(i)}(?![\w-])[`\"”)\]]?{stop}", lambda _m, n=named: n, text)
     return {"text": text, "citations": citations}
 
 

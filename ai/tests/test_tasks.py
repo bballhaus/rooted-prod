@@ -23,6 +23,12 @@ def test_chat_names_decisions_by_their_question_never_their_id():
     assert ends["text"] == "It builds on “Per seat?”"
 
 
+def test_chat_keeps_a_backslash_in_a_question_as_text():
+    payload = {"question": "?", "decisions": [{"id": "d-1", "question": r"Ship \d or \1?"}]}
+    out = TASKS["chat"].check({"text": "See d-1", "citations": []}, payload)
+    assert out["text"] == r"See “Ship \d or \1?”"
+
+
 def test_chat_sends_the_decision_in_scope_with_its_options():
     options = [{"option": "Annual discount", "summary": "2 months free"}]
     payload = {"question": "Cheapest?", "scope": {"decisionQuestion": "Drive expansion?"}, "decisions": [{"id": "d-1", "question": "Drive expansion?", "inScope": True, "options": options}]}

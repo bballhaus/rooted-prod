@@ -13,11 +13,10 @@
 }
 
 /* The agent opens below the header, so search, New decision and the inbox
-   stay usable. On wide screens the page makes room for it; on narrower
-   ones it lies over the page as a drawer, rather than squeezing the page
-   into a column too thin to read. */
+   stay usable, and the page makes room for it. Its width is fluid, so on a
+   mid-width screen it takes less and the page keeps a readable column. */
 .shell {
-  --agent-w: 400px;
+  --agent-w: clamp(320px, 32vw, 400px);
   --header-h: 69px;
   min-height: 100vh;
   display: flex;
@@ -28,7 +27,7 @@
   flex: 1;
 }
 
-@media (min-width: 1200px) {
+@media (min-width: 881px) {
   .shell-agent-open {
     padding-right: var(--agent-w);
   }
@@ -112,8 +111,10 @@
 .header-search {
   flex: 0 1 560px;
   width: 100%;
-  /* Room for a real query: "pricing" never shows as "ricing". */
-  min-width: 260px;
+  /* Room for a real query: "pricing" never shows as "ricing". The header
+     fits around it at every width above 880px without another breakpoint:
+     the Ask button is an icon and the demo badge is one word. */
+  min-width: 200px;
   position: relative;
   display: flex;
   align-items: center;
@@ -129,7 +130,7 @@
 
 .header-search-input {
   padding-left: 44px;
-  padding-right: 88px;
+  padding-right: 52px;
   background: var(--header-field-bg);
   border-color: var(--header-field-border);
   color: var(--header-fg);
@@ -150,7 +151,7 @@
 /* The "/" shortcut hint, shown until the PM types. */
 .header-search-key {
   position: absolute;
-  right: 84px;
+  right: 50px;
   display: inline-grid;
   place-items: center;
   min-width: 22px;
@@ -167,32 +168,6 @@
 .header-search-input:focus ~ .header-search-key,
 .header-search-input:not(:placeholder-shown) ~ .header-search-key {
   display: none;
-}
-
-/* On mid-width screens the lead and actions crowd the search: drop the
-   words that repeat what the icons say, so the field keeps its width. */
-@media (min-width: 881px) and (max-width: 1180px) {
-  .demo-badge-more,
-  .header-search-key {
-    display: none;
-  }
-
-  .header-search-ask-text {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-  }
-
-  .header-search-input {
-    padding-right: 52px;
-  }
-
-  .header-nav a {
-    padding: 0 10px;
-  }
 }
 
 .header-actions {
@@ -400,11 +375,6 @@
   white-space: nowrap;
 }
 
-@media (max-width: 880px) {
-  .demo-badge-more {
-    display: none;
-  }
-}
 
 .site-footer {
   border-top: 1px solid var(--card-rule);
@@ -467,9 +437,9 @@
   }
 }
 
-/* Phones: wordmark, New and the icons share one row, so the header is
-   three short rows (actions, search, Decisions/Patterns), not four. */
-@media (max-width: 480px) {
+/* Narrow screens: wordmark, New and the icons share one row, so the header
+   is three short rows (actions, search, Decisions/Patterns), not four. */
+@media (max-width: 880px) {
   /* Hidden visually only, so the link is still named "New decision". */
   .header-new-more {
     position: absolute;

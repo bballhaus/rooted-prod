@@ -52,8 +52,8 @@ function Shell() {
               Rooted
             </NavLink>
             {state.demo && (
-              <span className="pill demo-badge">
-                Demo<span className="demo-badge-more"> · sample data</span>
+              <span className="pill demo-badge" title="Sample data">
+                Demo<span className="visually-hidden"> · sample data</span>
               </span>
             )}
             {!setup && (
@@ -173,8 +173,8 @@ function SearchBox() {
       <kbd className="header-search-key" aria-hidden="true">
         /
       </kbd>
-      <button type="submit" className="btn btn-ghost header-search-ask" disabled={!text.trim()}>
-        <SparkIcon size={16} /> <span className="header-search-ask-text">Ask</span>
+      <button type="submit" className="btn btn-ghost header-search-ask" disabled={!text.trim()} title="Ask Rooted">
+        <SparkIcon size={16} /> <span className="visually-hidden">Ask</span>
       </button>
     </form>
   );

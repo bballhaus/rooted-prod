@@ -488,9 +488,9 @@ a.pill {
   opacity: 0.55;
 }
 
-/* Errors read differently from hints: dusty red, bold, with a "!" badge, so
-   colour is never the only signal. The badge is hidden from screen readers;
-   role="alert" already announces the message. */
+/* Errors read differently from hints: dusty red (--alert: something needs
+   the PM), bold, with a "!" badge, so colour is never the only signal. The
+   badge is hidden from screen readers; role="alert" already announces it. */
 .error {
   display: flex;
   align-items: flex-start;
@@ -516,10 +516,11 @@ a.pill {
   line-height: 1;
 }
 
+/* design-language §6.4: an invalid field's border goes full-contrast ink. */
 .input[aria-invalid='true'],
 .textarea[aria-invalid='true'],
 .select[aria-invalid='true'] {
-  border-color: var(--alert);
+  border-color: var(--ink);
 }
 
 .checkbox {

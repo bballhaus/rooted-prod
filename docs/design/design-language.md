@@ -107,7 +107,7 @@ Added in the Rooted app (`src/styles/global.css`, decision 0006):
 
 | Token | Light | Dark | Meaning |
 |---|---|---|---|
-| `alert` / `alertFg` | `#A94438` dusty red / cream | `#D9776B` / charcoal | Something is due: the inbox count, an overdue outcome |
+| `alert` / `alertFg` | `#A94438` dusty red / cream | `#D9776B` / charcoal | Something needs the PM: the inbox count when something is due, an overdue outcome, a form error to fix (always with a "!" badge or word, never colour alone) |
 | `ai` / `aiLine` / `aiBg` | `#5D6B4F` deep sage / `#8C9A7C` / sage at 18% | `#C2CBB4` / `#A4AD96` / sage at 16% | What the agent suggested and a person hasn't accepted: dashed links, outlined tags, ✦ labels |
 | `ochre` / `ochreBg` | `#96601A` / ochre at 14% | `#E0A458` / ochre at 14% | Work in progress: open decisions, drafts, the current setup step (decision 0008) |
 | `moss` | `#5F7A4A` | `#A9C08F` | A closed loop: outcome logged, a finished setup step |
