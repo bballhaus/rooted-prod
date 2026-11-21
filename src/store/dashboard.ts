@@ -32,9 +32,18 @@ export const MAP_STATUS_LABEL: Record<MapStatus, string> = {
 export function mapStatus(d: Decision, state: Pick<AppState, 'outcomes'>, today: string): MapStatus {
   if (d.speculative && d.status !== 'decided') return 'exploring';
   if (d.status !== 'decided') return 'open';
-  if (state.outcomes.some((o) => o.decisionId === d.id)) return 'outcome-logged';
+  if (loopClosed(d, state)) return 'outcome-logged';
   if (d.reviewDate && d.reviewDate <= today) return 'outcome-due';
   return 'decided';
+}
+
+/**
+ * An outcome closes the loop, except "too early to tell": then Rooted asks
+ * again on the new review date the PM picked.
+ */
+export function loopClosed(d: Decision, state: Pick<AppState, 'outcomes'>): boolean {
+  const outcome = state.outcomes.find((o) => o.decisionId === d.id);
+  return !!outcome && outcome.result !== 'too-early';
 }
 
 /** Decisions without an owner predate teammates; they belong to the signed-in PM. */

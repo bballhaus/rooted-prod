@@ -42,6 +42,32 @@ describe('Outcome', () => {
     expect(within(section()).getByRole('radio', { name: 'Too early to tell' })).toBeInTheDocument();
   });
 
+  it('F-16: “too early to tell” asks when to check again and keeps the loop open until then', async () => {
+    const { user } = renderApp('/decisions/d-onboarding-checklist');
+    await user.click(within(section()).getByRole('radio', { name: 'Too early to tell' }));
+    const recheck = within(section()).getByLabelText('When should Rooted ask again?');
+    expect(recheck).toHaveValue('2026-11-30');
+    await user.clear(recheck);
+    await user.type(recheck, '2026-12-15');
+    await user.click(within(section()).getByRole('button', { name: 'Save outcome' }));
+
+    const decision = stored().decisions.find((d) => d.id === 'd-onboarding-checklist')!;
+    expect(decision.reviewDate).toBe('2026-12-15');
+    expect(within(section()).getByText(/Rooted will ask again on Dec 15, 2026/)).toBeInTheDocument();
+    expect(screen.getByText('Too early to tell last time. Rooted will ask again on Dec 15, 2026.')).toBeInTheDocument();
+    // Not due now, but not closed either: it comes back on the new date.
+    expect(screen.queryByText(/We'll ask what happened/)).not.toBeInTheDocument();
+  });
+
+  it('F-16: once an outcome is logged, the record stops saying Rooted will ask', async () => {
+    const { user } = renderApp('/decisions/d-onboarding-checklist');
+    expect(screen.getByText('Rooted will ask what happened on the review date.')).toBeInTheDocument();
+    await user.click(within(section()).getByRole('radio', { name: 'Worked' }));
+    await user.click(within(section()).getByRole('button', { name: 'Save outcome' }));
+    expect(screen.queryByText(/will ask what happened/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Outcome logged Oct 31, 2026/)).toBeInTheDocument();
+  });
+
   it('F-16: an unsaved outcome draft does not follow you to another record', async () => {
     const { user } = renderApp('/decisions/d-onboarding-checklist');
     await user.click(within(section()).getByRole('radio', { name: 'Worked' }));

@@ -139,6 +139,25 @@ describe('LogDecisionDialog', () => {
 
     await user.click(within(dialog).getByRole('radio', { name: /14-day trial/ }));
     expect(within(dialog).getByLabelText('Your summary')).toHaveValue('Keep the current 14-day trial.');
+    // The summary is filled now, so its error goes with it.
+    expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('F-14: picking an option never overwrites a summary the PM wrote', async () => {
+    const { user } = renderDialog();
+    const dialog = screen.getByRole('dialog');
+    const summary = within(dialog).getByLabelText('Your summary');
+    await user.click(within(dialog).getByRole('button', { name: 'Draft the rest' }));
+    await user.type(summary, 'We keep it simple');
+    await user.click(within(dialog).getByRole('radio', { name: /14-day trial/ }));
+    expect(summary).toHaveValue('We keep it simple');
+    // Prefilled text, untouched, follows the pick.
+    await user.clear(summary);
+    await user.click(within(dialog).getByRole('radio', { name: /30-day trial/ }));
+    const thirty = summary.getAttribute('value') ?? (summary as HTMLTextAreaElement).value;
+    await user.click(within(dialog).getByRole('radio', { name: /14-day trial/ }));
+    expect(summary).toHaveValue('Keep the current 14-day trial.');
+    expect(thirty).not.toBe('');
   });
 
   it('F-14: the chosen option is marked wine and options not taken are not', async () => {

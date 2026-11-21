@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ReportWrongAnswer } from '../../components/ReportWrongAnswer';
 import { Stepper } from '../../components/Stepper';
-import { linksOf, ownerOf } from '../../store/dashboard';
+import { linksOf, loopClosed, ownerOf } from '../../store/dashboard';
 import { useDecision, useStore } from '../../store/store';
 import { useAgent } from '../agent/AgentContext';
 import { pathLabel } from '../../store/tree';
@@ -73,6 +73,12 @@ function DecisionRecord() {
   ]
     .map((c) => ({ ...c, decision: state.decisions.find((d) => d.id === c.other) }))
     .filter((c) => !!c.decision);
+  const outcome = state.outcomes.find((o) => o.decisionId === decision.id);
+  const reviewNote = loopClosed(decision, state)
+    ? `Outcome logged ${formatDate(outcome?.loggedAt)}. You can edit it below.`
+    : outcome
+      ? `Too early to tell last time. Rooted will ask again on ${formatDate(decision.reviewDate)}.`
+      : 'Rooted will ask what happened on the review date.';
 
   function saveRationale(e: React.FormEvent) {
     e.preventDefault();
@@ -248,7 +254,7 @@ function DecisionRecord() {
               </dd>
             </div>
           </dl>
-          {decision.reviewDate && <p className="muted log-note">We'll ask what happened on the review date.</p>}
+          {decision.reviewDate && <p className="muted log-note">{reviewNote}</p>}
           {(decision.tags ?? []).length > 0 && (
             <ul className="row log-tags" aria-label="Tags">
               {(decision.tags ?? []).map((t) => (
