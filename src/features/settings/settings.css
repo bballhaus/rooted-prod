@@ -188,6 +188,13 @@
   border-bottom: 1px solid var(--card-rule);
 }
 
+.settings-channels {
+  margin-top: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--chip-bg);
+}
+
 .settings-source-info,
 .settings-data-text {
   display: grid;

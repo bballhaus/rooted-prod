@@ -39,6 +39,31 @@ describe('Sign in', () => {
     expect(screen.getByRole('button', { name: 'Continue with Google' })).toBeInTheDocument();
   });
 
+  it('F-20: requesting access with an empty email says what to enter', async () => {
+    const { user } = renderApp('/signin', { ...seedState(), user: null });
+    await user.click(screen.getByRole('tab', { name: 'Request access' }));
+    await user.click(screen.getByRole('button', { name: 'Request access' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter your work email');
+    expect(screen.getByLabelText('Work email')).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('F-01: back from a provider without a session, it says sign-in didn’t finish', async () => {
+    localStorage.setItem('rooted-signing-in', '1');
+    renderApp('/signin', { ...seedState(), user: null }, { auth: fakeAuth(null) });
+    expect(await screen.findByRole('alert')).toHaveTextContent('Sign-in didn’t finish');
+    expect(localStorage.getItem('rooted-signing-in')).toBeNull();
+  });
+
+  it('F-01: arriving from sign-in with the demo left loaded starts in the PM’s own workspace', async () => {
+    localStorage.setItem('rooted-signing-in', '1');
+    const me = signedInState().user!;
+    const state = { ...seedState(), user: null, lastUser: me, demo: true, beforeDemo: undefined };
+    renderApp('/signin', state, { auth: fakeAuth(identityFor(me)) });
+    expect(await screen.findByRole('heading', { name: 'Choose what Rooted can see' })).toBeInTheDocument();
+    expect(stored().demo).toBe(false);
+    expect(screen.queryByText(/Demo/)).not.toBeInTheDocument();
+  });
+
   it('F-01: a signed-in user visiting /signin goes to /', () => {
     renderApp('/signin');
     expect(screen.queryByRole('button', { name: 'Continue with Google' })).not.toBeInTheDocument();
@@ -295,7 +320,25 @@ describe('Data access', () => {
 
   it('F-02: continue goes to the decisions home', async () => {
     const { user } = renderApp('/onboarding', signedInState());
-    await user.click(screen.getByRole('button', { name: 'Continue to Rooted' }));
+    await user.click(screen.getByRole('button', { name: 'Continue to your decisions' }));
     expect(screen.queryByRole('heading', { name: 'Choose what Rooted can see' })).not.toBeInTheDocument();
+  });
+
+  it('F-02: continuing with nothing allowed says what that means first', async () => {
+    const { user } = renderApp('/onboarding', signedInState());
+    await user.click(within(sourceCard('Fernwave Slack')).getByRole('button', { name: /Allow none/ }));
+    await user.click(screen.getByRole('button', { name: 'Continue to your decisions' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Rooted has nothing to read yet.');
+    expect(screen.getByRole('heading', { name: 'Choose what Rooted can see' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Continue without sources' }));
+    expect(screen.queryByRole('heading', { name: 'Choose what Rooted can see' })).not.toBeInTheDocument();
+  });
+
+  it('F-02: setup shows two steps, and says so when the demo’s sample sources are the ones showing', async () => {
+    const { user } = renderApp('/onboarding', { ...signedInState(), demo: true });
+    expect(within(screen.getByRole('list', { name: 'Setup' })).getAllByRole('listitem')).toHaveLength(2);
+    expect(screen.getByText(/You’re in the demo,/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Leave the demo and set up your own' }));
+    expect(stored().demo).toBe(false);
   });
 });
