@@ -905,6 +905,10 @@
   background: var(--ochre);
 }
 
+.map-dot-exploring {
+  background: var(--alive-dot);
+}
+
 .map-dot-decided {
   background: var(--ink2);
 }

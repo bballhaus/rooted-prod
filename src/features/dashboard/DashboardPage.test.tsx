@@ -380,6 +380,14 @@ describe('Decision canvas', () => {
     expect(within(rail()).queryByRole('link', { name: /usage-based pricing/ })).not.toBeInTheDocument();
   });
 
+  it('a planted direction has the same status in the List as on the Tree', async () => {
+    const { user } = renderApp('/', demo());
+    await user.click(screen.getByRole('button', { name: 'List' }));
+    const row = screen.getByRole('button', { name: /usage-based pricing/i });
+    expect(within(row).getByText('Direction to explore')).toBeInTheDocument();
+    expect(within(row).queryByText('In progress')).not.toBeInTheDocument();
+  });
+
   it('F-19: picking a decision lights up everything it built on and led to, and fades the rest', () => {
     renderApp('/?focus=d-weekly-digest', demo());
     const card = (id: string) => document.querySelector(`.react-flow__node[data-id="${id}"] .map-node`)!;

@@ -8,6 +8,7 @@ is editable and reportable in the app (F-08, F-28).
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from typing import Any, Callable, Literal
 
@@ -153,9 +154,12 @@ def build_chat(p: dict[str, Any]) -> str:
             data("context", c.context),
             data("conversation", c.history),
             data("question", c.question),
-            "Answer the question from the decisions and context given. If they don't cover it, say so and suggest "
-            "what to check. Keep it under 120 words. In citations, list only the ids of decisions the answer's facts "
-            "come from. If no decision answers the question, leave citations empty, even if you mention a related one.",
+            "Answer the question from the decisions and context given. The decision marked inScope carries its "
+            "current options and open questions; when the PM asks about the options, answer from those. If the data "
+            "doesn't cover the question, say so and suggest what to check. Keep it under 120 words. In the text, name "
+            "a decision by its question, never by its id. In citations, list only the ids of decisions the answer's "
+            "facts come from. If no decision answers the question, leave citations empty, even if you mention a "
+            "related one.",
         ]
     )
 
@@ -164,8 +168,12 @@ def check_chat(a: dict[str, Any], p: dict[str, Any]) -> dict[str, Any]:
     text = str(a.get("text", "")).strip()
     if not text:
         raise BadAnswer("empty answer")
-    known = {str(d.get("id")) for d in p.get("decisions", [])}
-    citations = [i for i in dict.fromkeys(a.get("citations", [])) if i in known]
+    questions = {str(d.get("id")): str(d.get("question", "")) for d in p.get("decisions", []) if d.get("id")}
+    citations = [i for i in dict.fromkeys(a.get("citations", [])) if i in questions]
+    # The PM never sees ids: any that slip into the text become the decision's question.
+    for i in sorted(questions, key=len, reverse=True):
+        if questions[i]:
+            text = re.sub(rf"[`\"“(\[]?(?<![\w-]){re.escape(i)}(?![\w-])[`\"”)\]]?", f"“{questions[i]}”", text)
     return {"text": text, "citations": citations}
 
 

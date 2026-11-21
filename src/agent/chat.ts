@@ -37,6 +37,9 @@ export function chatPayload(question: string, scope: ChatScope, state: AppState,
         .map((o) => ({ option: o.label, reason: o.pruneReason })),
       outcome: state.outcomes.find((o) => o.decisionId === d.id)?.summary,
       reviewDate: d.reviewDate,
+      // The decision on screen carries its live branches and open questions, so
+      // Rooted answers about the options the PM can see, not just pruned ones.
+      ...(d.id === decision?.id ? inScope(d.id, state) : {}),
     })),
     context: decision
       ? state.contextItems
@@ -47,6 +50,43 @@ export function chatPayload(question: string, scope: ChatScope, state: AppState,
     // Failed turns aren't conversation; leave them out.
     history: history.filter((m) => !m.failed).slice(-10).map((m) => ({ role: m.role, text: m.text })),
   };
+}
+
+function inScope(decisionId: string, state: AppState) {
+  return {
+    inScope: true,
+    options: state.options
+      .filter((o) => o.decisionId === decisionId && o.state !== 'pruned')
+      .slice(0, 30)
+      .map((o) => ({
+        option: o.label,
+        summary: fit(o.summary, LIMITS.context),
+        pros: o.pros,
+        cons: o.cons,
+        // 1–5: higher impact and evidence are better; lower effort and risk are easier.
+        ratings: o.criteria,
+        chosen: o.state === 'chosen' || undefined,
+        underBranch: state.options.find((p) => p.id === o.parentId)?.label,
+      })),
+    openQuestions: state.gaps.filter((g) => g.decisionId === decisionId && !g.answer).map((g) => g.question),
+  };
+}
+
+/**
+ * Claude sometimes names a decision by its id ("d-pricing-seats"). The PM never
+ * sees ids, so each one becomes the decision's question.
+ */
+export function withoutIds(text: string, state: Pick<AppState, 'decisions'>): string {
+  let out = text;
+  // Longest first, so "d-pricing-seats-v2" isn't cut short by "d-pricing-seats".
+  for (const d of [...state.decisions].sort((a, b) => b.id.length - a.id.length)) {
+    if (!out.includes(d.id)) continue;
+    const id = d.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // The id with any quotes, brackets or backticks around it.
+    const wrapped = new RegExp(`[\`"“(\\[]?(?<![\\w-])${id}(?![\\w-])[\`"”)\\]]?`, 'g');
+    out = out.replace(wrapped, `“${d.question}”`);
+  }
+  return out;
 }
 
 export async function askAgent(
@@ -61,7 +101,7 @@ export async function askAgent(
     .map((id) => state.decisions.find((d) => d.id === id))
     .filter((d): d is NonNullable<typeof d> => !!d)
     .map((d) => ({ decisionId: d.id, label: d.question }));
-  return { text: result.text, citations };
+  return { text: withoutIds(result.text, state), citations };
 }
 
 /** Short starters shown above the chat box, per scope. */

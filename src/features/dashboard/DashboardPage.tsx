@@ -292,7 +292,7 @@ export function DashboardPage() {
                         value={status}
                         onChange={(e) => setStatus(e.target.value as StatusFilter)}
                       >
-                        {(['all', 'open', 'outcome-due', 'decided', 'outcome-logged'] as StatusFilter[]).map((s) => (
+                        {(['all', 'open', 'outcome-due', 'decided', 'outcome-logged', ...(state.decisions.some((d) => d.speculative) ? ['exploring'] : [])] as StatusFilter[]).map((s) => (
                           <option key={s} value={s}>
                             {s === 'all' ? 'Any status' : MAP_STATUS_LABEL[s]}
                           </option>
@@ -412,8 +412,8 @@ function MapKey({
     colorBy === 'status'
       ? [
           ...STATUS_KEY.map((s) => ({ key: s.status, label: MAP_STATUS_LABEL[s.status], color: s.color, dashed: s.status === 'open' })),
-          ...(decisions.some((d) => d.speculative)
-            ? [{ key: 'speculative', label: 'Direction to explore', color: 'var(--alive-dot)', dashed: true }]
+          ...(decisions.some((d) => d.speculative && d.status !== 'decided')
+            ? [{ key: 'exploring', label: MAP_STATUS_LABEL.exploring, color: 'var(--alive-dot)', dashed: true }]
             : []),
         ]
       : colorBy === 'goal'
@@ -635,7 +635,8 @@ function NeedsYou({ today, onMinimize }: { today: string; onMinimize: () => void
             Needs you
           </h2>
           <p className="needs-summary">
-            {todo.length ? `${todo.length} due` : 'Nothing due'} · {counted(drafts.length, 'decision', 'decisions')} in progress
+            {/* Only the PM's own work counts here; the List shows everyone's. */}
+            {todo.length ? `${todo.length} due` : 'Nothing due'} · {drafts.length} of yours in progress
           </p>
         </div>
         <button type="button" className="icon-btn needs-minimize" aria-label="Hide the Needs you panel" onClick={onMinimize}>
