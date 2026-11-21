@@ -34,6 +34,12 @@ describe('Help', () => {
     expect(screen.getByText('What does Rooted cost?')).toBeInTheDocument();
   });
 
+  it('F-27: searching for “export” finds how to download your decisions', async () => {
+    const { user } = renderApp('/help');
+    await user.type(screen.getByLabelText('Search the FAQ'), 'export');
+    expect(screen.getByText('How do I export, disconnect or delete my data?')).toBeInTheDocument();
+  });
+
   it('F-28: a wrong-answer report needs a note, is saved to the store and appears in "Your reports"', async () => {
     const { user } = renderApp('/help/report');
     const form = screen.getByRole('region', { name: 'Report a wrong answer' });

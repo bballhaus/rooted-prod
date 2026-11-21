@@ -1,5 +1,5 @@
-// F-27: FAQ content. Answers describe this prototype as it is: sources are
-// mocked with sample data and some features are planned, not built.
+// F-27: FAQ content. Answers describe Rooted as it is: sign-in, the AI and
+// Slack are real (0015, 0016, 0017); Drive and nudges are planned, not built.
 
 export interface FaqItem {
   id: string;
@@ -31,7 +31,7 @@ export const FAQ: FaqItem[] = [
     topic: 'Getting started',
     question: 'Is this the real product?',
     answer:
-      'No. This is a clickable prototype with sample data for a made-up company, Fernwave. Slack and Google sign-in are mocked, nothing calls an AI model, and everything you enter stays in this browser.',
+      'It’s an early beta built by a student team. Sign-in is real, Rooted’s AI is real (Claude answers from what Rooted sends it), and Slack reads only the public channels you allow. Your decisions are saved in this browser, not on a server. Google Drive and nudges aren’t built yet. To look around first, choose “Explore the demo” for six months of sample decisions at a made-up company.',
   },
   {
     id: 'faq-first',
@@ -45,14 +45,14 @@ export const FAQ: FaqItem[] = [
     topic: 'Your data and privacy',
     question: 'Which Slack channels does Rooted read?',
     answer:
-      'Only the channels you allow during onboarding or later under Settings → Sources. Rooted never reads private channels or direct messages. In the prototype, the Slack workspace and its messages are sample data.',
+      'Only the public channels you allow during setup or later under Settings → Sources and access, and only when you gather evidence or ask Rooted to look for decisions. It reads recent thread replies in those channels too. What it reads is sent to Claude to answer you. Rooted never reads private channels or direct messages. In the demo, the Slack workspace and its messages are sample data.',
   },
   {
     id: 'faq-disconnect',
     topic: 'Your data and privacy',
-    question: 'How do I disconnect a source or delete my data?',
+    question: 'How do I export, disconnect or delete my data?',
     answer:
-      'Go to Settings. Under Sources you can disconnect Slack or Google Drive. Under Your data, “Delete all data” removes every decision, its evidence, options and your reports, and disconnects every source. You have to type DELETE to confirm.',
+      'Go to Settings. Under Your data, “Download your decisions” saves every decision as one Markdown file: what you chose and why, the options you pruned with their reasons, and outcomes. Under Sources and access you can disconnect Slack. “Delete all data” removes every decision, its evidence, options and your reports, and disconnects every source; you type DELETE to confirm, so download first if you want a copy.',
   },
   {
     id: 'faq-visibility',
@@ -101,14 +101,14 @@ export const FAQ: FaqItem[] = [
     topic: 'Options and logging',
     question: 'Can I chat with Rooted about the options?',
     answer:
-      'Chatting through the rationale, overall or per option, is planned for the MVP but isn’t in this prototype yet.',
+      'Yes. Choose “Think it through with Rooted” on a decision, “Talk it through” on an option, or the ✦ button in the corner. Rooted answers from your decisions and the evidence for the one you’re looking at. It never makes the call.',
   },
   {
     id: 'faq-outcome',
     topic: 'Options and logging',
     question: 'Will Rooted remind me to record the outcome?',
     answer:
-      'Each logged decision gets a review date, set from your default in Settings. Nudges that ask what happened are planned but not built in the prototype, so nothing is sent yet.',
+      'Each logged decision gets a review date, set from your default in Settings. When it arrives, the decision shows up under Due in Needs you and in the inbox. If it’s too early to tell, pick a new date and Rooted asks again then. Email and Slack nudges aren’t built yet, so nothing is sent.',
   },
   {
     id: 'faq-cost',
@@ -128,6 +128,6 @@ export const FAQ: FaqItem[] = [
     topic: 'Account',
     question: 'Can I get nudges by email instead of Slack?',
     answer:
-      'Yes. Pick Slack or email under Settings → Notifications. The preference is saved, but nudges themselves are mocked in the prototype.',
+      'You can pick Slack or email under Settings → Notifications and the choice is saved, but nudges aren’t built yet, so nothing is sent.',
   },
 ];

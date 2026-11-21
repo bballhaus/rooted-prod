@@ -255,6 +255,9 @@ function ProfileMenu() {
               <li>
                 <Link to="/settings">All settings</Link>
               </li>
+              <li>
+                <Link to="/help">Help and FAQ</Link>
+              </li>
             </ul>
           </nav>
           <div className="profile-actions">
