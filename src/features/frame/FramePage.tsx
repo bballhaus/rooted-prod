@@ -105,12 +105,18 @@ export function FrameForm({
   );
 
   const [questionError, setQuestionError] = useState('');
+  const [questionLeft, setQuestionLeft] = useState(false); // shown the question nudge once they've left the field
   const [linkError, setLinkError] = useState('');
+  const [deadlineError, setDeadlineError] = useState('');
   const [dateError, setDateError] = useState('');
+  const today = toIsoDate(new Date());
+  // A date already saved on the decision may have passed; only a newly picked one must be in the future.
+  const isPast = (value: string, saved?: string) => !!value && value < today && value !== saved;
 
   const questionRef = useRef<HTMLTextAreaElement>(null);
   const linkRef = useRef<HTMLInputElement>(null);
   const reviewRef = useRef<HTMLInputElement>(null);
+  const deadlineRef = useRef<HTMLInputElement>(null);
 
   const ids = {
     question: `${uid}-question`,
@@ -121,6 +127,9 @@ export function FrameForm({
     linkError: `${uid}-link-error`,
     constraint: `${uid}-constraint`,
     deadline: `${uid}-deadline`,
+    deadlineHint: `${uid}-deadline-hint`,
+    deadlineError: `${uid}-deadline-error`,
+    questionHint: `${uid}-question-hint`,
     review: `${uid}-review`,
     reviewHint: `${uid}-review-hint`,
     dateError: `${uid}-date-error`,
@@ -180,6 +189,18 @@ export function FrameForm({
     }
     setQuestionError('');
 
+    // Past dates would make a new decision overdue the moment it's saved.
+    if (isPast(deadline, existing?.deadline)) {
+      setDeadlineError(`This date has passed. Pick today (${formatDate(today)}) or later, or leave it empty.`);
+      deadlineRef.current?.focus();
+      return;
+    }
+    setDeadlineError('');
+    if (isPast(reviewDate, existing?.reviewDate)) {
+      setDateError(`This date has passed. Pick a review date after today (${formatDate(today)}).`);
+      reviewRef.current?.focus();
+      return;
+    }
     if (deadline && reviewDate && reviewDate < deadline) {
       setDateError('Pick a review date on or after the deadline, so there is an outcome to record.');
       reviewRef.current?.focus();
@@ -235,6 +256,9 @@ export function FrameForm({
     navigate(`/decisions/${decisionId}/work`);
   }
 
+  // A soft nudge, not a block: "pricing" is a topic, and a question gets a better brief.
+  const notQuestion = questionLeft && question.trim().length > 0 && !/[?？]\s*$/.test(question.trim());
+
   return (
     <div className={embedded ? 'stack frame' : 'page page-narrow frame'}>
       {embedded ? (
@@ -282,16 +306,24 @@ export function FrameForm({
                 setQuestion(e.target.value);
                 if (questionError && e.target.value.trim()) setQuestionError('');
               }}
+              onBlur={() => setQuestionLeft(true)}
               placeholder="Should we gate SSO behind the Team plan?"
               aria-required="true"
               aria-invalid={questionError ? 'true' : undefined}
-              aria-describedby={questionError ? ids.questionError : undefined}
+              aria-describedby={questionError ? ids.questionError : notQuestion ? ids.questionHint : undefined}
               rows={2}
             />
-            {questionError && (
+            {questionError ? (
               <p id={ids.questionError} role="alert" className="error frame-error">
                 {questionError}
               </p>
+            ) : (
+              notQuestion && (
+                <p id={ids.questionHint} className="hint">
+                  Try phrasing it as a question, like “Should we …?” or “This or that?”. Rooted finds better evidence for a
+                  clear question.
+                </p>
+              )
             )}
           </div>
           <div className="grid-2">
@@ -299,12 +331,26 @@ export function FrameForm({
               <label htmlFor={ids.deadline}>Deadline (optional)</label>
               <input
                 id={ids.deadline}
+                ref={deadlineRef}
                 type="date"
                 className="input"
+                min={existing?.deadline && existing.deadline < today ? existing.deadline : today}
                 value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
+                onChange={(e) => {
+                  setDeadline(e.target.value);
+                  setDeadlineError('');
+                }}
+                aria-invalid={deadlineError ? 'true' : undefined}
+                aria-describedby={deadlineError ? `${ids.deadlineHint} ${ids.deadlineError}` : ids.deadlineHint}
               />
-              <span className="hint">When you need to make the call.</span>
+              <span id={ids.deadlineHint} className="hint">
+                When you need to make the call.
+              </span>
+              {deadlineError && (
+                <p id={ids.deadlineError} role="alert" className="error frame-error">
+                  {deadlineError}
+                </p>
+              )}
             </div>
             <div className="field">
               <label htmlFor={ids.review}>Review date</label>
@@ -313,8 +359,12 @@ export function FrameForm({
                 ref={reviewRef}
                 type="date"
                 className="input"
+                min={existing?.reviewDate && existing.reviewDate < today ? existing.reviewDate : today}
                 value={reviewDate}
-                onChange={(e) => setReviewDate(e.target.value)}
+                onChange={(e) => {
+                  setReviewDate(e.target.value);
+                  setDateError('');
+                }}
                 aria-invalid={dateError ? 'true' : undefined}
                 aria-describedby={dateError ? `${ids.reviewHint} ${ids.dateError}` : ids.reviewHint}
               />

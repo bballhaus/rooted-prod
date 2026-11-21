@@ -483,9 +483,38 @@ a.pill {
   opacity: 0.55;
 }
 
+/* Errors read differently from hints: dusty red, bold, with a "!" badge, so
+   colour is never the only signal. The badge is hidden from screen readers;
+   role="alert" already announces the message. */
 .error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
   font-size: 14px;
   font-weight: 600;
+  color: var(--alert);
+}
+
+.error::before {
+  content: '!' / '';
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--alert);
+  color: var(--alert-fg);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.input[aria-invalid='true'],
+.textarea[aria-invalid='true'],
+.select[aria-invalid='true'] {
+  border-color: var(--alert);
 }
 
 .checkbox {
