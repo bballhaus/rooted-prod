@@ -692,7 +692,7 @@ function EvidenceChip({ item }: { item: ContextItem }) {
         {item.sourceLabel}
       </button>
       <span id={tipId} role="tooltip" className={`options-tip${open ? ' options-tip-open' : ''}`}>
-        “{item.snippet}”<span className="options-tip-meta">{[item.author, item.date].filter(Boolean).join(', ')}</span>
+        “{item.snippet}”<span className="options-tip-meta">{[item.author, formatDate(item.date)].filter(Boolean).join(', ')}</span>
       </span>
     </span>
   );
