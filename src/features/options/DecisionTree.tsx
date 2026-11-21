@@ -226,6 +226,9 @@ export function DecisionTree({
   );
 }
 
+// Effort and Evidence share a first letter, so the bars get short words.
+const BAR_KEY: Record<CriterionKey, string> = { impact: 'Imp', effort: 'Eff', risk: 'Risk', evidence: 'Evid' };
+
 function CriteriaBars({ criteria, score }: { criteria?: Criteria; score: number }) {
   if (!criteria) return <span className="options-node-meta">{score ? `Rough score ${score}` : 'Not rated'}</span>;
   return (
@@ -236,8 +239,8 @@ function CriteriaBars({ criteria, score }: { criteria?: Criteria; score: number 
           className="options-node-bar"
           title={`${k.short}: ${criteria[k.key] ?? '–'} of 5. ${k.hint}.`}
         >
-          {/* The first letter names the bar without the legend. */}
-          <span className="options-node-bar-key">{k.short[0]}</span>
+          {/* A short name on each bar, so it reads without the legend. */}
+          <span className="options-node-bar-key">{BAR_KEY[k.key]}</span>
           <span className="options-node-bar-track">
             <span className="options-node-bar-fill" style={{ width: `${((criteria[k.key] ?? 0) / 5) * 100}%` }} />
           </span>

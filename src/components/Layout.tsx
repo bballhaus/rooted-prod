@@ -75,7 +75,10 @@ function Shell() {
               <SearchBox />
               <div className="row header-actions">
                 <Link to="/decisions/new" className="btn header-new">
-                  New<span className="header-new-more"> decision</span>
+                  {/* One inline label, so the space before "decision" survives the flex layout. */}
+                  <span>
+                    New<span className="header-new-more"> decision</span>
+                  </span>
                 </Link>
                 <InboxMenu />
                 <ProfileMenu />
