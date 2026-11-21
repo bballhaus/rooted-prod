@@ -275,6 +275,20 @@
   overflow-y: auto;
 }
 
+/* On narrow screens a panel opened from the bell or the avatar would hang
+   off the left edge. It opens under the whole header instead, inset from
+   the right edge of the screen. */
+@media (max-width: 880px) {
+  .site-header .popover {
+    position: static;
+  }
+
+  .site-header .popover-panel {
+    right: 16px;
+    top: calc(100% + 4px);
+  }
+}
+
 .inbox {
   padding: 16px;
   display: grid;
