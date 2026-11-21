@@ -194,7 +194,7 @@ describe('Home dashboard', () => {
 describe('Needs you and the inbox', () => {
   it('F-16: the rail lists outcomes due, each with its next step, and the inbox badge counts them', () => {
     renderApp('/');
-    expect(screen.getByRole('button', { name: 'Inbox, 2 due' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Inbox, \d+ items, 2 due$/ })).toBeInTheDocument();
     const due = within(screen.getByRole('region', { name: /^Due/ }));
     expect(due.getByText('Should onboarding use a checklist or a guided tour?')).toBeInTheDocument();
     expect(due.getByText(/Outcome overdue since Oct 15, 2026/)).toBeInTheDocument();
@@ -231,8 +231,12 @@ describe('Needs you and the inbox', () => {
 
   it('the inbox opens from the bell and lists everything that needs the PM', async () => {
     const { user } = renderApp('/');
-    await user.click(screen.getByRole('button', { name: 'Inbox, 2 due' }));
+    const bell = screen.getByRole('button', { name: /^Inbox, \d+ items, 2 due$/ });
+    await user.click(bell);
     const inbox = screen.getByRole('heading', { name: 'Inbox' }).parentElement!;
+    // The badge counts what the inbox lists, not just what's due.
+    expect(bell.querySelector('.badge')).toHaveTextContent(String(within(inbox).getAllByRole('listitem').length));
+    expect(bell).toHaveAccessibleName(`Inbox, ${within(inbox).getAllByRole('listitem').length} items, 2 due`);
     expect(within(inbox).getAllByText('Outcome due')).toHaveLength(2);
     expect(within(inbox).getAllByText(/Rooted suggests/).length).toBe(3);
     expect(within(inbox).getAllByText(/Suggested link/).length).toBe(3);
@@ -240,6 +244,19 @@ describe('Needs you and the inbox', () => {
 });
 
 describe('Header and footer', () => {
+  it('F-17: “/” or Ctrl+K jumps to search, but typing “/” in a field stays in the field', async () => {
+    const { user } = renderApp('/');
+    const search = screen.getByRole('searchbox', { name: 'Search or ask about decisions' });
+    await user.keyboard('/');
+    expect(search).toHaveFocus();
+    expect(search).toHaveValue('');
+    search.blur();
+    await user.keyboard('{Control>}k{/Control}');
+    expect(search).toHaveFocus();
+    await user.type(search, 'a/b');
+    expect(search).toHaveValue('a/b');
+  });
+
   it('settings and sign out live in the profile menu; help lives in the footer', async () => {
     const { user } = renderApp('/');
     expect(screen.queryByRole('link', { name: 'Settings' })).not.toBeInTheDocument();

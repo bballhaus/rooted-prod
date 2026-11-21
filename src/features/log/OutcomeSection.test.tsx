@@ -32,7 +32,7 @@ describe('Outcome', () => {
       metrics: 'Activation 31% → 38%',
     });
     // Once logged, it's no longer due: the inbox badge drops.
-    expect(screen.getByRole('button', { name: 'Inbox, 1 due' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Inbox, \d+ items, 1 due$/ })).toBeInTheDocument();
   });
 
   it('F-16: before the review date it says when Rooted will ask, and can be logged early', async () => {

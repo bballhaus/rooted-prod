@@ -1,7 +1,6 @@
 // The decision workspace: one page to think a decision through, with Rooted
 // docked beside it. Frame → Evidence → Options build up as sections; logging
 // happens from the options. The old step URLs redirect here.
-import { useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Stepper } from '../../components/Stepper';
 import { ownerOf } from '../../store/dashboard';
@@ -47,17 +46,6 @@ function Workspace({ decision }: { decision: Decision }) {
   const consulted = (decision.stakeholderIds ?? [])
     .map((sid) => state.teammates.find((t) => t.id === sid)?.name)
     .filter(Boolean);
-  const opened = useRef(false);
-
-  // Thinking a decision through happens with Rooted beside you, on screens wide enough for both.
-  useEffect(() => {
-    if (opened.current) return;
-    opened.current = true;
-    if (typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 881px)').matches) {
-      // Opened beside the page without taking focus, so keyboard users stay at the heading.
-      openAgent({ decisionId: decision.id }, { focus: false });
-    }
-  }, [decision.id, openAgent]);
 
   const showEvidence = decision.status !== 'framing';
   // A link straight to the options (the old /options URL) opens them even before the brief is confirmed.

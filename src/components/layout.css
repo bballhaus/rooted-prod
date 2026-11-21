@@ -12,9 +12,13 @@
   border-radius: 8px;
 }
 
-/* The page makes room for the docked agent on wide screens. */
+/* The agent opens below the header, so search, New decision and the inbox
+   stay usable. On wide screens the page makes room for it; on narrower
+   ones it lies over the page as a drawer, rather than squeezing the page
+   into a column too thin to read. */
 .shell {
   --agent-w: 400px;
+  --header-h: 69px;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -24,9 +28,13 @@
   flex: 1;
 }
 
-@media (min-width: 881px) {
+@media (min-width: 1200px) {
   .shell-agent-open {
     padding-right: var(--agent-w);
+  }
+
+  .shell-agent-open .site-header {
+    margin-right: calc(-1 * var(--agent-w));
   }
 }
 
@@ -104,7 +112,8 @@
 .header-search {
   flex: 0 1 560px;
   width: 100%;
-  min-width: 180px;
+  /* Room for a real query: "pricing" never shows as "ricing". */
+  min-width: 260px;
   position: relative;
   display: flex;
   align-items: center;
@@ -136,6 +145,54 @@
   right: 2px;
   color: var(--header-fg);
   font-weight: 600;
+}
+
+/* The "/" shortcut hint, shown until the PM types. */
+.header-search-key {
+  position: absolute;
+  right: 84px;
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid var(--header-field-border);
+  border-radius: 6px;
+  color: var(--header-muted);
+  font: inherit;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.header-search-input:focus ~ .header-search-key,
+.header-search-input:not(:placeholder-shown) ~ .header-search-key {
+  display: none;
+}
+
+/* On mid-width screens the lead and actions crowd the search: drop the
+   words that repeat what the icons say, so the field keeps its width. */
+@media (min-width: 881px) and (max-width: 1180px) {
+  .demo-badge-more,
+  .header-search-key {
+    display: none;
+  }
+
+  .header-search-ask-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .header-search-input {
+    padding-right: 52px;
+  }
+
+  .header-nav a {
+    padding: 0 10px;
+  }
 }
 
 .header-actions {
@@ -172,6 +229,13 @@
 .site-header .badge {
   background: var(--cream);
   color: var(--wine);
+}
+
+/* Something is due: the count turns dusty red, with a cream ring to lift it off the wine bar. */
+.site-header .badge-due {
+  background: var(--alert);
+  color: var(--cream);
+  box-shadow: 0 0 0 2px var(--header-bg);
 }
 
 .site-header .avatar-me {
