@@ -177,6 +177,18 @@ describe('Home dashboard', () => {
     expect(await within(rail()).findByRole('alert')).toHaveTextContent('Connect Slack again');
   });
 
+  it('F-R2: with Slack connected but no channels allowed, it says so and links to Settings', async () => {
+    const base = signedInState();
+    const live = { id: 'src-live', type: 'slack' as const, name: 'Acme Slack', connected: true, channels: [{ id: 'C1', name: '#product', memberCount: 4, allowed: false }] };
+    const ai = fakeAi();
+    const { user } = renderApp('/', { ...base, sources: [live] }, { ai });
+    await user.click(within(rail()).getByRole('button', { name: 'Check Slack for decisions' }));
+    const alert = await within(rail()).findByRole('alert');
+    expect(alert).toHaveTextContent('Slack is connected, but no channels are allowed');
+    expect(within(alert).getByRole('link', { name: 'Choose sources in Settings' })).toHaveAttribute('href', '/settings#settings-sources');
+    expect(ai.run).not.toHaveBeenCalledWith('spotDecisions', expect.anything());
+  });
+
   it('F-04: "Add a follow-up decision" starts one that builds on the picked decision', async () => {
     const { user } = await openList();
     await user.click(screen.getByRole('button', { name: /Charge per seat or per workspace/ }));

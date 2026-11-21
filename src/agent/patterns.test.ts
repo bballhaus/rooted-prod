@@ -35,7 +35,7 @@ describe('findPatterns (F-R3-05)', () => {
   it('F-R3-05: with too little history it doesn’t call Claude at all', async () => {
     const ai = fakeAi();
     const few = decisions.filter((d) => d.status !== 'decided');
-    await expect(findPatterns(ai, state, few, stats, TODAY)).rejects.toMatchObject({ code: 'nothing_to_read' });
+    await expect(findPatterns(ai, state, few, stats, TODAY)).rejects.toMatchObject({ code: 'not_enough_history' });
     expect(ai.run).not.toHaveBeenCalled();
   });
 });

@@ -14,7 +14,7 @@ import { ReportWrongAnswer } from '../../components/ReportWrongAnswer';
 import { isMine, localToday } from '../../store/dashboard';
 import { decisionStats, patternDecisions, type DecisionStats } from '../../store/patterns';
 import { useStore } from '../../store/store';
-import type { Insight } from '../../types';
+import type { AppState, Insight } from '../../types';
 import { formatDate } from '../log/format';
 import './patterns.css';
 
@@ -156,6 +156,12 @@ export function PatternsPage() {
               Found {formatDate(localToday(new Date(shown[shown.length - 1].foundAt)))}. Looking again replaces these, except the
               ones you edited.
             </p>
+            {changedSince(state, shown) && (
+              <p className="banner patterns-stale" role="status">
+                Your decisions have changed since Rooted looked, so counts in these may not match the numbers above. Look
+                again for a fresh read.
+              </p>
+            )}
             <ul className="patterns-insights">
               {shown.map((i) => (
                 <InsightCard key={i.id} insight={i} />
@@ -177,6 +183,16 @@ export function PatternsPage() {
 }
 
 // The headline numbers: four stat tiles, each a count with what it's out of.
+/** Whether a decision was started or logged, or an outcome recorded, after Rooted last looked. */
+function changedSince(state: AppState, insights: Insight[]): boolean {
+  const looked = insights.reduce((t, i) => (i.foundAt > t ? i.foundAt : t), '');
+  if (!looked) return false;
+  return (
+    state.decisions.some((d) => d.createdAt > looked || (d.loggedAt ?? '') > looked) ||
+    state.outcomes.some((o) => o.loggedAt > looked)
+  );
+}
+
 function Numbers({ stats }: { stats: DecisionStats }) {
   const o = stats.outcomes;
   const tiles = [

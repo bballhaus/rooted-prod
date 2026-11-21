@@ -34,7 +34,9 @@ export async function spotDecisions(ai: AiClient, state: AppState, now = new Dat
   const source = briefSource(state);
   const messages = source.kind === 'sample' ? sampleMessages(state) : [];
   // Nothing to read means nothing to spot; don't pay for an empty call.
-  if (source.kind === 'slack' ? source.channelIds.length === 0 : messages.length === 0) throw new AiError('nothing_to_read');
+  // Slack connected with no channels allowed is fixed in Settings, not by connecting.
+  if (source.kind === 'slack' && source.channelIds.length === 0) throw new AiError('no_channels');
+  if (source.kind === 'sample' && messages.length === 0) throw new AiError('nothing_to_read');
   const result = await ai.run<{ suggestions: Spotted[] }>('spotDecisions', {
     source,
     messages,

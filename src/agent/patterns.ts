@@ -40,7 +40,7 @@ export async function findPatterns(
   now = new Date(),
 ): Promise<Insight[]> {
   // Not enough history means nothing worth paying Claude to look at.
-  if (decisions.filter((d) => d.status === 'decided').length < MIN_DECIDED_FOR_PATTERNS) throw new AiError('nothing_to_read');
+  if (decisions.filter((d) => d.status === 'decided').length < MIN_DECIDED_FOR_PATTERNS) throw new AiError('not_enough_history');
   const result = await ai.run<{ insights: Found[] }>('findPatterns', {
     today,
     decisions: decisions.slice(0, 300).map((d) => historyOf(d, state, today)),
