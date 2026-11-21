@@ -239,6 +239,23 @@
   gap: 8px;
 }
 
+.options-card-main,
+.options-card-more {
+  gap: 8px;
+}
+
+/* The one call on the card: heavier than the actions around it. Not wine,
+   which is kept for the chosen option itself. */
+.options-choose {
+  font-weight: 600;
+  border-color: var(--ink);
+}
+
+.options-card-more {
+  padding-top: 8px;
+  border-top: 1px solid var(--card-rule);
+}
+
 .options-actions {
   gap: 16px;
 }

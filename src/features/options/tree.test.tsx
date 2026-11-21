@@ -122,6 +122,7 @@ describe('Decision tree graph', () => {
     const ai = fakeAi({ subOptions: () => new Promise((resolve) => (answer = resolve)) });
     const { user } = renderApp('/decisions/d-trial/options', state(), { ai });
     const [first, second] = top;
+    await user.click(screen.getByRole('button', { name: `More actions for ${first.label}` }));
     await user.click(screen.getByRole('button', { name: `Branch out ${first.label}` }));
     // Prune another branch before the sub-options arrive.
     await user.click(screen.getByRole('button', { name: `Prune ${second.label}` }));
@@ -148,6 +149,7 @@ describe('Decision tree graph', () => {
     const ai = fakeAi({ subOptions: { options: SUB_LABELS.map(draftOf) } });
     const { user } = renderApp('/decisions/d-trial/options', state(), { ai });
     const first = top[0];
+    await user.click(screen.getByRole('button', { name: `More actions for ${first.label}` }));
     await user.click(screen.getByRole('button', { name: `Branch out ${first.label}` }));
     expect(
       await screen.findByRole('heading', { level: 2, name: `Sub-options of “${first.label}”` }, { timeout: 3000 }),
@@ -196,6 +198,7 @@ describe('Decision tree graph', () => {
   it('F-08: the PM can edit a branch’s ratings', async () => {
     const { user } = renderApp('/decisions/d-trial/options', state());
     const label = top[0].label;
+    await user.click(screen.getByRole('button', { name: `More actions for ${label}` }));
     await user.click(screen.getByRole('button', { name: `Edit ${label}` }));
     const form = screen.getByRole('form', { name: `Edit ${label}` });
     await user.selectOptions(within(form).getByLabelText('Risk'), '5');
