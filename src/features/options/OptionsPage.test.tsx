@@ -109,6 +109,7 @@ describe('OptionsPage', () => {
 
   it('F-11: edits an option inline', async () => {
     const { user } = renderApp('/decisions/d-trial/options', stateWithOptions());
+    await user.click(within(card('Usage limit')).getByRole('button', { name: 'More actions for Usage limit' }));
     await user.click(
       within(card('Usage limit')).getByRole('button', {
         name: 'Edit Usage limit',
@@ -197,11 +198,25 @@ describe('OptionsPage', () => {
     expect(within(label.closest('.options-card') as HTMLElement).getByText(String(top))).toBeInTheDocument();
   });
 
-  it('F-11: every agent option carries a report wrong answer action', () => {
-    renderApp('/decisions/d-trial/options', stateWithOptions());
+  it('F-11: every agent option carries a report wrong answer action, one level down under More', async () => {
+    const { user } = renderApp('/decisions/d-trial/options', stateWithOptions());
     for (const c of cards()) {
+      await user.click(within(c).getByRole('button', { name: /^More actions for/ }));
       expect(within(c).getByRole('button', { name: 'Report wrong answer' })).toBeInTheDocument();
     }
+  });
+
+  it('F-11: a card leads with the call; Edit, Branch out and reports wait under More', async () => {
+    const { user } = renderApp('/decisions/d-trial/options', stateWithOptions());
+    const c = card('Usage limit');
+    expect(within(c).getByRole('button', { name: /Choose this branch/ })).toHaveClass('options-choose');
+    expect(within(c).queryByRole('button', { name: 'Edit Usage limit' })).not.toBeInTheDocument();
+    const more = within(c).getByRole('button', { name: 'More actions for Usage limit' });
+    expect(more).toHaveAttribute('aria-expanded', 'false');
+    await user.click(more);
+    expect(more).toHaveAttribute('aria-expanded', 'true');
+    expect(within(c).getByRole('button', { name: 'Edit Usage limit' })).toBeInTheDocument();
+    expect(within(c).getByRole('button', { name: 'Branch out Usage limit' })).toBeInTheDocument();
   });
 
   it('F-11: regenerate asks for confirmation before replacing edits', async () => {

@@ -100,11 +100,44 @@ describe('FramePage', () => {
   });
 
   it('F-04: saves a deadline when one is given', async () => {
+    // Relative to today: a fixed date turns into a past date as the calendar moves on.
+    const soon = toIsoDate(addDays(new Date(), 10));
     const { user } = renderFrame('/decisions/new');
     await user.type(screen.getByLabelText('Decision question'), 'Build in-app referrals now?');
-    await user.type(screen.getByLabelText('Deadline (optional)'), '2026-11-20');
+    await user.type(screen.getByLabelText('Deadline (optional)'), soon);
     await user.click(screen.getByRole('button', { name: 'Gather evidence' }));
-    expect((await savedDecision()).deadline).toBe('2026-11-20');
+    expect((await savedDecision()).deadline).toBe(soon);
+  });
+
+  it('F-04: a deadline in the past is blocked, so a new decision is never born overdue', async () => {
+    const { user } = renderFrame('/decisions/new');
+    await user.type(screen.getByLabelText('Decision question'), 'Build in-app referrals now?');
+    await user.type(screen.getByLabelText('Deadline (optional)'), '2020-01-01');
+    await user.click(screen.getByRole('button', { name: 'Gather evidence' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('This date has passed');
+    expect(screen.getByLabelText('Deadline (optional)')).toHaveFocus();
+    expect(screen.queryByTestId('probe-decision')).not.toBeInTheDocument();
+  });
+
+  it('F-04: a review date in the past is blocked', async () => {
+    const { user } = renderFrame('/decisions/new');
+    await user.type(screen.getByLabelText('Decision question'), 'Build in-app referrals now?');
+    const review = screen.getByLabelText('Review date');
+    await user.clear(review);
+    await user.type(review, '2020-02-01');
+    await user.click(screen.getByRole('button', { name: 'Gather evidence' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('This date has passed');
+    expect(review).toHaveFocus();
+    expect(screen.queryByTestId('probe-decision')).not.toBeInTheDocument();
+  });
+
+  it('F-04: a topic instead of a question gets a nudge, not a block', async () => {
+    const { user } = renderFrame('/decisions/new');
+    await user.type(screen.getByLabelText('Decision question'), 'pricing');
+    await user.tab();
+    expect(screen.getByText(/Try phrasing it as a question/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Gather evidence' }));
+    expect((await savedDecision()).question).toBe('pricing');
   });
 
   it('F-05: notes, links and constraints are saved as extra context', async () => {

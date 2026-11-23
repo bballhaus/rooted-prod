@@ -1,5 +1,5 @@
 import { screen, waitFor, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { emptyWorkspaceState } from '../../data/fixtures';
 import { STORAGE_KEY } from '../../store/store';
 import { fakeAi } from '../../test/fakeAi';
@@ -58,10 +58,6 @@ describe('Settings', () => {
   it('F-23: disconnecting a source asks for confirmation first', async () => {
     const { user } = renderApp('/settings');
     const sources = screen.getByRole('region', { name: 'Sources and access' });
-    expect(within(sources).getByRole('link', { name: 'Manage channels for Fernwave Slack' })).toHaveAttribute(
-      'href',
-      '/onboarding',
-    );
     await user.click(within(sources).getByRole('button', { name: 'Disconnect Fernwave Slack' }));
     const dialog = screen.getByRole('dialog', { name: /disconnect fernwave slack/i });
     // It says what really happens to gathered evidence.
@@ -80,10 +76,42 @@ describe('Settings', () => {
     expect(slack?.connected).toBe(false);
     expect(slack?.connectedAt).toBeUndefined();
     expect(within(sources).getAllByText('Not connected')).toHaveLength(2);
-    expect(within(sources).getByRole('link', { name: 'Connect for Fernwave Slack' })).toHaveAttribute(
+    expect(within(sources).getByRole('link', { name: 'Connect Fernwave Slack' })).toHaveAttribute(
       'href',
       '/onboarding',
     );
+  });
+
+  it('F-02: channels are managed right in Settings, without leaving for setup', async () => {
+    const { user } = renderApp('/settings');
+    const sources = screen.getByRole('region', { name: 'Sources and access' });
+    const manage = within(sources).getByRole('button', { name: 'Manage channels for Fernwave Slack' });
+    expect(manage).toHaveAttribute('aria-expanded', 'false');
+    await user.click(manage);
+    expect(manage).toHaveAttribute('aria-expanded', 'true');
+    await user.click(within(sources).getByRole('checkbox', { name: /#sales/ }));
+    expect(stored().sources[0].channels.find((c) => c.name === '#sales')?.allowed).toBe(true);
+    expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument();
+  });
+
+  it('F-23: the PM can download their decisions as a Markdown file', async () => {
+    const created: Blob[] = [];
+    vi.stubGlobal('URL', { ...URL, createObjectURL: (b: Blob) => (created.push(b), 'blob:rooted'), revokeObjectURL: () => {} });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const { user } = renderApp('/settings');
+    await user.click(screen.getByRole('button', { name: 'Download your decisions' }));
+    expect(click).toHaveBeenCalled();
+    expect(created[0].type).toBe('text/markdown');
+    const text = await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.readAsText(created[0]);
+    });
+    expect(text).toContain('# Decisions from Rooted');
+    expect(screen.getByText(/Downloaded \d+ decisions as a Markdown file/)).toBeInTheDocument();
+    click.mockRestore();
+    vi.unstubAllGlobals();
   });
 
   it('F-23: delete all data requires typing DELETE, then wipes decisions', async () => {

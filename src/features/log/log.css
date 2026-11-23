@@ -201,9 +201,36 @@
 .log-details summary {
   display: flex;
   align-items: center;
+  gap: 8px;
   min-height: 44px;
   font-weight: 600;
   cursor: pointer;
+  list-style: none;
+}
+
+.log-details summary::-webkit-details-marker {
+  display: none;
+}
+
+/* A chevron that turns when open, so a collapsed section never looks empty. */
+.log-details summary::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+
+.log-details[open] summary::before {
+  transform: rotate(45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .log-details summary::before {
+    transition: none;
+  }
 }
 
 .log-details[open] summary {

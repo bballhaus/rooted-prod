@@ -51,6 +51,65 @@ function summaryText(source: Source) {
   return `Rooted can read ${allowed} of ${total} ${n.label} ${total === 1 ? n.one : n.many}.`;
 }
 
+/** F-02: which channels or folders Rooted may read. Shared by setup and Settings. */
+export function ChannelChecklist({ source }: { source: Source }) {
+  const { dispatch } = useStore();
+  const n = sourceNouns(source);
+  const noteId = `source-${source.id}-note`;
+  const setAll = (allowed: boolean) =>
+    source.channels.forEach((c) =>
+      dispatch({ type: 'setChannelAllowed', sourceId: source.id, channelId: c.id, allowed }),
+    );
+  return (
+    <fieldset className="auth-fieldset" disabled={!source.connected} aria-describedby={noteId}>
+      <legend className="auth-legend">
+        {n.group} Rooted can read
+      </legend>
+      <p id={noteId} className="muted auth-small">
+        {source.connected
+          ? `Rooted only reads the ${n.many} you check.${
+              source.type === 'slack' ? ' Private channels and direct messages are never read.' : ''
+            }`
+          : `Connect ${source.name} to choose ${n.many}.`}
+      </p>
+      <ul className="auth-channels">
+        {source.channels.map((c) => (
+          <li key={c.id}>
+            <label className="checkbox auth-channel">
+              <input
+                type="checkbox"
+                checked={c.allowed}
+                onChange={(e) =>
+                  dispatch({
+                    type: 'setChannelAllowed',
+                    sourceId: source.id,
+                    channelId: c.id,
+                    allowed: e.target.checked,
+                  })
+                }
+              />
+              <span className="auth-channel-name">{c.name}</span>
+              {c.memberCount > 0 && (
+                <span className="muted auth-small tabular">
+                  {c.memberCount} {c.memberCount === 1 ? 'member' : 'members'}
+                </span>
+              )}
+            </label>
+          </li>
+        ))}
+      </ul>
+      <div className="row">
+        <button type="button" className="btn btn-secondary" onClick={() => setAll(true)}>
+          Allow all<span className="visually-hidden"> {n.label} {n.many}</span>
+        </button>
+        <button type="button" className="btn btn-secondary" onClick={() => setAll(false)}>
+          Allow none<span className="visually-hidden"> {n.label} {n.many}</span>
+        </button>
+      </div>
+    </fieldset>
+  );
+}
+
 function SourceCard({
   source,
   onConnect,
@@ -62,14 +121,7 @@ function SourceCard({
   onDisconnect: () => void;
   busy?: boolean;
 }) {
-  const { dispatch } = useStore();
-  const n = sourceNouns(source);
   const headingId = `source-${source.id}-title`;
-  const noteId = `source-${source.id}-note`;
-  const setAll = (allowed: boolean) =>
-    source.channels.forEach((c) =>
-      dispatch({ type: 'setChannelAllowed', sourceId: source.id, channelId: c.id, allowed }),
-    );
 
   return (
     <section className="card auth-source" aria-labelledby={headingId}>
@@ -110,52 +162,7 @@ function SourceCard({
       </div>
 
       <div className="card-section stack">
-        <fieldset className="auth-fieldset" disabled={!source.connected} aria-describedby={noteId}>
-          <legend className="auth-legend">
-            {n.group} Rooted can read
-          </legend>
-          <p id={noteId} className="muted auth-small">
-            {source.connected
-              ? `Rooted only reads the ${n.many} you check.${
-                  source.type === 'slack' ? ' Private channels and direct messages are never read.' : ''
-                }`
-              : `Connect ${source.name} to choose ${n.many}.`}
-          </p>
-          <ul className="auth-channels">
-            {source.channels.map((c) => (
-              <li key={c.id}>
-                <label className="checkbox auth-channel">
-                  <input
-                    type="checkbox"
-                    checked={c.allowed}
-                    onChange={(e) =>
-                      dispatch({
-                        type: 'setChannelAllowed',
-                        sourceId: source.id,
-                        channelId: c.id,
-                        allowed: e.target.checked,
-                      })
-                    }
-                  />
-                  <span className="auth-channel-name">{c.name}</span>
-                  {c.memberCount > 0 && (
-                    <span className="muted auth-small tabular">
-                      {c.memberCount} {c.memberCount === 1 ? 'member' : 'members'}
-                    </span>
-                  )}
-                </label>
-              </li>
-            ))}
-          </ul>
-          <div className="row">
-            <button type="button" className="btn btn-secondary" onClick={() => setAll(true)}>
-              Allow all<span className="visually-hidden"> {n.label} {n.many}</span>
-            </button>
-            <button type="button" className="btn btn-secondary" onClick={() => setAll(false)}>
-              Allow none<span className="visually-hidden"> {n.label} {n.many}</span>
-            </button>
-          </div>
-        </fieldset>
+        <ChannelChecklist source={source} />
         <p role="status" className="auth-summary">
           {summaryText(source)}
         </p>
@@ -170,7 +177,21 @@ export function DataAccessPage() {
   const location = useLocation();
   const slack = useLiveSlack();
   const [connecting, setConnecting] = useState<Source | null>(null);
+  const [confirmEmpty, setConfirmEmpty] = useState(false);
   const user = state.user;
+  // Channels Rooted may actually read: in a connected, available source, and checked.
+  const readable = state.sources
+    .filter((s) => s.connected && !s.unavailable)
+    .reduce((n, s) => n + s.channels.filter((c) => c.allowed).length, 0);
+
+  function finish() {
+    // With nothing to read, say what that means once before going on.
+    if (readable === 0 && !confirmEmpty) {
+      setConfirmEmpty(true);
+      return;
+    }
+    navigate('/');
+  }
   // What Slack's permission page sent back. Read once, then cleared from the
   // address so a refresh doesn't repeat it.
   const [returned, setReturned] = useState(() => new URLSearchParams(location.search).get('slack'));
@@ -225,12 +246,6 @@ export function DataAccessPage() {
           </span>
           Choose sources
         </li>
-        <li>
-          <span className="auth-step-n" aria-hidden="true">
-            3
-          </span>
-          Your decisions
-        </li>
       </ol>
       <div className="stack">
         {user && (
@@ -249,6 +264,18 @@ export function DataAccessPage() {
         </p>
       </div>
 
+      {state.demo && (
+        <div className="banner stack auth-tight" role="status">
+          <p>
+            <strong>You’re in the demo,</strong> so these are its sample sources, not yours.
+          </p>
+          <p>
+            <button type="button" className="btn btn-secondary" onClick={() => dispatch({ type: 'exitDemo' })}>
+              Leave the demo and set up your own
+            </button>
+          </p>
+        </div>
+      )}
       {returnMessage && (
         <p role={returned === 'connected' ? 'status' : 'alert'} className="banner">
           {returnMessage}
@@ -277,9 +304,18 @@ export function DataAccessPage() {
         ))}
       </div>
 
+      {confirmEmpty && readable === 0 && (
+        <div className="banner stack auth-tight" role="alert">
+          <p>
+            <strong>Rooted has nothing to read yet.</strong> Until you connect a source and allow at least one{' '}
+            channel, it works only from your own notes and past decisions. You can allow channels any time in
+            Settings.
+          </p>
+        </div>
+      )}
       <div className="row">
-        <button type="button" className="btn btn-lg" onClick={() => navigate('/')}>
-          Continue to Rooted
+        <button type="button" className="btn btn-lg" onClick={finish}>
+          {confirmEmpty && readable === 0 ? 'Continue without sources' : 'Continue to your decisions'}
         </button>
         <button
           type="button"

@@ -12,9 +12,12 @@
   border-radius: 8px;
 }
 
-/* The page makes room for the docked agent on wide screens. */
+/* The agent opens below the header, so search, New decision and the inbox
+   stay usable, and the page makes room for it. Its width is fluid, so on a
+   mid-width screen it takes less and the page keeps a readable column. */
 .shell {
-  --agent-w: 400px;
+  --agent-w: clamp(320px, 32vw, 400px);
+  --header-h: 69px;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -27,6 +30,10 @@
 @media (min-width: 881px) {
   .shell-agent-open {
     padding-right: var(--agent-w);
+  }
+
+  .shell-agent-open .site-header {
+    margin-right: calc(-1 * var(--agent-w));
   }
 }
 
@@ -104,7 +111,10 @@
 .header-search {
   flex: 0 1 560px;
   width: 100%;
-  min-width: 180px;
+  /* Room for a real query: "pricing" never shows as "ricing". The header
+     fits around it at every width above 880px without another breakpoint:
+     the Ask button is an icon and the demo badge is one word. */
+  min-width: 200px;
   position: relative;
   display: flex;
   align-items: center;
@@ -120,7 +130,7 @@
 
 .header-search-input {
   padding-left: 44px;
-  padding-right: 88px;
+  padding-right: 52px;
   background: var(--header-field-bg);
   border-color: var(--header-field-border);
   color: var(--header-fg);
@@ -136,6 +146,28 @@
   right: 2px;
   color: var(--header-fg);
   font-weight: 600;
+}
+
+/* The "/" shortcut hint, shown until the PM types. */
+.header-search-key {
+  position: absolute;
+  right: 50px;
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid var(--header-field-border);
+  border-radius: 6px;
+  color: var(--header-muted);
+  font: inherit;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.header-search-input:focus ~ .header-search-key,
+.header-search-input:not(:placeholder-shown) ~ .header-search-key {
+  display: none;
 }
 
 .header-actions {
@@ -174,6 +206,13 @@
   color: var(--wine);
 }
 
+/* Something is due: the count turns dusty red, with a cream ring to lift it off the wine bar. */
+.site-header .badge-due {
+  background: var(--alert);
+  color: var(--cream);
+  box-shadow: 0 0 0 2px var(--header-bg);
+}
+
 .site-header .avatar-me {
   background: var(--cream);
   color: var(--wine);
@@ -209,6 +248,20 @@
   width: min(380px, calc(100vw - 32px));
   max-height: min(70vh, 560px);
   overflow-y: auto;
+}
+
+/* On narrow screens a panel opened from the bell or the avatar would hang
+   off the left edge. It opens under the whole header instead, inset from
+   the right edge of the screen. */
+@media (max-width: 880px) {
+  .site-header .popover {
+    position: static;
+  }
+
+  .site-header .popover-panel {
+    right: 16px;
+    top: calc(100% + 4px);
+  }
 }
 
 .inbox {
@@ -322,11 +375,6 @@
   white-space: nowrap;
 }
 
-@media (max-width: 880px) {
-  .demo-badge-more {
-    display: none;
-  }
-}
 
 .site-footer {
   border-top: 1px solid var(--card-rule);
@@ -381,6 +429,29 @@
 
   .header-new {
     padding: 0 14px;
+  }
+
+  /* Touch screens have no "/" key to hint at. */
+  .header-search-key {
+    display: none;
+  }
+}
+
+/* Narrow screens: wordmark, New and the icons share one row, so the header
+   is three short rows (actions, search, Decisions/Patterns), not four. */
+@media (max-width: 880px) {
+  /* Hidden visually only, so the link is still named "New decision". */
+  .header-new-more {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .header-actions {
+    gap: 4px;
   }
 }
 

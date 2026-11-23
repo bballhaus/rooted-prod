@@ -3,7 +3,10 @@ import { Link } from 'react-router-dom';
 import { Dialog } from '../../components/Dialog';
 import { useAi } from '../../agent/AiContext';
 import { AI_ERROR_MESSAGE, errorCode } from '../../agent/client';
+import { ChannelChecklist } from '../auth/DataAccessPage';
 import { useLiveSlack } from '../auth/useSlack';
+import { localToday } from '../../store/dashboard';
+import { decisionsMarkdown } from '../../store/export';
 import { useStore } from '../../store/store';
 import type { Source, User } from '../../types';
 import './settings.css';
@@ -259,6 +262,7 @@ function SourcesSection({ sources }: { sources: Source[] }) {
   const { dispatch } = useStore();
   const slack = useLiveSlack();
   const [confirming, setConfirming] = useState<Source | null>(null);
+  const [managing, setManaging] = useState<string | null>(null);
   const [status, setStatus] = useState('');
 
   function disconnect() {
@@ -321,10 +325,24 @@ function SourcesSection({ sources }: { sources: Source[] }) {
                 </div>
                 {!s.unavailable && (
                   <div className="row">
-                    <Link to="/onboarding" className="btn btn-secondary">
-                      {s.connected ? `Manage ${unit}` : 'Connect'}
-                      <span className="visually-hidden"> for {s.name}</span>
-                    </Link>
+                    {s.connected ? (
+                      // Channels are edited right here, without leaving Settings.
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        aria-expanded={managing === s.id}
+                        aria-controls={`settings-channels-${s.id}`}
+                        onClick={() => setManaging(managing === s.id ? null : s.id)}
+                      >
+                        {managing === s.id ? 'Done' : `Manage ${unit}`}
+                        <span className="visually-hidden"> for {s.name}</span>
+                      </button>
+                    ) : (
+                      // Connecting goes through the provider's permission page and setup.
+                      <Link to="/onboarding" className="btn btn-secondary">
+                        Connect<span className="visually-hidden"> {s.name}</span>
+                      </Link>
+                    )}
                     {s.connected && (
                       <button
                         type="button"
@@ -335,6 +353,11 @@ function SourcesSection({ sources }: { sources: Source[] }) {
                         Disconnect
                       </button>
                     )}
+                  </div>
+                )}
+                {s.connected && managing === s.id && (
+                  <div id={`settings-channels-${s.id}`} className="settings-channels">
+                    <ChannelChecklist source={s} />
                   </div>
                 )}
               </li>
@@ -366,7 +389,7 @@ function SourcesSection({ sources }: { sources: Source[] }) {
 }
 
 function DataSection() {
-  const { dispatch } = useStore();
+  const { state, dispatch } = useStore();
   const ai = useAi();
   const [dialog, setDialog] = useState<'delete' | null>(null);
   const [typed, setTyped] = useState('');
@@ -375,6 +398,17 @@ function DataSection() {
   function close() {
     setDialog(null);
     setTyped('');
+  }
+
+  function download() {
+    const blob = new Blob([decisionsMarkdown(state)], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rooted-decisions-${localToday()}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setStatus(`Downloaded ${state.decisions.length} decision${state.decisions.length === 1 ? '' : 's'} as a Markdown file.`);
   }
 
   function deleteAll(e: React.FormEvent) {
@@ -400,6 +434,18 @@ function DataSection() {
         <h2 id="settings-data-title" className="settings-h2">
           Your data
         </h2>
+        <div className="settings-data-row">
+          <div className="stack settings-data-text">
+            <h3 className="settings-item-title">Download your decisions</h3>
+            <p className="settings-help">
+              One Markdown file with every decision: what you chose and why, the options you pruned and their reasons, and
+              outcomes.
+            </p>
+          </div>
+          <button type="button" className="btn btn-secondary" onClick={download}>
+            Download your decisions
+          </button>
+        </div>
         <div className="settings-data-row">
           <div className="stack settings-data-text">
             <h3 className="settings-item-title">Delete all data</h3>

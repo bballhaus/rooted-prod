@@ -50,7 +50,6 @@ function LogDecisionForm({
   const startChoice = choosable.some((o) => o.id === initialChoice) ? initialChoice! : '';
   const [choice, setChoice] = useState(startChoice);
   const [summary, setSummary] = useState(() => options.find((o) => o.id === startChoice)?.summary ?? '');
-  const [summaryTouched, setSummaryTouched] = useState(false);
   const [errors, setErrors] = useState<{ choice?: string; summary?: string }>({});
   const [step, setStep] = useState<Step>('choose');
   const [rationale, setRationale] = useState('');
@@ -114,9 +113,14 @@ function LogDecisionForm({
   const prunedWith = split ? split.notTaken.filter((o) => !rejected.includes(o)) : [];
 
   function pick(id: string) {
+    // Prefill the summary only over nothing or over the last option's own text,
+    // never over words the PM wrote.
+    const previous = options.find((o) => o.id === choice)?.summary ?? '';
+    const prefill = options.find((o) => o.id === id)?.summary ?? '';
+    const replace = !summary.trim() || summary === previous;
     setChoice(id);
-    setErrors((e) => ({ ...e, choice: undefined }));
-    if (!summaryTouched) setSummary(options.find((o) => o.id === id)?.summary ?? '');
+    if (replace) setSummary(prefill);
+    setErrors((e) => ({ choice: undefined, summary: replace && prefill.trim() ? undefined : e.summary }));
   }
 
   function startDraft(e: React.FormEvent) {
@@ -205,7 +209,6 @@ function LogDecisionForm({
             aria-invalid={errors.summary ? true : undefined}
             onChange={(e) => {
               setSummary(e.target.value);
-              setSummaryTouched(true);
               if (e.target.value.trim()) setErrors((er) => ({ ...er, summary: undefined }));
             }}
           />

@@ -65,6 +65,33 @@ describe('Patterns and trends (F-R3-05)', () => {
     expect(rooted().getByRole('button', { name: 'Look again' })).toBeInTheDocument();
   });
 
+  it('F-R3-05: insights found before the latest decisions say their counts may be out of date', async () => {
+    const state = demo();
+    const found = '2026-11-01T12:00:00.000Z';
+    const insight = { id: 'i-1', kind: 'trend' as const, title: 'November already has three.', detail: '', decisionIds: [state.decisions[0].id], foundAt: found, userEdited: false, dismissed: false };
+    renderApp('/patterns', { ...state, insights: [insight] });
+    expect(rooted().getByRole('status')).toHaveTextContent('Your decisions have changed since Rooted looked');
+  });
+
+  it('F-R3-05: planted future directions don’t make fresh insights look out of date', () => {
+    const state = demo();
+    const future = state.decisions.find((d) => d.createdAt > new Date().toISOString());
+    expect(future).toBeTruthy(); // the demo plants some ahead of today
+    const insight = { id: 'i-1', kind: 'trend' as const, title: 'Fresh.', detail: '', decisionIds: [state.decisions[0].id], foundAt: new Date().toISOString(), userEdited: false, dismissed: false };
+    renderApp('/patterns', { ...state, insights: [insight] });
+    expect(rooted().queryByText(/have changed since Rooted looked/)).not.toBeInTheDocument();
+  });
+
+  it('F-R3-05: fresh insights carry no out-of-date note', () => {
+    const state = demo();
+    // Found after every decision and outcome in the workspace.
+    const latest = [...state.decisions.flatMap((d) => [d.createdAt, d.loggedAt ?? '']), ...state.outcomes.map((o) => o.loggedAt)].sort().at(-1)!;
+    const foundAt = new Date(Date.parse(latest) + 60_000).toISOString();
+    const insight = { id: 'i-1', kind: 'trend' as const, title: 'Fresh.', detail: '', decisionIds: [state.decisions[0].id], foundAt, userEdited: false, dismissed: false };
+    renderApp('/patterns', { ...state, insights: [insight] });
+    expect(rooted().queryByText(/have changed since Rooted looked/)).not.toBeInTheDocument();
+  });
+
   it('F-08: an insight can be edited, and says it was', async () => {
     const { user } = renderApp('/patterns', demo());
     await user.click(rooted().getByRole('button', { name: 'Look for patterns' }));

@@ -22,6 +22,7 @@ export type AuthErrorCode =
   | 'link_expired'
   | 'other_browser'
   | 'cancelled'
+  | 'unfinished'
   | 'unknown';
 
 export type AuthResult = { ok: true } | { ok: false; error: AuthErrorCode };
@@ -47,6 +48,7 @@ export const AUTH_ERROR_MESSAGE: Record<AuthErrorCode, string> = {
   link_expired: 'That sign-in link has expired or was already used. Ask for a new one.',
   other_browser: 'Open the sign-in link in the same browser you asked for it from, or ask for a new link here.',
   cancelled: 'Sign-in was cancelled. You can try again whenever you’re ready.',
+  unfinished: 'Sign-in didn’t finish, so you’re not signed in yet. Try again. If it keeps happening, use another option.',
   unknown: 'Something went wrong signing you in. Try again, and if it keeps happening, report a problem from Help.',
 };
 

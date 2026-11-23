@@ -442,6 +442,13 @@ function OptionCard({
     .map((cid) => items.find((c) => c.id === cid))
     .filter((c): c is ContextItem => !!c && !c.removed && !c.flaggedInaccurate);
 
+  const [more, setMore] = useState(false);
+  const moreId = useId();
+  const canEdit = !readOnly && !editing;
+  const canBranch = !readOnly && !editing && !pruned && !blocked && subCount === 0;
+  // Branching shows its progress, so keep the menu open while it runs.
+  const hasMore = canEdit || canBranch || !mine;
+
   const classes = ['card', 'options-card'];
   if (chosen) classes.push('card-rec');
   if (pruned || blocked) classes.push('options-card-pruned');
@@ -555,59 +562,73 @@ function OptionCard({
         )}
       </div>
 
-      <div className="card-section row options-card-actions">
-        {!readOnly && !editing && !pruned && !blocked && (
-          <button type="button" className="toggle" aria-pressed={chosen} onClick={onChoose}>
-            {chosen ? 'Chosen branch' : 'Choose this branch'}
-            <span className="visually-hidden">: {option.label}</span>
-          </button>
-        )}
-        {!readOnly && !editing && (
-          <button type="button" className="btn btn-ghost" onClick={() => setEditing(true)}>
-            Edit<span className="visually-hidden"> {option.label}</span>
-          </button>
-        )}
-        {!readOnly && !editing && !pruned && (
-          <button type="button" className="btn btn-ghost" onClick={onPrune}>
-            Prune<span className="visually-hidden"> {option.label}</span>
-          </button>
-        )}
-        {!editing && (
-          <button type="button" className="btn btn-ghost" onClick={onTalk}>
-            <span className="ai-mark" aria-hidden="true">
-              ✦
-            </span>{' '}
-            Talk it through<span className="visually-hidden"> {option.label}</span>
-          </button>
-        )}
-        {subCount > 0 && (
-          <button type="button" className="btn btn-ghost" onClick={onOpenSubs}>
-            Sub-options ({subCount})<span className="visually-hidden"> of {option.label}</span>
-          </button>
-        )}
-        {!readOnly && !editing && !pruned && !blocked && subCount === 0 && (
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={onBranchOut}
-            disabled={branchBusy}
-          >
-            {branching ? 'Branching out…' : 'Branch out'}
-            <span className="visually-hidden"> {option.label}</span>
-          </button>
-        )}
-        {!readOnly && pruned && (
-          <button type="button" className="btn btn-secondary" onClick={onRestore}>
-            Restore<span className="visually-hidden"> {option.label}</span>
-          </button>
-        )}
-        {!mine && (
-          <ReportWrongAnswer
-            surface="option"
-            targetId={option.id}
-            decisionId={option.decisionId}
-            excerpt={`${option.label}: ${option.summary}`}
-          />
+      <div className="card-section stack options-card-actions">
+        {/* The call comes first; everything else is one level down, under More. */}
+        <div className="row options-card-main">
+          {!readOnly && !editing && !pruned && !blocked && (
+            <button type="button" className="toggle options-choose" aria-pressed={chosen} onClick={onChoose}>
+              {chosen ? 'Chosen branch' : 'Choose this branch'}
+              <span className="visually-hidden">: {option.label}</span>
+            </button>
+          )}
+          {!readOnly && pruned && (
+            <button type="button" className="btn btn-secondary" onClick={onRestore}>
+              Restore<span className="visually-hidden"> {option.label}</span>
+            </button>
+          )}
+          {!editing && (
+            <button type="button" className="btn btn-ghost" onClick={onTalk}>
+              <span className="ai-mark" aria-hidden="true">
+                ✦
+              </span>{' '}
+              Talk it through<span className="visually-hidden"> {option.label}</span>
+            </button>
+          )}
+          {!readOnly && !editing && !pruned && (
+            <button type="button" className="btn btn-ghost" onClick={onPrune}>
+              Prune<span className="visually-hidden"> {option.label}</span>
+            </button>
+          )}
+          {subCount > 0 && (
+            <button type="button" className="btn btn-ghost" onClick={onOpenSubs}>
+              Sub-options ({subCount})<span className="visually-hidden"> of {option.label}</span>
+            </button>
+          )}
+          {hasMore && (
+            <button
+              type="button"
+              className="btn btn-ghost options-more"
+              aria-expanded={more}
+              aria-controls={moreId}
+              onClick={() => setMore((m) => !m)}
+            >
+              More<span className="visually-hidden"> actions for {option.label}</span>
+              <span aria-hidden="true">{more ? ' ▴' : ' ▾'}</span>
+            </button>
+          )}
+        </div>
+        {hasMore && more && (
+          <div id={moreId} className="row options-card-more">
+            {canEdit && (
+              <button type="button" className="btn btn-ghost" onClick={() => setEditing(true)}>
+                Edit<span className="visually-hidden"> {option.label}</span>
+              </button>
+            )}
+            {canBranch && (
+              <button type="button" className="btn btn-ghost" onClick={onBranchOut} disabled={branchBusy}>
+                {branching ? 'Branching out…' : 'Branch out'}
+                <span className="visually-hidden"> {option.label}</span>
+              </button>
+            )}
+            {!mine && (
+              <ReportWrongAnswer
+                surface="option"
+                targetId={option.id}
+                decisionId={option.decisionId}
+                excerpt={`${option.label}: ${option.summary}`}
+              />
+            )}
+          </div>
         )}
       </div>
     </li>
@@ -671,7 +692,7 @@ function EvidenceChip({ item }: { item: ContextItem }) {
         {item.sourceLabel}
       </button>
       <span id={tipId} role="tooltip" className={`options-tip${open ? ' options-tip-open' : ''}`}>
-        “{item.snippet}”<span className="options-tip-meta">{[item.author, item.date].filter(Boolean).join(', ')}</span>
+        “{item.snippet}”<span className="options-tip-meta">{[item.author, formatDate(item.date)].filter(Boolean).join(', ')}</span>
       </span>
     </span>
   );

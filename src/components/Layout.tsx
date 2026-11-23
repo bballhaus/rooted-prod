@@ -1,7 +1,7 @@
 // The app shell: header (search and ask, new decision, inbox, profile menu),
 // footer (help, support, privacy) and the agent dock in the corner. The
 // profile menu also holds the light/dark toggle and the demo switch (0009, 0010).
-import { useEffect, useId, useState, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { AgentProvider, useAgent } from '../features/agent/AgentContext';
@@ -52,8 +52,8 @@ function Shell() {
               Rooted
             </NavLink>
             {state.demo && (
-              <span className="pill demo-badge">
-                Demo<span className="demo-badge-more"> · sample data</span>
+              <span className="pill demo-badge" title="Sample data">
+                Demo<span className="visually-hidden"> · sample data</span>
               </span>
             )}
             {!setup && (
@@ -75,7 +75,10 @@ function Shell() {
               <SearchBox />
               <div className="row header-actions">
                 <Link to="/decisions/new" className="btn header-new">
-                  New decision
+                  {/* One inline label, so the space before "decision" survives the flex layout. */}
+                  <span>
+                    New<span className="header-new-more"> decision</span>
+                  </span>
                 </Link>
                 <InboxMenu />
                 <ProfileMenu />
@@ -112,6 +115,22 @@ function SearchBox() {
   const onHome = location.pathname === '/';
   const [text, setText] = useState(onHome ? (params.get('q') ?? '') : '');
   const id = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // "/" or Ctrl/⌘+K jumps to search from anywhere, unless the PM is typing somewhere.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const typing = !!target?.closest('input, textarea, select, [contenteditable="true"]');
+      const shortcut = (e.key === '/' && !typing && !e.metaKey && !e.ctrlKey && !e.altKey) ||
+        (e.key.toLowerCase() === 'k' && (e.metaKey || e.ctrlKey));
+      if (!shortcut || document.querySelector('dialog[open]')) return;
+      e.preventDefault();
+      inputRef.current?.focus();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
 
   useEffect(() => {
     if (!onHome) setText('');
@@ -143,14 +162,19 @@ function SearchBox() {
       </span>
       <input
         id={id}
+        ref={inputRef}
         type="search"
         className="input header-search-input"
         placeholder="Search or ask about decisions"
+        aria-keyshortcuts="/ Control+K Meta+K"
         value={text}
         onChange={(e) => change(e.target.value)}
       />
-      <button type="submit" className="btn btn-ghost header-search-ask" disabled={!text.trim()}>
-        <SparkIcon size={16} /> Ask
+      <kbd className="header-search-key" aria-hidden="true">
+        /
+      </kbd>
+      <button type="submit" className="btn btn-ghost header-search-ask" disabled={!text.trim()} title="Ask Rooted">
+        <SparkIcon size={16} /> <span className="visually-hidden">Ask</span>
       </button>
     </form>
   );
@@ -160,15 +184,19 @@ function InboxMenu() {
   const { state } = useStore();
   const items = inboxItems(state, localToday());
   const due = items.filter((i) => i.due).length;
+  // The badge counts everything in the inbox, so it matches what opens; due items make it red.
+  const label = items.length
+    ? `Inbox, ${items.length} item${items.length === 1 ? '' : 's'}${due ? `, ${due} due` : ''}`
+    : 'Inbox';
   return (
     <Popover
-      label={due ? `Inbox, ${due} due` : 'Inbox'}
+      label={label}
       button={
         <>
           <BellIcon />
-          {due > 0 && (
-            <span className="badge" aria-hidden="true">
-              {due}
+          {items.length > 0 && (
+            <span className={due ? 'badge badge-due' : 'badge'} aria-hidden="true">
+              {items.length}
             </span>
           )}
         </>
@@ -229,6 +257,9 @@ function ProfileMenu() {
               </li>
               <li>
                 <Link to="/settings">All settings</Link>
+              </li>
+              <li>
+                <Link to="/help">Help and FAQ</Link>
               </li>
             </ul>
           </nav>

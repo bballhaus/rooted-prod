@@ -15,9 +15,11 @@ import './auth.css';
 const ARRIVING_KEY = 'rooted-signing-in';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function markArriving() {
+// Holds how the PM left: 'google' or 'slack' (a round trip through the
+// provider) or 'email' (a link they may open later, in another tab).
+function markArriving(via: OAuthProvider | 'email') {
   try {
-    localStorage.setItem(ARRIVING_KEY, '1');
+    localStorage.setItem(ARRIVING_KEY, via);
   } catch {
     // without storage the PM just lands on home
   }
@@ -26,7 +28,17 @@ function markArriving() {
 // Read during render, cleared in an effect: render can run twice.
 function isArriving(): boolean {
   try {
-    return localStorage.getItem(ARRIVING_KEY) === '1';
+    return localStorage.getItem(ARRIVING_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+
+/** Back from Google or Slack: only then does a missing session mean sign-in didn't finish. */
+function backFromProvider(): boolean {
+  try {
+    const via = localStorage.getItem(ARRIVING_KEY);
+    return via === 'google' || via === 'slack';
   } catch {
     return false;
   }
@@ -43,18 +55,25 @@ function clearArriving() {
 const redirectTo = () => `${window.location.origin}/signin`;
 
 export function SignInPage() {
-  const { state } = useStore();
+  const { state, dispatch } = useStore();
   const location = useLocation();
   const [tab, setTab] = useState<'signin' | 'request'>('signin');
   const signedIn = !!state.user;
+  const arriving = signedIn && isArriving();
 
   useEffect(() => {
-    if (signedIn) clearArriving();
+    if (!signedIn) return;
+    // Someone arriving from sign-in sets up their own workspace, so a demo
+    // left loaded in this browser is put away first (it's one click back).
+    if (arriving && state.demo) dispatch({ type: 'exitDemo' });
+    clearArriving();
+    // Runs once per sign-in.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signedIn]);
 
   if (signedIn) {
     const from = (location.state as { from?: string } | null)?.from;
-    return <Navigate to={isArriving() ? '/onboarding' : (from ?? '/')} replace />;
+    return <Navigate to={arriving ? '/onboarding' : (from ?? '/')} replace />;
   }
 
   return (
@@ -118,7 +137,8 @@ export function SignInPage() {
           {tab === 'signin' ? <SignIn onRequest={() => setTab('request')} /> : <RequestAccess onSignIn={() => setTab('signin')} />}
 
           <p className="muted auth-small auth-fineprint">
-            Your decisions stay in this browser. <Link to="/privacy">How Rooted handles your data</Link>
+            Your decisions are saved in this browser. What Rooted reads from the channels you allow is sent to Claude to
+            answer you. <Link to="/privacy">How Rooted handles your data</Link>
           </p>
         </div>
       </main>
@@ -135,6 +155,10 @@ function SignIn({ onRequest }: { onRequest: () => void }) {
   const [busy, setBusy] = useState<OAuthProvider | 'email' | null>(null);
   const [sentTo, setSentTo] = useState('');
   const [error, setError] = useState<AuthErrorCode | null>(() => callbackError(location.search, location.hash));
+  // Set by an earlier page that left for Google or Slack. If it's still set
+  // once the session is checked, that sign-in never finished. A pending email
+  // link isn't counted: the PM may still be waiting for it.
+  const [cameBack] = useState(backFromProvider);
 
   // A provider can send the person back here with an error after a redirect.
   useEffect(() => {
@@ -148,6 +172,14 @@ function SignIn({ onRequest }: { onRequest: () => void }) {
   useEffect(() => {
     if (checked && new URLSearchParams(location.search).has('code')) setError('other_browser');
   }, [checked, location.search]);
+
+  // Back from a provider with no session and no error in the address: say so,
+  // rather than showing the sign-in page as if nothing happened.
+  useEffect(() => {
+    if (!checked || !cameBack) return;
+    setError((e) => e ?? 'unfinished');
+    clearArriving();
+  }, [checked, cameBack]);
 
   // Coming back with the browser's Back button can restore this page as it
   // was left, mid-redirect; make the buttons usable again.
@@ -170,10 +202,11 @@ function SignIn({ onRequest }: { onRequest: () => void }) {
     if (!client) return;
     setError(null);
     setBusy(provider);
-    markArriving();
+    markArriving(provider);
     const result = await client.signInWith(provider, redirectTo());
     // On success the browser is already leaving for the provider.
     if (!result.ok) {
+      clearArriving();
       setError(result.error);
       setBusy(null);
     }
@@ -189,11 +222,14 @@ function SignIn({ onRequest }: { onRequest: () => void }) {
     }
     setError(null);
     setBusy('email');
-    markArriving();
+    markArriving('email');
     const result = await client.sendMagicLink(address, redirectTo());
     setBusy(null);
     if (result.ok) setSentTo(address);
-    else setError(result.error);
+    else {
+      clearArriving();
+      setError(result.error);
+    }
   }
 
   return (

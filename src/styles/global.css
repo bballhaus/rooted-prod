@@ -447,14 +447,21 @@ a.pill {
 
 .input,
 .textarea,
-/* Our own chevron, drawn in tokens, with room so the value never runs into it. */
 .select {
   width: 100%;
   min-height: 48px;
-  padding: 0 44px 0 18px;
+  padding: 0 18px;
   border-radius: 999px;
   border: 1px solid var(--input-border);
   background-color: var(--input-bg);
+  color: var(--ink);
+  font: inherit;
+}
+
+/* Selects only: our own chevron, drawn in tokens, with room so the value
+   never runs into it. Text fields have none, so they don't look like menus. */
+.select {
+  padding-right: 44px;
   background-image:
     linear-gradient(45deg, transparent 50%, var(--ink2) 50%),
     linear-gradient(135deg, var(--ink2) 50%, transparent 50%);
@@ -463,8 +470,6 @@ a.pill {
     right 17px center;
   background-size: 5px 5px;
   background-repeat: no-repeat;
-  color: var(--ink);
-  font: inherit;
   appearance: none;
   cursor: pointer;
 }
@@ -483,9 +488,39 @@ a.pill {
   opacity: 0.55;
 }
 
+/* Errors read differently from hints: dusty red (--alert: something needs
+   the PM), bold, with a "!" badge, so colour is never the only signal. The
+   badge is hidden from screen readers; role="alert" already announces it. */
 .error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
   font-size: 14px;
   font-weight: 600;
+  color: var(--alert);
+}
+
+.error::before {
+  content: '!' / '';
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--alert);
+  color: var(--alert-fg);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* design-language §6.4: an invalid field's border goes full-contrast ink. */
+.input[aria-invalid='true'],
+.textarea[aria-invalid='true'],
+.select[aria-invalid='true'] {
+  border-color: var(--ink);
 }
 
 .checkbox {

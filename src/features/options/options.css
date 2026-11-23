@@ -18,7 +18,13 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(var(--options-cols, 3), minmax(0, 1fr));
+  /* Up to --options-cols columns, but never narrower than 300px: on a
+     narrow page (or with Rooted docked beside it) cards wrap to fewer
+     columns instead of shrinking to one word per line. */
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(max(300px, calc((100% - (var(--options-cols, 3) - 1) * 24px) / var(--options-cols, 3))), 1fr)
+  );
   gap: 24px;
   align-items: start;
   /* Snapshot the page tokens so popovers and dialogs inside the wine card
@@ -239,6 +245,23 @@
   gap: 8px;
 }
 
+.options-card-main,
+.options-card-more {
+  gap: 8px;
+}
+
+/* The one call on the card: heavier than the actions around it. Not wine,
+   which is kept for the chosen option itself. */
+.options-choose {
+  font-weight: 600;
+  border-color: var(--ink);
+}
+
+.options-card-more {
+  padding-top: 8px;
+  border-top: 1px solid var(--card-rule);
+}
+
 .options-actions {
   gap: 16px;
 }
@@ -409,6 +432,13 @@
   flex: 1;
   display: grid;
   gap: 2px;
+}
+
+.options-node-bar-key {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--ink2);
 }
 
 .options-node-bar-track {

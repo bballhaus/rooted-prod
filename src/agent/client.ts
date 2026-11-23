@@ -38,6 +38,8 @@ export type AiErrorCode =
   | 'slack_state_mismatch'
   | 'slack_state_expired'
   | 'nothing_to_read'
+  | 'no_channels'
+  | 'not_enough_history'
   | 'network'
   | 'unknown';
 
@@ -78,6 +80,8 @@ export const AI_ERROR_MESSAGE: Record<AiErrorCode, string> = {
   slack_state_mismatch: 'That Slack connection was started from a different Rooted account, so it wasn’t saved. Connect Slack again from here.',
   slack_state_expired: 'That Slack connection took too long or was already used. Connect Slack again from here.',
   nothing_to_read: 'There’s nothing to read yet. Connect Slack and allow at least one channel first.',
+  no_channels: 'Slack is connected, but no channels are allowed, so there’s nothing to read. Choose channels in Settings.',
+  not_enough_history: 'There aren’t enough logged decisions yet to look for patterns.',
   network: 'Rooted couldn’t reach its AI service. Check your connection and try again.',
   unknown: 'Something went wrong. Try again, and report a problem from Help if it keeps happening.',
 };

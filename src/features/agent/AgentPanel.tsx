@@ -4,7 +4,7 @@
 // starts a new decision. Every answer is editable (F-08) and reportable (F-28).
 // When Claude can't answer, the reply says why and offers to ask again (0016).
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { suggestedPrompts } from '../../agent/chat';
 import { isRetryable, type AiErrorCode } from '../../agent/client';
 import { CloseIcon, SparkIcon } from '../../components/icons';
@@ -15,11 +15,18 @@ import type { ChatMessage } from '../../types';
 import { threadId, useAgent } from './AgentContext';
 import './agent.css';
 
+// The decision a page is about, from its URL, so the launcher talks about what's on screen.
+const DECISION_PATH = /^\/decisions\/(?!new\b)([^/]+)/;
+
 export function AgentLauncher() {
   const { open, openAgent } = useAgent();
+  const { state } = useStore();
+  const location = useLocation();
   if (open) return null;
+  const id = DECISION_PATH.exec(location.pathname)?.[1];
+  const scope = id && state.decisions.some((d) => d.id === id) ? { decisionId: id } : {};
   return (
-    <button type="button" className="agent-launcher" aria-label="Ask Rooted" onClick={() => openAgent()}>
+    <button type="button" className="agent-launcher" aria-label="Ask Rooted" onClick={() => openAgent(scope)}>
       <SparkIcon size={24} />
     </button>
   );

@@ -15,6 +15,33 @@ def test_chat_keeps_only_citations_of_decisions_that_were_sent():
     assert out == {"text": "Because.", "citations": ["d-2"]}
 
 
+def test_chat_names_decisions_by_their_question_never_their_id():
+    payload = {"question": "Missing?", "decisions": [{"id": "d-pricing-seats", "question": "Per seat?"}, {"id": "d-pricing-seats-v2", "question": "Again?"}]}
+    out = TASKS["chat"].check({"text": "See (d-pricing-seats) and `d-pricing-seats-v2`; not xd-pricing-seats.", "citations": []}, payload)
+    assert out["text"] == "See “Per seat?” and “Again?”; not xd-pricing-seats."
+    ends = TASKS["chat"].check({"text": "It builds on d-pricing-seats.", "citations": []}, payload)
+    assert ends["text"] == "It builds on “Per seat?”"
+
+
+def test_chat_drops_a_bracket_only_when_it_closes_around_the_id():
+    payload = {"question": "?", "decisions": [{"id": "d-1", "question": "Per seat?"}]}
+    out = TASKS["chat"].check({"text": "(see d-1) for details", "citations": []}, payload)
+    assert out["text"] == "(see “Per seat?”) for details"
+
+
+def test_chat_keeps_a_backslash_in_a_question_as_text():
+    payload = {"question": "?", "decisions": [{"id": "d-1", "question": r"Ship \d or \1?"}]}
+    out = TASKS["chat"].check({"text": "See d-1", "citations": []}, payload)
+    assert out["text"] == r"See “Ship \d or \1?”"
+
+
+def test_chat_sends_the_decision_in_scope_with_its_options():
+    options = [{"option": "Annual discount", "summary": "2 months free"}]
+    payload = {"question": "Cheapest?", "scope": {"decisionQuestion": "Drive expansion?"}, "decisions": [{"id": "d-1", "question": "Drive expansion?", "inScope": True, "options": options}]}
+    prompt = TASKS["chat"].build(payload)
+    assert "Annual discount" in prompt and "inScope" in prompt
+
+
 def test_chat_rejects_an_empty_answer():
     with pytest.raises(BadAnswer):
         TASKS["chat"].check({"text": "  ", "citations": []}, {"decisions": []})

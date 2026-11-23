@@ -12,6 +12,7 @@ import { Dialog } from '../../components/Dialog';
 import { ReportWrongAnswer } from '../../components/ReportWrongAnswer';
 import { newId, useStore } from '../../store/store';
 import type { ContextItem, ContextOrigin, Decision, Gap } from '../../types';
+import { formatDate } from '../log/format';
 import './brief.css';
 
 // Today's local calendar date, so a note added in the evening isn't dated tomorrow.
@@ -351,7 +352,7 @@ function ContextCard({ item }: { item: ContextItem }) {
         </h4>
         <span className="muted">
           {item.author ? `${item.author} · ` : ''}
-          <time dateTime={item.date}>{item.date}</time>
+          <time dateTime={item.date}>{formatDate(item.date)}</time>
         </span>
         <span className="pill">{ORIGIN_LABELS[item.origin]}</span>
         {item.flaggedInaccurate && <span className="pill brief-flag">Marked wrong</span>}

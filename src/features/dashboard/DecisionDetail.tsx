@@ -58,7 +58,7 @@ export function DecisionDetail({ decision, today, onClose }: { decision: Decisio
     <aside className="detail card" aria-labelledby={titleId}>
       <div className="detail-head">
         <p className={status === 'outcome-due' ? 'kicker due-label' : 'kicker'}>
-          {decision.speculative ? 'Direction to explore' : MAP_STATUS_LABEL[status]}
+          {MAP_STATUS_LABEL[status]}
           {decision.metric && <span className="pill detail-metric">{decision.metric}</span>}
         </p>
         <button type="button" className="icon-btn" aria-label="Close details" onClick={onClose}>

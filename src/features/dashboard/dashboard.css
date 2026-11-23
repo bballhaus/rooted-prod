@@ -905,6 +905,10 @@
   background: var(--ochre);
 }
 
+.map-dot-exploring {
+  background: var(--alive-dot);
+}
+
 .map-dot-decided {
   background: var(--ink2);
 }
@@ -1126,7 +1130,8 @@
   .dash-dock {
     position: fixed;
     left: 12px;
-    right: 12px;
+    /* Clear of the agent launcher (16px in, 56px wide). */
+    right: 84px;
   }
 
   .dash-filters-fields {
@@ -1135,7 +1140,8 @@
 
   .dash-list {
     position: static;
-    padding: 64px var(--gutter) 96px;
+    /* Room below the last row for the dock, which wraps to two rows on a phone. */
+    padding: 64px var(--gutter) 160px;
   }
 
   .dash-stage-detail .dash-list {

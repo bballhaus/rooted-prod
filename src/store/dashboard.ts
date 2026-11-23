@@ -16,9 +16,13 @@ export function addDaysIso(iso: string, days: number): string {
   return localToday(d);
 }
 
-export type MapStatus = 'open' | 'decided' | 'outcome-due' | 'outcome-logged';
+// One status per decision, used by every view (Tree, Timeline, List, filters,
+// the detail panel), so a decision never reads differently from one to the next.
+export type MapStatus = 'exploring' | 'open' | 'decided' | 'outcome-due' | 'outcome-logged';
 
 export const MAP_STATUS_LABEL: Record<MapStatus, string> = {
+  // A planted demo direction (0009): not work anyone has under way.
+  exploring: 'Direction to explore',
   open: 'In progress',
   decided: 'Decided',
   'outcome-due': 'Outcome due',
@@ -26,10 +30,20 @@ export const MAP_STATUS_LABEL: Record<MapStatus, string> = {
 };
 
 export function mapStatus(d: Decision, state: Pick<AppState, 'outcomes'>, today: string): MapStatus {
+  if (d.speculative && d.status !== 'decided') return 'exploring';
   if (d.status !== 'decided') return 'open';
-  if (state.outcomes.some((o) => o.decisionId === d.id)) return 'outcome-logged';
+  if (loopClosed(d, state)) return 'outcome-logged';
   if (d.reviewDate && d.reviewDate <= today) return 'outcome-due';
   return 'decided';
+}
+
+/**
+ * An outcome closes the loop, except "too early to tell": then Rooted asks
+ * again on the new review date the PM picked.
+ */
+export function loopClosed(d: Decision, state: Pick<AppState, 'outcomes'>): boolean {
+  const outcome = state.outcomes.find((o) => o.decisionId === d.id);
+  return !!outcome && outcome.result !== 'too-early';
 }
 
 /** Decisions without an owner predate teammates; they belong to the signed-in PM. */

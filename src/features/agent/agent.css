@@ -26,7 +26,7 @@
 
 .agent-panel {
   position: fixed;
-  top: 0;
+  top: var(--header-h, 0px);
   right: 0;
   bottom: 0;
   z-index: 40;
@@ -164,7 +164,9 @@
 }
 
 @media (max-width: 880px) {
+  /* A full-screen sheet on phones; the wrapped header is taller there. */
   .agent-panel {
+    top: 0;
     width: 100%;
   }
 

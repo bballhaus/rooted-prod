@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { demoUser, seedState } from '../data/fixtures';
 import type { AppState } from '../types';
-import { addDaysIso, inboxItems, mapStatus, ownerOf, visibleLinks, workspaceTags } from './dashboard';
+import { addDaysIso, inboxItems, MAP_STATUS_LABEL, mapStatus, ownerOf, visibleLinks, workspaceTags } from './dashboard';
 
 const TODAY = '2026-10-31';
 
@@ -18,6 +18,23 @@ describe('mapStatus', () => {
     expect(mapStatus(byId(s, 'd-pricing-seats'), s, TODAY)).toBe('decided');
     expect(mapStatus(byId(s, 'd-activation-metric'), s, TODAY)).toBe('outcome-logged');
     expect(mapStatus(byId(s, 'd-trial-card'), s, TODAY)).toBe('open');
+  });
+
+  it('F-16: “too early to tell” leaves the loop open: due again on the new review date', () => {
+    const s = state();
+    const d = { ...byId(s, 'd-pricing-seats'), reviewDate: '2026-11-20' };
+    const early = { ...s, outcomes: [{ id: 'o', decisionId: d.id, result: 'too-early' as const, summary: '', metrics: '', loggedAt: '2026-10-30' }] };
+    expect(mapStatus(d, early, TODAY)).toBe('decided');
+    expect(mapStatus(d, early, '2026-11-20')).toBe('outcome-due');
+    const worked = { ...s, outcomes: [{ ...early.outcomes[0], result: 'worked' as const }] };
+    expect(mapStatus(d, worked, '2026-11-20')).toBe('outcome-logged');
+  });
+
+  it('a planted direction reads the same in every view: a direction to explore, not in progress', () => {
+    const s = state();
+    const planted = { ...byId(s, 'd-trial-card'), speculative: true };
+    expect(mapStatus(planted, s, TODAY)).toBe('exploring');
+    expect(MAP_STATUS_LABEL[mapStatus(planted, s, TODAY)]).toBe('Direction to explore');
   });
 });
 

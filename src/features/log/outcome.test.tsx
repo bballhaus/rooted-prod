@@ -1,8 +1,16 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import { renderApp, signedInState } from '../../test/render';
 
 const section = () => screen.getByRole('region', { name: 'Outcome' });
+
+// The fixtures' review dates are fixed (d-pricing-seats: Nov 20, 2026), so the
+// clock is too; on the real one the "not due yet" case expires.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-10-31T12:00:00'));
+});
+afterEach(() => vi.useRealTimers());
 
 describe('Outcome (F-16)', () => {
   it('a recorded outcome is shown with its metrics and can be edited', () => {

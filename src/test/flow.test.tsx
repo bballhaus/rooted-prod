@@ -29,7 +29,7 @@ it('F-01–F-28: walks sign in → onboarding → map → frame → brief → op
 
   // F-02, F-03: choose what Rooted can see.
   expect(await screen.findByRole('heading', { level: 1, name: /choose what rooted can see/i })).toBeInTheDocument();
-  await user.click(screen.getByRole('button', { name: /continue to rooted/i }));
+  await user.click(screen.getByRole('button', { name: /continue to your decisions/i }));
 
   // F-17: home is the decision map, with "Needs you" open beside it: what's due and what to decide.
   expect(await screen.findByRole('heading', { level: 1, name: 'Decisions' })).toBeInTheDocument();

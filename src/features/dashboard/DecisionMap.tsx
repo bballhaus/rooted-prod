@@ -120,7 +120,7 @@ function DecisionNode({ data, selected }: NodeProps<Node<DecisionData>>) {
       <button
         type="button"
         className="map-node-hit"
-        aria-label={`${d.question}, ${d.speculative ? 'direction to explore' : MAP_STATUS_LABEL[data.status]}${data.traced && !selected ? ', on the picked decision’s path' : ''}`}
+        aria-label={`${d.question}, ${MAP_STATUS_LABEL[data.status].toLowerCase()}${data.traced && !selected ? ', on the picked decision’s path' : ''}`}
         aria-pressed={!!selected}
         onClick={() => data.onOpen(d.id)}
       />
@@ -132,7 +132,7 @@ function DecisionNode({ data, selected }: NodeProps<Node<DecisionData>>) {
           <p className="map-node-meta" aria-hidden="true">
             <span className={`map-dot map-dot-${data.status}`} aria-hidden="true" />
             <span className={data.status === 'outcome-due' ? 'due-label' : undefined}>
-              {d.speculative ? 'Direction to explore' : MAP_STATUS_LABEL[data.status]}
+              {MAP_STATUS_LABEL[data.status]}
             </span>
           </p>
           <p className="map-node-q" aria-hidden="true">
@@ -154,7 +154,7 @@ function DecisionNode({ data, selected }: NodeProps<Node<DecisionData>>) {
           <p className="map-node-meta" aria-hidden="true">
             <span className={`map-dot map-dot-${data.status}`} aria-hidden="true" />
             <span className={data.status === 'outcome-due' ? 'due-label' : undefined}>
-              {d.speculative ? 'Direction to explore' : MAP_STATUS_LABEL[data.status]}
+              {MAP_STATUS_LABEL[data.status]}
             </span>
             <span aria-hidden="true">·</span>
             <span className="tabular">{formatDate(decisionDate(d))}</span>

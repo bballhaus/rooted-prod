@@ -1,5 +1,5 @@
 import { screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { fakeAi } from '../../test/fakeAi';
 import { sampleOptions } from '../../test/options';
 import { STORAGE_KEY } from '../../store/store';
@@ -29,6 +29,17 @@ function withOptions(): AppState {
 }
 
 describe('Decision workspace', () => {
+  it('F-12: Rooted’s chat stays closed until the PM opens it, then talks about this decision', async () => {
+    // A wide screen, where the chat used to open by itself.
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('min-width'), media: q, addEventListener() {}, removeEventListener() {} }));
+    const { user } = renderApp('/decisions/d-trial/work', withOptions());
+    expect(screen.queryByRole('textbox', { name: /Ask Rooted/i })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Ask Rooted' }));
+    expect(await screen.findByRole('textbox', { name: /Ask Rooted/i })).toBeInTheDocument();
+    expect(screen.getAllByText(trial.question).length).toBeGreaterThan(1); // the panel names it too
+    vi.unstubAllGlobals();
+  });
+
   it('F-04, F-06, F-10: frame, evidence and options are sections of one page', () => {
     renderApp('/decisions/d-trial/work', withOptions());
     expect(screen.getByRole('heading', { level: 1, name: trial.question })).toBeInTheDocument();

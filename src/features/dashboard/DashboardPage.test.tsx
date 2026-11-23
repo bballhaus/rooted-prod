@@ -177,6 +177,18 @@ describe('Home dashboard', () => {
     expect(await within(rail()).findByRole('alert')).toHaveTextContent('Connect Slack again');
   });
 
+  it('F-R2: with Slack connected but no channels allowed, it says so and links to Settings', async () => {
+    const base = signedInState();
+    const live = { id: 'src-live', type: 'slack' as const, name: 'Acme Slack', connected: true, channels: [{ id: 'C1', name: '#product', memberCount: 4, allowed: false }] };
+    const ai = fakeAi();
+    const { user } = renderApp('/', { ...base, sources: [live] }, { ai });
+    await user.click(within(rail()).getByRole('button', { name: 'Check Slack for decisions' }));
+    const alert = await within(rail()).findByRole('alert');
+    expect(alert).toHaveTextContent('Slack is connected, but no channels are allowed');
+    expect(within(alert).getByRole('link', { name: 'Choose sources in Settings' })).toHaveAttribute('href', '/settings#settings-sources');
+    expect(ai.run).not.toHaveBeenCalledWith('spotDecisions', expect.anything());
+  });
+
   it('F-04: "Add a follow-up decision" starts one that builds on the picked decision', async () => {
     const { user } = await openList();
     await user.click(screen.getByRole('button', { name: /Charge per seat or per workspace/ }));
@@ -194,7 +206,7 @@ describe('Home dashboard', () => {
 describe('Needs you and the inbox', () => {
   it('F-16: the rail lists outcomes due, each with its next step, and the inbox badge counts them', () => {
     renderApp('/');
-    expect(screen.getByRole('button', { name: 'Inbox, 2 due' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Inbox, \d+ items, 2 due$/ })).toBeInTheDocument();
     const due = within(screen.getByRole('region', { name: /^Due/ }));
     expect(due.getByText('Should onboarding use a checklist or a guided tour?')).toBeInTheDocument();
     expect(due.getByText(/Outcome overdue since Oct 15, 2026/)).toBeInTheDocument();
@@ -231,8 +243,12 @@ describe('Needs you and the inbox', () => {
 
   it('the inbox opens from the bell and lists everything that needs the PM', async () => {
     const { user } = renderApp('/');
-    await user.click(screen.getByRole('button', { name: 'Inbox, 2 due' }));
+    const bell = screen.getByRole('button', { name: /^Inbox, \d+ items, 2 due$/ });
+    await user.click(bell);
     const inbox = screen.getByRole('heading', { name: 'Inbox' }).parentElement!;
+    // The badge counts what the inbox lists, not just what's due.
+    expect(bell.querySelector('.badge')).toHaveTextContent(String(within(inbox).getAllByRole('listitem').length));
+    expect(bell).toHaveAccessibleName(`Inbox, ${within(inbox).getAllByRole('listitem').length} items, 2 due`);
     expect(within(inbox).getAllByText('Outcome due')).toHaveLength(2);
     expect(within(inbox).getAllByText(/Rooted suggests/).length).toBe(3);
     expect(within(inbox).getAllByText(/Suggested link/).length).toBe(3);
@@ -240,6 +256,19 @@ describe('Needs you and the inbox', () => {
 });
 
 describe('Header and footer', () => {
+  it('F-17: “/” or Ctrl+K jumps to search, but typing “/” in a field stays in the field', async () => {
+    const { user } = renderApp('/');
+    const search = screen.getByRole('searchbox', { name: 'Search or ask about decisions' });
+    await user.keyboard('/');
+    expect(search).toHaveFocus();
+    expect(search).toHaveValue('');
+    search.blur();
+    await user.keyboard('{Control>}k{/Control}');
+    expect(search).toHaveFocus();
+    await user.type(search, 'a/b');
+    expect(search).toHaveValue('a/b');
+  });
+
   it('settings and sign out live in the profile menu; help lives in the footer', async () => {
     const { user } = renderApp('/');
     expect(screen.queryByRole('link', { name: 'Settings' })).not.toBeInTheDocument();
@@ -378,6 +407,14 @@ describe('Decision canvas', () => {
     renderApp('/', demo());
     expect(within(rail()).getByRole('link', { name: /drive expansion revenue/ })).toBeInTheDocument();
     expect(within(rail()).queryByRole('link', { name: /usage-based pricing/ })).not.toBeInTheDocument();
+  });
+
+  it('a planted direction has the same status in the List as on the Tree', async () => {
+    const { user } = renderApp('/', demo());
+    await user.click(screen.getByRole('button', { name: 'List' }));
+    const row = screen.getByRole('button', { name: /usage-based pricing/i });
+    expect(within(row).getByText('Direction to explore')).toBeInTheDocument();
+    expect(within(row).queryByText('In progress')).not.toBeInTheDocument();
   });
 
   it('F-19: picking a decision lights up everything it built on and led to, and fades the rest', () => {

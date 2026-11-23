@@ -1,7 +1,7 @@
 // F-16: what happened. On or after the review date (or any time before, if the
 // PM already knows), they record a result, a short summary and the metrics.
 import { useId, useState, type FormEvent } from 'react';
-import { localToday } from '../../store/dashboard';
+import { addDaysIso, localToday, loopClosed } from '../../store/dashboard';
 import { newId, useStore } from '../../store/store';
 import type { Decision, Outcome } from '../../types';
 import { formatDate } from './format';
@@ -11,12 +11,21 @@ export function OutcomeSection({ decision }: { decision: Decision }) {
   const { state, dispatch } = useStore();
   const existing = state.outcomes.find((o) => o.decisionId === decision.id);
   const today = localToday();
-  const due = !existing && !!decision.reviewDate && decision.reviewDate <= today;
+  // "Too early to tell" leaves the loop open until the next review date.
+  const open = !loopClosed(decision, state);
+  const due = open && !!decision.reviewDate && decision.reviewDate <= today;
   const [editing, setEditing] = useState(due);
   const [result, setResult] = useState<Outcome['result'] | ''>(existing?.result ?? '');
   const [summary, setSummary] = useState(existing?.summary ?? '');
   const [metrics, setMetrics] = useState(existing?.metrics ?? '');
   const [error, setError] = useState('');
+  // Editing a "too early" outcome keeps the date already picked; otherwise 30 days out.
+  const [recheck, setRecheck] = useState(() =>
+    existing?.result === 'too-early' && decision.reviewDate && decision.reviewDate > today
+      ? decision.reviewDate
+      : addDaysIso(today, 30),
+  );
+  const [recheckError, setRecheckError] = useState('');
   const uid = useId();
 
   function submit(e: FormEvent) {
@@ -24,6 +33,13 @@ export function OutcomeSection({ decision }: { decision: Decision }) {
     if (!result) {
       setError('Pick how it turned out.');
       return;
+    }
+    if (result === 'too-early' && !(recheck > today)) {
+      setRecheckError('Pick a date after today, so Rooted can ask again.');
+      return;
+    }
+    if (result === 'too-early') {
+      dispatch({ type: 'updateDecision', decisionId: decision.id, patch: { reviewDate: recheck } });
     }
     dispatch({
       type: 'logOutcome',
@@ -37,6 +53,7 @@ export function OutcomeSection({ decision }: { decision: Decision }) {
       },
     });
     setError('');
+    setRecheckError('');
     setEditing(false);
   }
 
@@ -57,7 +74,12 @@ export function OutcomeSection({ decision }: { decision: Decision }) {
               <strong>{RESULT_LABEL[existing.result]}.</strong> {existing.summary}
             </p>
             {existing.metrics && <p className="muted">Metrics: {existing.metrics}</p>}
-            <p className="muted outcome-when">Logged {formatDate(existing.loggedAt)}</p>
+            <p className="muted outcome-when">
+              Logged {formatDate(existing.loggedAt)}
+              {existing.result === 'too-early' && decision.reviewDate && !due && (
+                <> · Rooted will ask again on {formatDate(decision.reviewDate)}</>
+              )}
+            </p>
             <p>
               <button type="button" className="btn btn-secondary" onClick={() => setEditing(true)}>
                 Edit outcome
@@ -106,6 +128,29 @@ export function OutcomeSection({ decision }: { decision: Decision }) {
                 </p>
               )}
             </fieldset>
+            {result === 'too-early' && (
+              <div className="field">
+                <label htmlFor={`${uid}-recheck`}>When should Rooted ask again?</label>
+                <input
+                  id={`${uid}-recheck`}
+                  type="date"
+                  className="input outcome-recheck"
+                  min={addDaysIso(today, 1)}
+                  value={recheck}
+                  onChange={(e) => {
+                    setRecheck(e.target.value);
+                    setRecheckError('');
+                  }}
+                  aria-invalid={recheckError ? 'true' : undefined}
+                  aria-describedby={recheckError ? `${uid}-recheck-error` : undefined}
+                />
+                {recheckError && (
+                  <p id={`${uid}-recheck-error`} role="alert" className="error">
+                    {recheckError}
+                  </p>
+                )}
+              </div>
+            )}
             <div className="field">
               <label htmlFor={`${uid}-summary`}>What happened</label>
               <textarea
